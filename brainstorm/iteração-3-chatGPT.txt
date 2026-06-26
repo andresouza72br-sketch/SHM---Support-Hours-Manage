@@ -1,0 +1,344 @@
+chat: "tenho duvidas como usar opencode + speckit"
+
+
+Essa é uma ótima dúvida, porque muita gente instala o OpenCode e o SpecKit e acaba usando os dois de forma errada.
+
+Na prática, o **SpecKit não é uma ferramenta de geração de código**. Ele é uma metodologia para transformar uma ideia em especificações estruturadas que os agentes de IA conseguem implementar com muito mais precisão.
+
+A forma que eu recomendaria para o seu projeto é:
+
+# Fluxo correto
+
+## Etapa 1 - Produto
+
+Você faz exatamente o que estamos fazendo agora.
+
+Exemplo:
+
+```text
+Quero um sistema de controle de horas técnicas.
+
+Existe Cliente.
+Existe Contrato.
+Existe Pedido.
+Existe Ciclo.
+Existe Tarefa.
+Existe Controle de Horas.
+```
+
+Ainda sem pensar em código.
+
+---
+
+## Etapa 2 - Especificação de Negócio
+
+No SpecKit você cria algo parecido com:
+
+```text
+Feature: Gestão de Contratos
+
+Objetivo:
+Controlar horas contratadas pelos clientes.
+
+Atores:
+- Administrador
+- Gestor Cliente
+
+Regras:
+- Contrato possui horas contratadas.
+- Contrato possui vigência.
+- Contrato pode receber saldo herdado.
+```
+
+---
+
+## Etapa 3 - Histórias de Usuário
+
+Exemplo:
+
+```text
+Como gestor do cliente
+
+Quero visualizar meu saldo de horas
+
+Para acompanhar o consumo do contrato.
+```
+
+---
+
+Outro exemplo:
+
+```text
+Como técnico
+
+Quero registrar horas em uma tarefa
+
+Para contabilizar o esforço realizado.
+```
+
+---
+
+## Etapa 4 - Critérios de Aceite
+
+Exemplo:
+
+```text
+Dado um contrato de 100 horas
+
+Quando um ciclo consumir 10 horas
+
+Então o saldo deverá ser 90 horas.
+```
+
+---
+
+## Etapa 5 - Modelo de Dados
+
+Somente agora.
+
+Exemplo:
+
+```text
+Cliente
+
+id
+nome
+cnpj
+status
+```
+
+```text
+Contrato
+
+id
+cliente_id
+horas_contratadas
+horas_consumidas
+saldo
+```
+
+---
+
+# Onde entra o OpenCode?
+
+Somente depois.
+
+Você entrega a especificação pronta.
+
+Exemplo:
+
+```text
+Leia a documentação da pasta docs/specs.
+
+Implemente:
+
+- Django
+- PostgreSQL
+- DRF
+
+Comece pela entidade Cliente.
+
+Crie:
+
+- model
+- serializer
+- viewset
+- migration
+- testes
+```
+
+Aí o OpenCode trabalha muito melhor.
+
+---
+
+# O erro que quase todo mundo comete
+
+Fazer isso:
+
+```text
+Crie um sistema de controle de horas.
+```
+
+Resultado:
+
+* banco errado
+* entidades erradas
+* regras esquecidas
+* retrabalho
+
+---
+
+# Como eu faria no seu projeto
+
+Estrutura do repositório:
+
+```text
+project/
+
+docs/
+
+  vision.md
+
+  business-rules.md
+
+  entities.md
+
+  user-stories.md
+
+  workflows.md
+
+  acceptance-criteria.md
+
+backend/
+
+frontend/
+```
+
+---
+
+## vision.md
+
+Visão do produto.
+
+---
+
+## entities.md
+
+Cliente
+
+Contrato
+
+Pedido
+
+Ciclo
+
+Tarefa
+
+Comentário
+
+Usuário
+
+---
+
+## business-rules.md
+
+Todas as regras.
+
+Exemplo:
+
+```text
+BR-001
+
+Somente cliente pode dar aceite final.
+```
+
+```text
+BR-002
+
+Horas consumidas são calculadas pelas horas realizadas.
+```
+
+```text
+BR-003
+
+Contrato pode receber saldo de contrato anterior.
+```
+
+---
+
+## workflows.md
+
+Fluxo completo:
+
+```text
+Pedido
+
+↓
+
+Análise
+
+↓
+
+Orçamento
+
+↓
+
+Aprovação
+
+↓
+
+Execução
+
+↓
+
+Aceite
+
+↓
+
+Encerramento
+```
+
+---
+
+## user-stories.md
+
+Todas as histórias.
+
+---
+
+# O que pedir ao OpenCode
+
+Nunca peça:
+
+```text
+Crie o sistema inteiro.
+```
+
+Peça:
+
+```text
+Leia docs/entities.md.
+
+Implemente a entidade Cliente.
+
+Crie:
+
+- Model
+- Migration
+- Serializer
+- API
+- Testes
+```
+
+Depois:
+
+```text
+Agora implemente Contrato.
+```
+
+Depois:
+
+```text
+Implemente Pedido.
+```
+
+E assim por diante.
+
+---
+
+# Minha recomendação prática
+
+Para o seu SaaS, eu faria primeiro **8 documentos SpecKit**:
+
+1. Visão do Produto
+2. Glossário
+3. Entidades
+4. Regras de Negócio
+5. Fluxos
+6. Histórias de Usuário
+7. Critérios de Aceite
+8. Arquitetura Técnica
+
+Quando esses 8 documentos estiverem prontos, o OpenCode + DeepSeek consegue gerar algo próximo de 70%–85% do sistema com muito menos retrabalho.
+
+O próximo passo que eu faria é montar o **Glossário de Domínio**, porque ele vai definir formalmente o significado de "Pedido", "Ciclo", "Tarefa", "Contrato", "Saldo", "Horas Estimadas" e "Horas Realizadas", que são os conceitos centrais do sistema. Isso evita inconsistências durante toda a implementação.

@@ -1,0 +1,717 @@
+chat: "quero que aja como um consultor sênior  para projetos de app/software em fase de concepção, têm que ajudar no brainstorm inicial para modelar um app/sistemas, basicamente vou colar abaixo "meu brainstorm" e vamos evoluindo essa ideia inicial até terminarmos um planejamento "1.0" para frontend, funcionalidades/historias, regras de negocio, infraestrutura/bacend, ok? já vou colar meu brainstorm aqui abaixo:
+
+app Controle de Horas Técnicas de Suporte
+
+
+Sistema de empresa de software para controle de horas técnicas para contratos de suporte técnico com clientes
+
+-> Cadastrar o Cliente
+-> Cadastrar contratos de clientes: horas contratadas
+-> Cadastrar pedidos de suporte
+-> workflow: pedido do cliente -> análise do pedido pela empresa e orçamento em horas -> autorização do cliente -> empresa executa -> empresa pede aceite -> cliente dá aceite e encerra o ciclo
+
+Nota: um pedido do cliente pode "virar" quantos ciclos/contextos forem "reais" ou seja necessários, pois o cliente na maioria das vezes mistura assuntos/contextos no pedido, durante a análise a empresa quando devolve o orçamento, o orçamento é organizado por ciclo/contexto cada um com suas horas totais estimadas, de tarefas previstas, durante a execução as tarefas podem ser ajustadas as horas e/ou podem ter mais tarefas.
+
+-> cada solicitação do cliente que termina: é deduzido das horas contratadas as horas orçadas.
+-> o orçamento em horas é uma estimativa, no decorrer do workflow pode aumentar ou reduzir horas
+-> no orçamento, chama-se ciclo de por ex. Manutenção Preventiva, ou Manutenção Corretiva, ou Manutenção Evolutiva, ou pedido de Análise, ou Pedido de Treinamento/consultoria, para um determinado "contexto", o que se vai fazer para o "contexto" são um conjunto de tarefas que possuem horas horas estimadas, o ciclo é calculado ao termino somando as horas realizadas. Existem horas estimadas e realizadas.
+
+Ciclos podem ter comentários de usuários: do cliente e da empresa prestadora do suporte.
+
+O aceite é sempre do ciclo/contexto, com seu conjunto de tarefas estimadas e logo  executadas/concluidas
+
+Ter um relatório do periodo do contrato e seus ciclos e o controle de horas do contrato
+
+o controle de saldo é por contrato
+
+pedidos podem ser feitos durante uma vigência do contrato, saldos remanescentes podem ser utilizados nos proximos 30 dias ou transferidos para se juntar a um novo contrato. Isso é para que o cliente tenha sempre uma organização para renovação de contratos, bom para o cliente e bom para a empresa ter novos contratos/continuidade dos serviços
+
+resumindo: um contrato cadastrado tem as horas contratadas e pode ter mais horas somadas vindas de saldos remanecentes, de um ou mais contratos anteriores.
+
+cada contrato encerrado tem um relatorio detalhado da sua "vigência"
+
+ter um dashboard emxudo para o cliente acompanhar os pedidos e o saldo de horas de contrato(s)
+
+o sistema vai ter login e autenticação para um ou mais usuários de cada cliente
+
+quem cadastra o contrato é a empresa prestadora do serviço
+
+pedidos podem ser abertos pelo cliente ou pela empresa prestadora de serviços
+
+ao final de um ciclo somente o cliente dá o aceite final
+
+logo que o pedido entra em execução, somente a empresa prestadora altera pedidos, suas tarefas, suas horas, etc.
+
+durante todo um ciclo, tem que o cliente ou a empresa prestadora fazer comentários "temporais" ou seja durante todo o ciclo podem ser feitos comentários para registros necessários durante a execução.
+
+autenticação segura
+banco de dados postgress
+em pythos/html/javascript
+bonito e funcional, tem que trazer "clareza" para os contratos dos clientes e clareza dos serviços de suporte/manutenções de sistemas executados.
+"
+
+--
+
+Excelente ponto de partida. Vou assumir aqui o papel de arquiteto de produto + analista de negócios + arquiteto de software para transformarmos esse brainstorm em uma especificação funcional 1.0.
+
+A primeira coisa que percebo é que você está descrevendo algo muito próximo de uma mistura de:
+
+* Help Desk
+* Gestão de Contratos
+* Controle de Horas Técnicas
+* Workflow de Aprovação
+* Portal do Cliente
+
+O diferencial do sistema não é o chamado em si.
+
+O diferencial é:
+
+> Controle transparente de horas contratadas x horas consumidas através de ciclos de execução aprovados pelo cliente.
+
+Isso deve ser o centro do produto.
+
+---
+
+# 1. VISÃO DO PRODUTO
+
+## Nome provisório
+
+Support Hours Manager (SHM)
+
+ou
+
+TechHours
+
+ou
+
+Contract Support Manager (CSM)
+
+---
+
+# Problema que resolve
+
+Hoje empresas de software fazem suporte assim:
+
+* Cliente envia e-mail
+* Empresa responde
+* Horas são controladas em planilhas
+* Contratos ficam espalhados
+* Não existe histórico organizado
+* Cliente questiona consumo de horas
+
+O sistema resolve:
+
+* Transparência
+* Controle
+* Histórico
+* Aprovação formal
+* Renovação de contratos
+
+---
+
+# 2. ATORES DO SISTEMA
+
+## Empresa Prestadora
+
+Pode possuir:
+
+### Administrador
+
+* cria clientes
+* cria contratos
+* cria usuários
+* acompanha tudo
+
+### Gestor de Suporte
+
+* analisa pedidos
+* cria ciclos
+* aprova execução
+
+### Técnico
+
+* executa tarefas
+* lança horas
+* comenta
+
+---
+
+## Cliente
+
+### Gestor do Cliente
+
+* abre pedidos
+* aprova ciclos
+* acompanha saldo
+* dá aceite final
+
+### Usuário Cliente
+
+* abre pedidos
+* comenta pedidos
+
+---
+
+# 3. MODELO CONCEITUAL
+
+Percebi que sua estrutura correta não é:
+
+Pedido → Tarefa
+
+Mas sim:
+
+Pedido → Ciclo → Tarefa
+
+---
+
+# Entidade Pedido
+
+Exemplo:
+
+Pedido #2026-001
+
+"Precisamos ajustar emissão de boletos, corrigir relatório financeiro e treinar equipe."
+
+O pedido é apenas uma entrada.
+
+---
+
+# Entidade Ciclo
+
+Durante análise:
+
+Pedido gera:
+
+Ciclo 1
+Tipo: Corretiva
+
+Contexto:
+Erro na emissão de boletos
+
+---
+
+Ciclo 2
+Tipo: Evolutiva
+
+Contexto:
+Melhoria relatório financeiro
+
+---
+
+Ciclo 3
+Tipo: Consultoria
+
+Contexto:
+Treinamento da equipe
+
+Cada ciclo terá:
+
+* orçamento
+* aprovação
+* execução
+* aceite
+
+independente.
+
+Isso é uma excelente decisão de negócio.
+
+---
+
+# Entidade Tarefa
+
+Dentro do ciclo:
+
+Tarefa 1
+
+Analisar regra tributária
+
+Estimado:
+2 horas
+
+Realizado:
+3 horas
+
+---
+
+Tarefa 2
+
+Implementar correção
+
+Estimado:
+5 horas
+
+Realizado:
+4 horas
+
+---
+
+# 4. WORKFLOW PRINCIPAL
+
+## Status Pedido
+
+ABERTO
+
+↓
+
+EM ANÁLISE
+
+↓
+
+AGUARDANDO APROVAÇÃO
+
+↓
+
+EM EXECUÇÃO
+
+↓
+
+CONCLUÍDO
+
+↓
+
+ENCERRADO
+
+---
+
+## Status Ciclo
+
+CRIADO
+
+↓
+
+ORÇADO
+
+↓
+
+AGUARDANDO APROVAÇÃO
+
+↓
+
+APROVADO
+
+↓
+
+EM EXECUÇÃO
+
+↓
+
+AGUARDANDO ACEITE
+
+↓
+
+ACEITO
+
+↓
+
+ENCERRADO
+
+---
+
+## Fluxo Completo
+
+Cliente abre pedido
+
+↓
+
+Empresa analisa
+
+↓
+
+Empresa cria ciclos
+
+↓
+
+Empresa estima horas
+
+↓
+
+Cliente aprova
+
+↓
+
+Empresa executa
+
+↓
+
+Empresa conclui
+
+↓
+
+Cliente dá aceite
+
+↓
+
+Horas consumidas
+
+↓
+
+Contrato atualizado
+
+---
+
+# 5. REGRA MAIS IMPORTANTE DO SISTEMA
+
+Precisamos definir isso agora.
+
+Você escreveu:
+
+> ao final de um ciclo somente é deduzido das horas contratadas
+
+Mas também escreveu:
+
+> horas podem variar durante execução
+
+Existem duas opções.
+
+---
+
+## Opção A
+
+Consome horas realizadas
+
+Exemplo:
+
+Estimado = 10
+
+Executado = 7
+
+Consome 7
+
+---
+
+## Opção B
+
+Consome horas aprovadas
+
+Estimado = 10
+
+Executado = 7
+
+Consome 10
+
+---
+
+Minha recomendação:
+
+✔ Consumir horas realizadas.
+
+É mais justo e mais comercialmente defensável.
+
+---
+
+# 6. CONTRATOS
+
+## Campos
+
+Número
+
+Cliente
+
+Data início
+
+Data fim
+
+Horas contratadas
+
+Horas herdadas
+
+Horas totais
+
+Horas consumidas
+
+Saldo
+
+Status
+
+---
+
+## Exemplo
+
+Contrato A
+
+100 horas
+
+Consumiu 80
+
+Saldo 20
+
+Fim da vigência
+
+↓
+
+Contrato B
+
+100 horas
+
+*
+
+20 herdadas
+
+=
+
+120 horas disponíveis
+
+---
+
+# 7. CONTROLE DE SALDOS
+
+Sugiro criar uma entidade específica.
+
+## Banco
+
+SaldoTransferido
+
+id
+
+contrato_origem
+
+contrato_destino
+
+horas_transferidas
+
+data
+
+motivo
+
+---
+
+Isso evita inconsistências futuras.
+
+---
+
+# 8. COMENTÁRIOS
+
+Você acertou em exigir histórico temporal.
+
+Implementar estilo timeline.
+
+---
+
+Comentário
+
+Autor
+
+Data
+
+Hora
+
+Tipo:
+
+* comentário
+* dúvida
+* aprovação
+* rejeição
+* sistema
+
+---
+
+Exemplo:
+
+12/06/2026 14:05
+
+Cliente:
+
+"Aguardando retorno."
+
+---
+
+13/06/2026 10:22
+
+Sistema:
+
+"Ciclo aprovado."
+
+---
+
+# 9. DASHBOARD CLIENTE
+
+Tela principal:
+
+## Card 1
+
+Horas Disponíveis
+
+120h
+
+---
+
+## Card 2
+
+Horas Consumidas
+
+84h
+
+---
+
+## Card 3
+
+Saldo
+
+36h
+
+---
+
+## Card 4
+
+Pedidos Abertos
+
+7
+
+---
+
+## Card 5
+
+Ciclos em Aprovação
+
+2
+
+---
+
+## Card 6
+
+Ciclos em Execução
+
+4
+
+---
+
+# 10. DASHBOARD EMPRESA
+
+## Indicadores
+
+Clientes ativos
+
+Contratos ativos
+
+Horas contratadas
+
+Horas consumidas
+
+Horas disponíveis
+
+Pedidos em atraso
+
+Ciclos aguardando aprovação
+
+Ciclos aguardando aceite
+
+---
+
+# 11. RELATÓRIOS
+
+## Relatório Contrato
+
+Período
+
+Horas contratadas
+
+Horas consumidas
+
+Horas herdadas
+
+Saldo
+
+Lista de ciclos
+
+---
+
+## Relatório Cliente
+
+Todos os contratos
+
+Histórico
+
+Consumo mensal
+
+---
+
+## Relatório Técnico
+
+Horas lançadas
+
+Por período
+
+Por cliente
+
+Por contrato
+
+---
+
+# 12. TECNOLOGIA 1.0
+
+Eu faria:
+
+## Backend
+
+Python
+
+Framework:
+
+Django
+
+porque já entrega:
+
+* autenticação
+* permissões
+* admin
+* ORM
+* segurança
+
+---
+
+## Banco
+
+PostgreSQL
+
+---
+
+## Frontend
+
+Opção mais rápida:
+
+* Django Templates
+* HTMX
+* JavaScript
+
+Menor custo.
+
+---
+
+Opção mais moderna:
+
+* React
+* Django REST API
+
+Mais escalável.
+
+---
+
+# 13. MVP 1.0
+
+Se fosse lançar em 60 dias, eu faria apenas:
+
+### Módulo Clientes
+
+### Módulo Contratos
+
+### Módulo Pedidos
+
+### Módulo Ciclos
+
+### Módulo Tarefas
+
+### Timeline de Comentários
+
+### Dashboard Cliente
+
+### Dashboard Empresa
+
+### Relatórios PDF
+
+### Controle de Saldo
+
+Nada além disso.
+
+---
+
+Minha avaliação: sua ideia já está em aproximadamente 70% do nível necessário para iniciar modelagem de banco e UX. O próximo passo ideal é criarmos o documento **"Domínio de Negócio 1.0"**, definindo todas as entidades, atributos, relacionamentos e regras de negócio detalhadas antes de desenhar telas ou banco de dados. Isso evita retrabalho e normalmente economiza semanas de desenvolvimento.
