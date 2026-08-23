@@ -1,50 +1,31 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# SHM (Support Hours Manager) Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Layered Architecture & Thin Views (NON-NEGOTIABLE)
+- All business logic, hours calculations, contract balance mutations, and state transitions MUST live strictly within the service layer (`shm/services/`).
+- Django Models hold schema, constraints, and simple properties. Django Views/HTMX handlers only parse requests, invoke services, and return responses or HTML fragments.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Auditability & Financial Immutability
+- Contract balance changes, hours deductions, transfers (`SaldoTransferido`), and cycle acceptances are immutable financial records.
+- Soft-deletes and append-only audit event logs MUST be used for contracts, requests, cycles, and hours records. Hard deletions of operational history are prohibited.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Test-Driven Balance & State Integrity (TDD Mandatory)
+- Every business rule involving balance deductions, negative balances, rollovers, cycle state transitions, and user permissions MUST have automated test coverage.
+- Edge cases (e.g., zero balance, negative balance rollover, expired contract transfer attempts, unauthorized acceptance) must have dedicated test suites.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Modern Server-Driven UI (Django + HTMX + Tailwind)
+- Frontend is server-rendered via Django Templates and enhanced dynamically with HTMX and Alpine.js.
+- UI responses return clean, semantic HTML partials with explicit OOB (out-of-band) swap targets when updating multi-component dashboards (e.g., refreshing both task list and balance badge).
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Strict Typing and Code Quality
+- Python code MUST use type hints on all public service functions, models, and forms.
+- Code formatting and linting enforced via `ruff` and type-checked with `mypy`.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Governance & Compliance
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- **Framework**: Django 5.x / Python 3.12+ / PostgreSQL 16+ / HTMX 2.x.
+- **Roles & Permissions**: Multi-tenant data segregation per client; strict role-based access control (Admin, Support Manager, Tech for Provider; Manager, Standard User for Client).
+- **Amendments**: Any change to balance calculation rules or workflow states requires explicit documentation update in `docs/specs/` and a corresponding test suite update.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
-
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
-
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-23
