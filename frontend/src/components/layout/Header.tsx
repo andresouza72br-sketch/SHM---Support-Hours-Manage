@@ -4,7 +4,7 @@ import { Bell, LogOut, Clock } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
-import type { Contrato } from '../../types'
+import type { Contrato, Notification } from '../../types'
 
 interface HeaderProps {
   contratoSelecionado?: number | null
@@ -18,13 +18,15 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
   const queryClient = useQueryClient()
   const [showNotifs, setShowNotifs] = useState(false)
 
-  const { data: notificacoes = [] } = useQuery({
+  const { data: rawNotifs } = useQuery({
     queryKey: ['notificacoes'],
     queryFn: clientService.notificacoes.list,
     refetchInterval: 30000,
   })
 
+  const notificacoes: Notification[] = Array.isArray(rawNotifs) ? rawNotifs : []
   const naoLidas = notificacoes.filter((n) => !n.lida)
+  const listaContratos: Contrato[] = Array.isArray(contratos) ? contratos : []
 
   const marcarLidaMutation = useMutation({
     mutationFn: clientService.notificacoes.marcarLida,
@@ -46,7 +48,7 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
             <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">2.0</span>
           </Link>
 
-          {onSelectContrato && contratos.length > 0 && (
+          {onSelectContrato && listaContratos.length > 0 && (
             <div className="hidden sm:flex items-center gap-2">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Contrato:</span>
               <select
@@ -55,7 +57,7 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
                 className="text-sm bg-slate-50 border border-slate-300 rounded-md px-3 py-1.5 font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Todos os Contratos</option>
-                {contratos.map((c) => (
+                {listaContratos.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.numero} — Saldo: {c.saldo}h
                   </option>

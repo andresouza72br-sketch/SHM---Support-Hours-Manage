@@ -16,7 +16,7 @@ const COLUNAS: { id: StatusPedido; titulo: string; cor: string; bg: string }[] =
   { id: 'concluido', titulo: 'Concluídos', cor: 'border-emerald-400', bg: 'bg-emerald-50/40' },
 ]
 
-export function KanbanBoard({ pedidosPorStatus, isLoading }: KanbanBoardProps) {
+export function KanbanBoard({ pedidosPorStatus = {}, isLoading }: KanbanBoardProps) {
   const navigate = useNavigate()
 
   return (
@@ -37,7 +37,8 @@ export function KanbanBoard({ pedidosPorStatus, isLoading }: KanbanBoardProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 items-start overflow-x-auto pb-4">
         {COLUNAS.map((col) => {
-          const pedidos = pedidosPorStatus[col.id] || []
+          const colData = pedidosPorStatus ? pedidosPorStatus[col.id] : []
+          const pedidos = Array.isArray(colData) ? colData : []
           return (
             <div
               key={col.id}
@@ -54,9 +55,9 @@ export function KanbanBoard({ pedidosPorStatus, isLoading }: KanbanBoardProps) {
 
               <div className="space-y-3 flex-1">
                 {pedidos.map((p) => {
-                  const ciclos = p.ciclos_resumo || []
-                  const totalHorasRealizadas = ciclos.reduce((acc, c) => acc + (c.horas_realizadas || 0), 0)
-                  const totalHorasEstimadas = ciclos.reduce((acc, c) => acc + (c.horas_estimadas || 0), 0)
+                  const ciclos = Array.isArray(p.ciclos_resumo) ? p.ciclos_resumo : []
+                  const totalHorasRealizadas = ciclos.reduce((acc, c) => acc + (Number(c.horas_realizadas) || 0), 0)
+                  const totalHorasEstimadas = ciclos.reduce((acc, c) => acc + (Number(c.horas_estimadas) || 0), 0)
 
                   return (
                     <div
@@ -89,7 +90,7 @@ export function KanbanBoard({ pedidosPorStatus, isLoading }: KanbanBoardProps) {
 
                       <div className="text-[11px] text-slate-500 mb-3 flex items-center justify-between">
                         <span>{p.contrato_numero}</span>
-                        <span>{new Date(p.criado_em).toLocaleDateString('pt-BR')}</span>
+                        <span>{p.criado_em ? new Date(p.criado_em).toLocaleDateString('pt-BR') : '-'}</span>
                       </div>
 
                       {ciclos.length > 0 && (

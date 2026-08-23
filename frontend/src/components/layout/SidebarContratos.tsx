@@ -8,18 +8,20 @@ interface SidebarContratosProps {
   onSelectContrato: (id: number | null) => void
 }
 
-export function SidebarContratos({ contratos, contratoSelecionado, onSelectContrato }: SidebarContratosProps) {
+export function SidebarContratos({ contratos = [], contratoSelecionado, onSelectContrato }: SidebarContratosProps) {
+  const listaContratos = Array.isArray(contratos) ? contratos : []
+
   return (
     <aside className="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col p-4 shrink-0 overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Contratos Ativos</h2>
         <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">
-          {contratos.length}
+          {listaContratos.length}
         </span>
       </div>
 
       <div className="space-y-3">
-        {contratos.map((c) => {
+        {listaContratos.map((c) => {
           const isSelected = contratoSelecionado === c.id
           const totalHoras = Number(c.horas_contratadas) || 1
           const saldo = Number(c.saldo) || 0

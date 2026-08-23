@@ -8,6 +8,13 @@ export const api = axios.create({
   },
 })
 
+// Helper to normalize DRF paginated { count, results: [] } or raw arrays []
+function normalizeArray<T>(data: any): T[] {
+  if (Array.isArray(data)) return data
+  if (data && Array.isArray(data.results)) return data.results
+  return []
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('shm_access_token')
   if (token && config.headers) {
@@ -27,16 +34,17 @@ api.interceptors.response.use(
         try {
           const res = await axios.post('/api/v1/auth/token/refresh/', { refresh: refreshToken })
           localStorage.setItem('shm_access_token', res.data.access)
-          originalRequest.headers.Authorization = `Bearer ${res.data.access}`
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${res.data.access}`
+          }
           return api(originalRequest)
         } catch {
           localStorage.removeItem('shm_access_token')
           localStorage.removeItem('shm_refresh_token')
-          window.location.href = '/login'
         }
       } else {
         localStorage.removeItem('shm_access_token')
-        window.location.href = '/login'
+        localStorage.removeItem('shm_refresh_token')
       }
     }
     return Promise.reject(error)
@@ -50,12 +58,12 @@ export const clientService = {
     me: () => api.get('/auth/me/').then((r) => r.data),
   },
   contratos: {
-    list: () => api.get<Contrato[]>('/contratos/').then((r) => r.data),
+    list: () => api.get<any>('/contratos/').then((r) => normalizeArray<Contrato>(r.data)),
     get: (id: number) => api.get<Contrato>(`/contratos/${id}/`).then((r) => r.data),
     extrato: (id: number) => api.get(`/contratos/${id}/extrato/`).then((r) => r.data),
   },
   pedidos: {
-    list: (params?: Record<string, any>) => api.get<Pedido[]>('/pedidos/', { params }).then((r) => r.data),
+    list: (params?: Record<string, any>) => api.get<any>('/pedidos/', { params }).then((r) => normalizeArray<Pedido>(r.data)),
     kanban: (contratoId?: number) =>
       api.get<Record<string, Pedido[]>>('/pedidos/kanban/', { params: { contrato: contratoId } }).then((r) => r.data),
     get: (id: number) => api.get<Pedido>(`/pedidos/${id}/`).then((r) => r.data),
@@ -85,13 +93,13 @@ export const clientService = {
     delete: (id: number) => api.delete(`/tarefas/${id}/`).then((r) => r.data),
   },
   comunicacao: {
-    list: (cicloId: number) => api.get<Comentario[]>(`/comunicacao/comentarios/?ciclo=${cicloId}`).then((r) => r.data),
+    list: (cicloId: number) => api.get<any>(`/comunicacao/comentarios/?ciclo=${cicloId}`).then((r) => normalizeArray<Comentario>(r.data)),
     create: (data: { ciclo: number; texto: string }) => api.post<Comentario>('/comunicacao/comentarios/', data).then((r) => r.data),
     converterEmTarefa: (id: string, data: { descricao: string; horas_estimadas: number }) =>
       api.post(`/comunicacao/comentarios/${id}/converter_em_tarefa/`, data).then((r) => r.data),
   },
   notificacoes: {
-    list: () => api.get<Notification[]>('/notificacoes/notificacoes/').then((r) => r.data),
+    list: () => api.get<any>('/notificacoes/notificacoes/').then((r) => normalizeArray<Notification>(r.data)),
     marcarLida: (id: number) => api.post(`/notificacoes/notificacoes/${id}/marcar_lida/`).then((r) => r.data),
     marcarTodasLidas: () => api.post('/notificacoes/notificacoes/marcar_todas_lidas/').then((r) => r.data),
   },
