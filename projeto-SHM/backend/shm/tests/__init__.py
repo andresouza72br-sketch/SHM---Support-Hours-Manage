@@ -1,1 +1,0 @@
-"""SHM test suite package."""
