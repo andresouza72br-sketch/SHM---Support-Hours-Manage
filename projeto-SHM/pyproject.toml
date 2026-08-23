@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shm"
+version = "0.1.0"
+description = "Support Hours Manager - SaaS para controle de horas técnicas de suporte"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "django>=5.0,<5.2",
+    "django-environ>=0.11.2",
+    "django-htmx>=1.18.0",
+    "django-crispy-forms>=2.1",
+    "crispy-tailwind>=1.0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-django>=4.8.0",
+    "ruff>=0.4.0",
+    "mypy>=1.9.0",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.local"
+pythonpath = ["backend"]
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = "--tb=short -ra -v"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+exclude = [".venv", "migrations", ".git"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "B", "UP"]
+ignore = ["E501"]

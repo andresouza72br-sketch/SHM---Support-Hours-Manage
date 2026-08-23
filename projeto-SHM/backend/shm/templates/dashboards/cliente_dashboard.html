@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard do Cliente — SHM{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Top Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">{{ cliente.nome_fantasia }}</h1>
+            <p class="text-sm text-slate-500">Painel de Acompanhamento de Suporte e Consumo de Horas</p>
+        </div>
+        <div>
+            <a href="{% url 'request_create' %}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm transition">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Abrir Nova Solicitação
+            </a>
+        </div>
+    </div>
+
+    <!-- Contract Status Cards -->
+    {% if contrato_ativo %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Contrato Ativo</div>
+            <div class="text-lg font-bold text-slate-900 mt-1">{{ contrato_ativo.numero_contrato }}</div>
+            <div class="text-xs text-slate-400 mt-1">Vigência até {{ contrato_ativo.data_fim|date:"d/m/Y" }}</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Horas Disponíveis</div>
+            <div class="text-2xl font-black text-slate-800 mt-1">{{ contrato_ativo.total_horas_disponiveis }}h</div>
+            <div class="text-xs text-slate-400 mt-1">{{ contrato_ativo.horas_contratadas }}h base + {{ contrato_ativo.horas_herdadas }}h herdadas</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Horas Consumidas</div>
+            <div class="text-2xl font-black text-blue-600 mt-1">{{ contrato_ativo.horas_consumidas }}h</div>
+            <div class="text-xs text-slate-400 mt-1">{{ contrato_ativo.percentual_consumido }}% do total</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border {% if contrato_ativo.is_saldo_negativo %}border-rose-300 bg-rose-50/30{% else %}border-emerald-200 bg-emerald-50/20{% endif %} shadow-sm">
+            <div class="text-xs font-semibold {% if contrato_ativo.is_saldo_negativo %}text-rose-600{% else %}text-emerald-700{% endif %} uppercase tracking-wider">
+                Saldo Atual {% if contrato_ativo.is_saldo_negativo %}(Excedente){% endif %}
+            </div>
+            <div class="text-3xl font-black {% if contrato_ativo.is_saldo_negativo %}text-rose-600{% else %}text-emerald-600{% endif %} mt-1">
+                {{ contrato_ativo.saldo_horas }}h
+            </div>
+            <div class="text-xs {% if contrato_ativo.is_saldo_negativo %}text-rose-500 font-medium{% else %}text-emerald-600{% endif %} mt-1">
+                {% if contrato_ativo.is_saldo_negativo %}⚠️ Saldo negativo autorizado para atendimento contínuo{% else %}Horas disponíveis para novos ciclos{% endif %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-amber-50 border border-amber-200 p-4 rounded-lg text-amber-800 text-sm">
+        Nenhum contrato ativo no momento. Entre em contato com a equipe de suporte para renovação ou ativação.
+    </div>
+    {% endif %}
+
+    <!-- Action Pending Grids (Aprovações e Aceites) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Ciclos Aguardando Aprovação -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                    Orçamentos Aguardando Sua Aprovação
+                </h2>
+                <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">{{ ciclos_aguardando_aprovacao.count }}</span>
+            </div>
+            <div class="p-6">
+                {% if ciclos_aguardando_aprovacao %}
+                <ul class="divide-y divide-slate-100">
+                    {% for ciclo in ciclos_aguardando_aprovacao %}
+                    <li class="py-3 flex items-center justify-between">
+                        <div>
+                            <div class="text-sm font-semibold text-slate-900">{{ ciclo.codigo }} — {{ ciclo.titulo_contexto }}</div>
+                            <div class="text-xs text-slate-500">{{ ciclo.pedido.codigo }}: {{ ciclo.pedido.titulo }} | Orçamento: <strong class="text-slate-800">{{ ciclo.horas_estimadas_total }}h</strong></div>
+                        </div>
+                        <a href="{% url 'request_detail' ciclo.pedido.id %}" class="text-xs bg-amber-500 hover:bg-amber-600 text-white font-medium px-3 py-1.5 rounded transition">
+                            Revisar e Aprovar
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-sm text-slate-400 italic">Nenhum orçamento pendente de aprovação.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Ciclos Aguardando Aceite Final -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    Entregas Aguardando Aceite Final
+                </h2>
+                <span class="text-xs bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">{{ ciclos_aguardando_aceite.count }}</span>
+            </div>
+            <div class="p-6">
+                {% if ciclos_aguardando_aceite %}
+                <ul class="divide-y divide-slate-100">
+                    {% for ciclo in ciclos_aguardando_aceite %}
+                    <li class="py-3 flex items-center justify-between">
+                        <div>
+                            <div class="text-sm font-semibold text-slate-900">{{ ciclo.codigo }} — {{ ciclo.titulo_contexto }}</div>
+                            <div class="text-xs text-slate-500">Horas Realizadas: <strong class="text-blue-600">{{ ciclo.horas_realizadas_total }}h</strong> (Estimado: {{ ciclo.horas_estimadas_total }}h)</div>
+                        </div>
+                        <a href="{% url 'request_detail' ciclo.pedido.id %}" class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1.5 rounded transition">
+                            Validar e Aceitar
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-sm text-slate-400 italic">Nenhuma entrega aguardando aceite.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Pedidos Recentes -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+            <h2 class="text-base font-bold text-slate-900">Solicitações Recentes</h2>
+            <a href="{% url 'request_list' %}" class="text-xs font-semibold text-blue-600 hover:underline">Ver todas &rarr;</a>
+        </div>
+        <div class="divide-y divide-slate-100">
+            {% for pedido in pedidos_recentes %}
+            <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-mono font-bold text-slate-500">{{ pedido.codigo }}</span>
+                        <a href="{% url 'request_detail' pedido.id %}" class="text-sm font-semibold text-slate-900 hover:text-blue-600">{{ pedido.titulo }}</a>
+                    </div>
+                    <div class="text-xs text-slate-400 mt-1">Aberto em {{ pedido.created_at|date:"d/m/Y H:i" }} por {{ pedido.solicitante.nome_completo }}</div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-xs px-2.5 py-1 rounded-full font-medium {% if pedido.status == 'CONCLUIDO' %}bg-emerald-100 text-emerald-800{% elif pedido.status == 'EM_EXECUCAO' %}bg-blue-100 text-blue-800{% else %}bg-slate-100 text-slate-700{% endif %}">
+                        {{ pedido.get_status_display }}
+                    </span>
+                    <a href="{% url 'request_detail' pedido.id %}" class="text-slate-400 hover:text-slate-600">&rarr;</a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-6 text-center text-sm text-slate-400 italic">Nenhum pedido registrado ainda.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

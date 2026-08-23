@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Contrato de Suporte — SHM{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm p-8">
+    <div class="border-b border-slate-100 pb-4 mb-6">
+        <div class="flex items-center gap-2">
+            <span class="text-xs font-mono font-bold bg-blue-600 text-white px-2 py-0.5 rounded">ADMIN</span>
+            <h1 class="text-xl font-bold text-slate-900">Cadastrar Novo Contrato de Suporte</h1>
+        </div>
+        <p class="text-xs text-slate-500 mt-1">Defina o cliente, número de contrato, vigência e pacote de horas contratadas.</p>
+    </div>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+                <label for="cliente_id" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Cliente Titular</label>
+                <select name="cliente_id" id="cliente_id" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Selecione o cliente...</option>
+                    {% for c in clientes %}
+                    <option value="{{ c.id }}">{{ c.nome_fantasia }} ({{ c.razao_social }} — CNPJ: {{ c.cnpj }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="numero_contrato" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Número do Contrato</label>
+                <input type="text" name="numero_contrato" id="numero_contrato" required placeholder="Ex: CTR-2026-001" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md text-sm font-mono focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="status" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Status Inicial</label>
+                <select name="status" id="status" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
+                    <option value="ATIVO" selected>Ativo (Em Vigência)</option>
+                    <option value="RASCUNHO">Rascunho</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="data_inicio" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Data de Início</label>
+                <input type="date" name="data_inicio" id="data_inicio" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="data_fim" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Data de Término</label>
+                <input type="date" name="data_fim" id="data_fim" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="horas_contratadas" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Horas Contratadas (Base)</label>
+                <input type="number" step="0.5" min="0" name="horas_contratadas" id="horas_contratadas" required placeholder="Ex: 100.0" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md text-sm font-mono focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="horas_herdadas" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Horas Herdadas / Rollover Inicial</label>
+                <input type="number" step="0.5" name="horas_herdadas" id="horas_herdadas" value="0.00" placeholder="0.00 (+ ou -)" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md text-sm font-mono focus:ring-blue-500 focus:border-blue-500">
+                <span class="text-[11px] text-slate-400">Saldo anterior positivo ou negativo</span>
+            </div>
+
+            <div class="sm:col-span-2">
+                <label for="limite_rollover_dias" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Janela Limite para Rollover (Dias após o fim)</label>
+                <input type="number" min="0" name="limite_rollover_dias" id="limite_rollover_dias" value="30" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                <span class="text-[11px] text-slate-400">Padrão: 30 dias após o encerramento da vigência</span>
+            </div>
+
+            <div class="sm:col-span-2">
+                <label for="observacoes" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Observações / Termos Contratuais</label>
+                <textarea name="observacoes" id="observacoes" rows="3" placeholder="Detalhes comerciais ou cláusulas específicas..." class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <a href="{% url 'contract_list' %}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition">Cancelar</a>
+            <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm transition">
+                Salvar e Ativar Contrato
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

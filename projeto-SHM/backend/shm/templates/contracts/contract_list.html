@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Contratos de Suporte — SHM{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Contratos de Suporte</h1>
+            <p class="text-sm text-slate-500">Gestão de pacotes de horas, vigência e saldos</p>
+        </div>
+        <div class="flex items-center gap-3">
+            {% if user.tipo_perfil == 'ADMIN_EMPRESA' %}
+            <a href="{% url 'contract_create' %}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm transition">
+                + Novo Contrato
+            </a>
+            {% endif %}
+            {% if user.is_empresa %}
+            <a href="{% url 'transferir_saldo' %}" class="inline-flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-lg shadow-sm transition">
+                Transferir Saldo / Rollover
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-sm text-left">
+                <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
+                    <tr>
+                        <th class="px-6 py-3">Número</th>
+                        {% if not user.is_cliente %}<th class="px-6 py-3">Cliente</th>{% endif %}
+                        <th class="px-6 py-3">Vigência</th>
+                        <th class="px-6 py-3">Horas Base</th>
+                        <th class="px-6 py-3">Herdadas</th>
+                        <th class="px-6 py-3">Consumidas</th>
+                        <th class="px-6 py-3">Saldo Atual</th>
+                        <th class="px-6 py-3">Status</th>
+                        <th class="px-6 py-3 text-right">Ação</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for c in contratos %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 font-mono font-bold text-slate-900">{{ c.numero_contrato }}</td>
+                        {% if not user.is_cliente %}
+                        <td class="px-6 py-4 font-medium text-slate-800">{{ c.cliente.nome_fantasia }}</td>
+                        {% endif %}
+                        <td class="px-6 py-4 text-xs text-slate-500">{{ c.data_inicio|date:"d/m/Y" }} até {{ c.data_fim|date:"d/m/Y" }}</td>
+                        <td class="px-6 py-4 font-semibold text-slate-700">{{ c.horas_contratadas }}h</td>
+                        <td class="px-6 py-4 text-xs text-slate-600">{{ c.horas_herdadas }}h</td>
+                        <td class="px-6 py-4 font-semibold text-blue-600">{{ c.horas_consumidas }}h</td>
+                        <td class="px-6 py-4 font-bold {% if c.is_saldo_negativo %}text-rose-600{% else %}text-emerald-600{% endif %}">
+                            {{ c.saldo_horas }}h
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-xs px-2.5 py-1 rounded-full font-medium {% if c.status == 'ATIVO' %}bg-emerald-100 text-emerald-800{% elif c.status == 'VENCIDO' %}bg-amber-100 text-amber-800{% else %}bg-slate-100 text-slate-700{% endif %}">
+                                {{ c.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{% url 'contract_detail' c.id %}" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold px-3 py-1.5 rounded transition">Ver Extrato</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="px-6 py-8 text-center text-sm text-slate-400 italic">Nenhum contrato cadastrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

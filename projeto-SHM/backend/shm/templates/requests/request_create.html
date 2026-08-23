@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Nova Solicitação de Suporte — SHM{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm p-8">
+    <div class="border-b border-slate-100 pb-4 mb-6">
+        <h1 class="text-xl font-bold text-slate-900">Abrir Nova Solicitação de Suporte</h1>
+        <p class="text-xs text-slate-500 mt-1">Descreva detalhadamente a necessidade ou problema. Nossa equipe analisará e decomporá o pedido em ciclos orçados.</p>
+    </div>
+
+    {% if contrato_ativo %}
+    <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg text-xs text-blue-800 mb-6 flex justify-between items-center">
+        <span>Contrato Vinculado: <strong>{{ contrato_ativo.numero_contrato }}</strong></span>
+        <span>Saldo Disponível: <strong class="{% if contrato_ativo.is_saldo_negativo %}text-rose-600{% else %}text-blue-900{% endif %}">{{ contrato_ativo.saldo_horas }}h</strong></span>
+    </div>
+    {% endif %}
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <div>
+            <label for="titulo" class="block text-sm font-semibold text-slate-700">Título / Assunto</label>
+            <input type="text" name="titulo" id="titulo" required placeholder="Ex: Ajuste na emissão de boletos e relatório financeiro" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+            <label for="descricao_geral" class="block text-sm font-semibold text-slate-700">Descrição Geral</label>
+            <textarea name="descricao_geral" id="descricao_geral" rows="6" required placeholder="Descreva os pontos necessários. Você pode listar múltiplos assuntos que serão organizados em ciclos pela equipe técnica." class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <a href="{% url 'dashboard' %}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition">Cancelar</a>
+            <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm transition">
+                Enviar Solicitação
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

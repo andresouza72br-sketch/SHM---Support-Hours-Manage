@@ -1,0 +1,28 @@
+<div id="task-row-{{ tarefa.id }}" class="p-3 flex items-center justify-between text-xs hover:bg-slate-50 transition">
+    <div class="flex items-center gap-3">
+        <span class="{% if tarefa.concluida %}text-emerald-600{% else %}text-slate-400{% endif %} font-bold text-sm">
+            {% if tarefa.concluida %}✓{% else %}○{% endif %}
+        </span>
+        <div>
+            <div class="font-medium text-slate-800 {% if tarefa.concluida %}line-through text-slate-400{% endif %}">
+                {{ tarefa.descricao }}
+            </div>
+            <div class="text-[11px] text-slate-400">
+                Estimado: {{ tarefa.horas_estimadas }}h | Realizado: <strong class="text-blue-600">{{ tarefa.horas_realizadas }}h</strong>
+                {% if tarefa.responsavel_tecnico %} | Resp: {{ tarefa.responsavel_tecnico.nome_completo }}{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Apontamento de horas (somente empresa e se em execução) -->
+    {% if user.is_empresa and tarefa.ciclo.status == 'EM_EXECUCAO' %}
+    <form hx-post="{% url 'task_log_hours' tarefa.ciclo.id tarefa.id %}" hx-target="#task-row-{{ tarefa.id }}" hx-swap="outerHTML" class="flex items-center gap-2">
+        <input type="number" step="0.25" min="0" name="horas_realizadas" value="{{ tarefa.horas_realizadas }}" class="w-16 px-1.5 py-1 text-xs border border-slate-300 rounded text-right">
+        <label class="flex items-center gap-1 text-[11px] text-slate-600">
+            <input type="checkbox" name="concluida" {% if tarefa.concluida %}checked{% endif %} class="rounded text-blue-600">
+            Fim
+        </label>
+        <button type="submit" class="bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded text-[11px]">Salvar</button>
+    </form>
+    {% endif %}
+</div>

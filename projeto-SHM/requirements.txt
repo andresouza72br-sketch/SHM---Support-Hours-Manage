@@ -1,0 +1,10 @@
+django>=5.0,<5.2
+psycopg2-binary>=2.9.9
+django-environ>=0.11.2
+django-htmx>=1.18.0
+django-crispy-forms>=2.1
+crispy-tailwind>=1.0.3
+pytest>=8.0.0
+pytest-django>=4.8.0
+ruff>=0.4.0
+mypy>=1.9.0
