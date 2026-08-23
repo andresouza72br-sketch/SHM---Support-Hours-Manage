@@ -1,0 +1,27 @@
+﻿from django.conf import settings
+from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import include, path
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    
+    # OpenAPI Schema & Swagger UI
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+
+    # API Endpoints
+    path("api/v1/auth/", include("apps.accounts.urls")),
+    path("api/v1/clientes/", include("apps.clientes.urls")),
+    path("api/v1/contratos/", include("apps.contratos.urls")),
+    path("api/v1/pedidos/", include("apps.pedidos.urls")),
+    path("api/v1/ciclos/", include("apps.ciclos.urls")),
+    path("api/v1/tarefas/", include("apps.tarefas.urls")),
+    path("api/v1/saldo/", include("apps.saldo.urls")),
+    path("api/v1/comunicacao/", include("apps.comunicacao.urls")),
+    path("api/v1/notificacoes/", include("apps.notificacoes.urls")),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
