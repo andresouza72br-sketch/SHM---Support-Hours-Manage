@@ -5,12 +5,21 @@ import { useQuery } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 
 interface AppLayoutProps {
-  children: (props: { contratoSelecionado: number | null }) => React.ReactNode
+  children: React.ReactNode
   showSidebar?: boolean
+  contratoSelecionado?: number | null
+  onSelectContrato?: (id: number | null) => void
 }
 
-export function AppLayout({ children, showSidebar = true }: AppLayoutProps) {
-  const [contratoSelecionado, setContratoSelecionado] = useState<number | null>(null)
+export function AppLayout({
+  children,
+  showSidebar = true,
+  contratoSelecionado,
+  onSelectContrato,
+}: AppLayoutProps) {
+  const [internalContrato, setInternalContrato] = useState<number | null>(null)
+  const selected = contratoSelecionado !== undefined ? contratoSelecionado : internalContrato
+  const setSelected = onSelectContrato || setInternalContrato
 
   const { data: contratos = [] } = useQuery({
     queryKey: ['contratos'],
@@ -20,20 +29,20 @@ export function AppLayout({ children, showSidebar = true }: AppLayoutProps) {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header
-        contratoSelecionado={contratoSelecionado}
-        onSelectContrato={setContratoSelecionado}
+        contratoSelecionado={selected}
+        onSelectContrato={setSelected}
         contratos={contratos}
       />
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {showSidebar && contratos.length > 0 && (
           <SidebarContratos
             contratos={contratos}
-            contratoSelecionado={contratoSelecionado}
-            onSelectContrato={setContratoSelecionado}
+            contratoSelecionado={selected}
+            onSelectContrato={setSelected}
           />
         )}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {children({ contratoSelecionado })}
+          {children}
         </main>
       </div>
     </div>
