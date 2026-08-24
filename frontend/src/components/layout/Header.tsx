@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Bell, LogOut, Clock, CheckCheck } from 'lucide-react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Bell, LogOut, Clock, CheckCheck, LayoutDashboard, Layers } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
@@ -17,6 +17,7 @@ interface HeaderProps {
 export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }: HeaderProps) {
   const { user, logout, isEmpresa } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const toast = useToast()
   const queryClient = useQueryClient()
   const [showNotifs, setShowNotifs] = useState(false)
@@ -49,11 +50,11 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
   return (
     <header className="sticky top-0 z-40 glass-panel border-b border-slate-200/80 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand & Contract Selector */}
-        <div className="flex items-center gap-6">
+        {/* Brand & Navigation */}
+        <div className="flex items-center gap-4 sm:gap-6">
           <Link
             to={isEmpresa ? "/admin/dashboard" : "/dashboard"}
-            className="flex items-center gap-2.5 font-black text-xl text-slate-900 tracking-tight group"
+            className="flex items-center gap-2.5 font-black text-xl text-slate-900 tracking-tight group shrink-0"
           >
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition">
               <Clock className="w-5 h-5" />
@@ -66,8 +67,36 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
             </div>
           </Link>
 
+          {/* Empresa Navigation Switcher */}
+          {isEmpresa && (
+            <nav className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 shadow-2xs">
+              <Link
+                to="/dashboard"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-extrabold transition duration-150 ${
+                  !location.pathname.startsWith('/admin')
+                    ? 'bg-white text-indigo-700 shadow-xs ring-1 ring-slate-900/5'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Visão Kanban</span>
+              </Link>
+              <Link
+                to="/admin/dashboard"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-extrabold transition duration-150 ${
+                  location.pathname.startsWith('/admin')
+                    ? 'bg-white text-indigo-700 shadow-xs ring-1 ring-slate-900/5'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Painel Operacional</span>
+              </Link>
+            </nav>
+          )}
+
           {onSelectContrato && listaContratos.length > 0 && (
-            <div className="hidden md:flex items-center gap-2 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
+            <div className="hidden lg:flex items-center gap-2 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
               <span className="text-[11px] font-bold text-slate-500 px-2 uppercase tracking-wider">Contrato:</span>
               <select
                 value={contratoSelecionado || ''}

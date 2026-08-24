@@ -16,8 +16,9 @@ export function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      await login({ username, password })
-      navigate('/dashboard')
+      const loggedUser = await login({ username, password })
+      const isEmp = loggedUser.role === 'EMPRESA_ADMIN' || loggedUser.role === 'EMPRESA_TECNICO' || loggedUser.is_staff
+      navigate(isEmp ? '/admin/dashboard' : '/dashboard')
     } catch {
       setError('Credenciais inválidas. Verifique usuário e senha.')
     } finally {
@@ -31,8 +32,9 @@ export function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      await login({ username: u, password: p })
-      navigate('/dashboard')
+      const loggedUser = await login({ username: u, password: p })
+      const isEmp = loggedUser.role === 'EMPRESA_ADMIN' || loggedUser.role === 'EMPRESA_TECNICO' || loggedUser.is_staff
+      navigate(isEmp ? '/admin/dashboard' : '/dashboard')
     } catch {
       setError('Falha ao autenticar com usuário de demonstração.')
     } finally {

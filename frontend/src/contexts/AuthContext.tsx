@@ -5,7 +5,7 @@ import type { User } from '../types'
 interface AuthContextType {
   user: User | null
   loading: boolean
-  login: (credentials: { username: string; password: string }) => Promise<void>
+  login: (credentials: { username: string; password: string }) => Promise<User>
   logout: () => void
   isEmpresa: boolean
   isCliente: boolean
@@ -40,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('shm_refresh_token', data.refresh)
     const userData = await clientService.auth.me()
     setUser(userData)
+    return userData
   }
 
   const logout = () => {
