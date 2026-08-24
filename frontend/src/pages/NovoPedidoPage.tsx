@@ -37,8 +37,17 @@ export function NovoPedidoPage() {
       toast.success(`Pedido ${pedido.protocolo} aberto com sucesso!`, 'Novo Pedido')
       navigate(`/pedidos/${pedido.id}`)
     },
-    onError: () => {
-      toast.error('Erro ao abrir pedido. Verifique os dados.', 'Falha')
+    onError: (error: any) => {
+      const data = error?.response?.data
+      const detail =
+        data?.detail ||
+        (data && typeof data === 'object'
+          ? Object.entries(data)
+              .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`)
+              .join(' | ')
+          : null) ||
+        'Erro ao abrir pedido. Verifique os dados.'
+      toast.error(detail, 'Falha')
     },
   })
 
@@ -51,6 +60,20 @@ export function NovoPedidoPage() {
       descricao: descricao.trim(),
       prioridade,
     })
+  }
+
+  const getErrorMessage = () => {
+    if (!createMutation.error) return 'Erro ao abrir pedido. Por favor verifique os campos e tente novamente.'
+    const data = (createMutation.error as any)?.response?.data
+    if (!data) return 'Erro ao abrir pedido. Por favor verifique os campos e tente novamente.'
+    if (typeof data === 'string') return data
+    if (data.detail) return data.detail
+    if (typeof data === 'object') {
+      return Object.entries(data)
+        .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`)
+        .join(' | ')
+    }
+    return 'Erro ao abrir pedido. Por favor verifique os campos e tente novamente.'
   }
 
   return (
@@ -68,7 +91,7 @@ export function NovoPedidoPage() {
         <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-6">
           {createMutation.isError && (
             <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold">
-              Erro ao abrir pedido. Por favor verifique os campos e tente novamente.
+              {getErrorMessage()}
             </div>
           )}
           <div>

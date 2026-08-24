@@ -3,6 +3,77 @@ from apps.accounts.models import User, UserRole
 
 class NotificacaoService:
     @staticmethod
+    def notificar_novo_pedido(pedido):
+        """
+        Gera notificações e evento na timeline quando um novo pedido é aberto:
+        - Notifica todos os usuários da Empresa (Admins e Técnicos) e todos os usuários do Cliente vinculado,
+          exceto o próprio autor do chamado.
+        - Registra o evento PEDIDO_CRIADO na Timeline.
+        """
+        if not pedido:
+            return
+
+        autor = pedido.criado_por
+        autor_nome = (autor.get_full_name() or autor.username) if autor else "Usuário"
+        origem = "Empresa" if (autor and autor.is_empresa) else (
+            pedido.cliente.nome_fantasia if (pedido.cliente and pedido.cliente.nome_fantasia) else (
+                pedido.cliente.razao_social if (pedido.cliente and pedido.cliente.razao_social) else "Cliente"
+            )
+        )
+        url_destino = f"/pedidos/{pedido.id}"
+
+        # 1. Registra evento na timeline
+        try:
+            TimelineEvent.objects.create(
+                pedido=pedido,
+                tipo=TipoEventoTimeline.PEDIDO_CRIADO,
+                descricao=f"Pedido {pedido.protocolo} aberto por {autor_nome} ({origem})",
+                autor=autor,
+            )
+        except Exception:
+            pass
+
+        # 2. Coleta destinatários
+        destinatarios_set = set()
+
+        # Usuários do cliente
+        if pedido.cliente:
+            cliente_users = User.objects.filter(cliente=pedido.cliente, is_active=True)
+            for u in cliente_users:
+                destinatarios_set.add(u)
+
+        # Usuários da empresa
+        empresa_users = User.objects.filter(
+            role__in=[UserRole.EMPRESA_ADMIN, UserRole.EMPRESA_TECNICO],
+            is_active=True,
+        )
+        for u in empresa_users:
+            destinatarios_set.add(u)
+
+        # Remove o próprio autor
+        if autor:
+            destinatarios_set.discard(autor)
+
+        # Formata título e mensagem
+        contrato_info = f" (Contrato {pedido.contrato.numero})" if pedido.contrato else ""
+        titulo = f"Novo Pedido: {pedido.protocolo} - {pedido.assunto}"
+        desc_resumo = (pedido.descricao[:100] + "...") if len(pedido.descricao) > 100 else pedido.descricao
+        mensagem = f"{autor_nome} ({origem}) abriu um novo pedido{contrato_info}: \"{desc_resumo}\""
+
+        notificacoes = [
+            Notification(
+                usuario=dest,
+                titulo=titulo,
+                mensagem=mensagem,
+                url=url_destino,
+                lida=False,
+            )
+            for dest in destinatarios_set
+        ]
+        if notificacoes:
+            Notification.objects.bulk_create(notificacoes)
+
+    @staticmethod
     def notificar_novo_comentario(comentario):
         """
         Gera notificações quando qualquer comentário é postado:
@@ -71,7 +142,9 @@ class NotificacaoService:
     @staticmethod
     def notificar_evento_ciclo(ciclo, tipo_evento: str, usuario_autor=None, justificativa: str = ""):
         """
-        Notificações de ciclo de vida (orçamento, aprovação, execução, aceite)
+        Notificações de ciclo de vida (orçamento, aprovação, execução, aceite).
+        Notifica TODOS os usuários do Cliente e da Empresa envolvidos, EXCETO o próprio autor da ação.
+        Registra também o evento correspondente na Timeline.
         """
         if not ciclo or not ciclo.pedido:
             return
@@ -80,59 +153,100 @@ class NotificacaoService:
         url_destino = f"/pedidos/{pedido.id}"
         tipo_nome = ciclo.get_tipo_display() if hasattr(ciclo, "get_tipo_display") else ciclo.tipo
 
-        destinatarios = []
+        autor = usuario_autor if (usuario_autor and hasattr(usuario_autor, "is_authenticated") and usuario_autor.is_authenticated) else None
+        autor_nome = (autor.get_full_name() or autor.username) if autor else "Usuário"
+        origem = "Empresa" if (autor and autor.is_empresa) else (
+            pedido.cliente.nome_fantasia if (pedido.cliente and pedido.cliente.nome_fantasia) else (
+                pedido.cliente.razao_social if (pedido.cliente and pedido.cliente.razao_social) else "Cliente"
+            )
+        )
+
         titulo = ""
         mensagem = ""
+        timeline_tipo = None
+        timeline_desc = ""
 
         if tipo_evento == "orcamento_apresentado":
-            # Notifica cliente
-            if pedido.cliente:
-                destinatarios = list(User.objects.filter(cliente=pedido.cliente, is_active=True))
-            titulo = f"Orçamento Apresentado: Ciclo #{ciclo.id} ({ciclo.horas_estimadas}h)"
-            mensagem = f"A equipe técnica orçou o ciclo de {tipo_nome} em {ciclo.horas_estimadas}h para aprovação."
+            titulo = f"Orçamento Apresentado: Ciclo #{ciclo.id} - {pedido.protocolo} ({ciclo.horas_estimadas}h)"
+            mensagem = f"{autor_nome} ({origem}) apresentou o orçamento de {ciclo.horas_estimadas}h para o ciclo de {tipo_nome}."
+            timeline_tipo = TipoEventoTimeline.ORCAMENTO_APRESENTADO
+            timeline_desc = f"Orçamento de {ciclo.horas_estimadas}h apresentado por {autor_nome} ({origem})"
 
         elif tipo_evento == "orcamento_aprovado":
-            # Notifica empresa
-            empresa_users = User.objects.filter(
-                role__in=[UserRole.EMPRESA_ADMIN, UserRole.EMPRESA_TECNICO], is_active=True
-            )
-            destinatarios = list(empresa_users)
             titulo = f"Orçamento Aprovado: Ciclo #{ciclo.id} - {pedido.protocolo}"
-            mensagem = f"O cliente aprovou o orçamento de {ciclo.horas_estimadas}h para o ciclo de {tipo_nome}."
+            mensagem = f"{autor_nome} ({origem}) aprovou o orçamento de {ciclo.horas_estimadas}h para o ciclo de {tipo_nome}."
+            timeline_tipo = TipoEventoTimeline.ORCAMENTO_APROVADO
+            timeline_desc = f"Orçamento de {ciclo.horas_estimadas}h aprovado por {autor_nome} ({origem})"
 
         elif tipo_evento == "orcamento_rejeitado":
-            empresa_users = User.objects.filter(
-                role__in=[UserRole.EMPRESA_ADMIN, UserRole.EMPRESA_TECNICO], is_active=True
-            )
-            destinatarios = list(empresa_users)
             titulo = f"Orçamento Rejeitado: Ciclo #{ciclo.id} - {pedido.protocolo}"
-            mensagem = f"Orçamento rejeitado pelo cliente. Motivo: {justificativa}"
+            mensagem = f"{autor_nome} ({origem}) rejeitou o orçamento do ciclo de {tipo_nome}. Motivo: \"{justificativa}\""
+            timeline_tipo = TipoEventoTimeline.ORCAMENTO_REJEITADO
+            timeline_desc = f"Orçamento rejeitado por {autor_nome} ({origem}). Motivo: {justificativa}"
+
+        elif tipo_evento == "execucao_iniciada":
+            titulo = f"Execução Iniciada: Ciclo #{ciclo.id} - {pedido.protocolo}"
+            mensagem = f"{autor_nome} ({origem}) iniciou a execução técnica do ciclo de {tipo_nome}."
+            timeline_tipo = TipoEventoTimeline.EXECUCAO_INICIADA
+            timeline_desc = f"Execução técnica iniciada por {autor_nome} ({origem})"
 
         elif tipo_evento == "aceite_solicitado":
-            # Notifica cliente
-            if pedido.cliente:
-                destinatarios = list(User.objects.filter(cliente=pedido.cliente, is_active=True))
-            titulo = f"Aceite Solicitado: Ciclo #{ciclo.id} ({ciclo.horas_realizadas}h)"
-            mensagem = f"A execução técnica de {tipo_nome} foi finalizada ({ciclo.horas_realizadas}h) e o aceite foi solicitado."
+            titulo = f"Aceite Solicitado: Ciclo #{ciclo.id} - {pedido.protocolo} ({ciclo.horas_realizadas}h)"
+            mensagem = f"{autor_nome} ({origem}) finalizou a execução técnica ({ciclo.horas_realizadas}h) e solicitou o aceite do cliente."
+            timeline_tipo = TipoEventoTimeline.ACEITE_SOLICITADO
+            timeline_desc = f"Aceite solicitado por {autor_nome} ({origem}) com {ciclo.horas_realizadas}h realizadas"
 
         elif tipo_evento == "ciclo_aceito":
-            # Notifica empresa
-            empresa_users = User.objects.filter(
-                role__in=[UserRole.EMPRESA_ADMIN, UserRole.EMPRESA_TECNICO], is_active=True
-            )
-            destinatarios = list(empresa_users)
             titulo = f"Aceite Concedido: Ciclo #{ciclo.id} - {pedido.protocolo}"
-            mensagem = f"O cliente concedeu aceite final ({ciclo.horas_realizadas}h debitadas do saldo)."
+            mensagem = f"{autor_nome} ({origem}) concedeu o aceite final ({ciclo.horas_realizadas}h debitadas do saldo)."
+            timeline_tipo = TipoEventoTimeline.CICLO_ACEITO
+            timeline_desc = f"Aceite final concedido por {autor_nome} ({origem}) ({ciclo.horas_realizadas}h debitadas)"
 
         elif tipo_evento == "aceite_recusado":
-            empresa_users = User.objects.filter(
-                role__in=[UserRole.EMPRESA_ADMIN, UserRole.EMPRESA_TECNICO], is_active=True
-            )
-            destinatarios = list(empresa_users)
             titulo = f"Aceite Recusado: Ciclo #{ciclo.id} - {pedido.protocolo}"
-            mensagem = f"O cliente recusou o aceite do ciclo. Justificativa: {justificativa}"
+            mensagem = f"{autor_nome} ({origem}) recusou o aceite do ciclo de {tipo_nome}. Justificativa: \"{justificativa}\""
+            timeline_tipo = TipoEventoTimeline.ACEITE_RECUSADO
+            timeline_desc = f"Aceite recusado por {autor_nome} ({origem}). Justificativa: {justificativa}"
 
-        if destinatarios and titulo:
+        # 1. Timeline Event
+        if timeline_tipo and timeline_desc:
+            try:
+                TimelineEvent.objects.create(
+                    pedido=pedido,
+                    ciclo=ciclo,
+                    tipo=timeline_tipo,
+                    descricao=timeline_desc,
+                    autor=autor,
+                )
+            except Exception:
+                pass
+
+        # 2. Notificações para todos os envolvidos, exceto o autor
+        destinatarios_set = set()
+
+        # Todos os usuários do cliente
+        if pedido.cliente:
+            cliente_users = User.objects.filter(cliente=pedido.cliente, is_active=True)
+            for u in cliente_users:
+                destinatarios_set.add(u)
+
+        # Todos os usuários da empresa (Admins e Técnicos)
+        empresa_users = User.objects.filter(
+            role__in=[UserRole.EMPRESA_ADMIN, UserRole.EMPRESA_TECNICO],
+            is_active=True,
+        )
+        for u in empresa_users:
+            destinatarios_set.add(u)
+
+        # Operador do ciclo
+        if ciclo.operador and ciclo.operador.is_active:
+            destinatarios_set.add(ciclo.operador)
+
+        # Remove o autor da ação
+        if autor:
+            destinatarios_set.discard(autor)
+
+        if destinatarios_set and titulo:
             notificacoes = [
                 Notification(
                     usuario=dest,
@@ -141,8 +255,7 @@ class NotificacaoService:
                     url=url_destino,
                     lida=False,
                 )
-                for dest in destinatarios
-                if not usuario_autor or dest.id != usuario_autor.id
+                for dest in destinatarios_set
             ]
             if notificacoes:
                 Notification.objects.bulk_create(notificacoes)

@@ -72,7 +72,7 @@ class TestComentariosEPermissoes:
 
         # Pedido & Ciclo
         self.pedido = Pedido.objects.create(
-            protocolo="OS202608MKT01",
+            protocolo="OS2026080003",
             cliente=self.cliente_mktdnb,
             contrato=self.contrato,
             assunto="Configuração de Landing Page e Webhooks",
@@ -221,4 +221,64 @@ class TestComentariosEPermissoes:
         assert notifs_emp_admin.exists()
         assert not notifs_cli_gerente.exists()  # Autor não se autonotifica
         assert "mkt-dnb" in notifs_emp_tecnico.first().mensagem or "Marcelo" in notifs_emp_tecnico.first().mensagem
+
+    def test_aprovacoes_e_aceites_notificam_todos_menos_autor(self):
+        from apps.notificacoes.models import Notification, TimelineEvent, TipoEventoTimeline
+
+        # 1. Técnico apresenta orçamento -> Notifica Gerente, Analista e Admin; NÃO notifica Técnico
+        Notification.objects.all().delete()
+        TimelineEvent.objects.all().delete()
+        self.client.force_authenticate(user=self.tecnico)
+        res_apres = self.client.post(f"/api/v1/ciclos/{self.ciclo.id}/apresentar_orcamento/", {
+            "horas_estimadas": "8.00",
+        })
+        assert res_apres.status_code == 200
+
+        assert Notification.objects.filter(usuario=self.gerente_mktdnb).exists()
+        assert Notification.objects.filter(usuario=self.analista_mktdnb).exists()
+        assert Notification.objects.filter(usuario=self.admin).exists()
+        assert not Notification.objects.filter(usuario=self.tecnico).exists()
+        assert TimelineEvent.objects.filter(tipo=TipoEventoTimeline.ORCAMENTO_APRESENTADO).exists()
+
+        # 2. Gerente do Cliente aprova orçamento -> Notifica Técnico, Admin e Analista; NÃO notifica Gerente
+        Notification.objects.all().delete()
+        TimelineEvent.objects.all().delete()
+        self.client.force_authenticate(user=self.gerente_mktdnb)
+        res_aprov = self.client.post(f"/api/v1/ciclos/{self.ciclo.id}/aprovar/")
+        assert res_aprov.status_code == 200
+
+        assert Notification.objects.filter(usuario=self.tecnico).exists()
+        assert Notification.objects.filter(usuario=self.admin).exists()
+        assert Notification.objects.filter(usuario=self.analista_mktdnb).exists()
+        assert not Notification.objects.filter(usuario=self.gerente_mktdnb).exists()
+        assert TimelineEvent.objects.filter(tipo=TipoEventoTimeline.ORCAMENTO_APROVADO).exists()
+
+        # 3. Técnico inicia execução
+        self.client.force_authenticate(user=self.tecnico)
+        self.client.post(f"/api/v1/ciclos/{self.ciclo.id}/iniciar_execucao/")
+
+        # 4. Técnico solicita aceite -> Notifica Gerente, Analista e Admin; NÃO notifica Técnico
+        Notification.objects.all().delete()
+        TimelineEvent.objects.all().delete()
+        res_solic = self.client.post(f"/api/v1/ciclos/{self.ciclo.id}/solicitar_aceite/")
+        assert res_solic.status_code == 200
+
+        assert Notification.objects.filter(usuario=self.gerente_mktdnb).exists()
+        assert Notification.objects.filter(usuario=self.analista_mktdnb).exists()
+        assert Notification.objects.filter(usuario=self.admin).exists()
+        assert not Notification.objects.filter(usuario=self.tecnico).exists()
+        assert TimelineEvent.objects.filter(tipo=TipoEventoTimeline.ACEITE_SOLICITADO).exists()
+
+        # 5. Gerente do Cliente concede aceite final -> Notifica Técnico, Admin e Analista; NÃO notifica Gerente
+        Notification.objects.all().delete()
+        TimelineEvent.objects.all().delete()
+        self.client.force_authenticate(user=self.gerente_mktdnb)
+        res_aceite = self.client.post(f"/api/v1/ciclos/{self.ciclo.id}/aceitar/")
+        assert res_aceite.status_code == 200
+
+        assert Notification.objects.filter(usuario=self.tecnico).exists()
+        assert Notification.objects.filter(usuario=self.admin).exists()
+        assert Notification.objects.filter(usuario=self.analista_mktdnb).exists()
+        assert not Notification.objects.filter(usuario=self.gerente_mktdnb).exists()
+        assert TimelineEvent.objects.filter(tipo=TipoEventoTimeline.CICLO_ACEITO).exists()
 

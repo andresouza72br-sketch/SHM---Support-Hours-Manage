@@ -8,9 +8,14 @@ export interface User {
   last_name: string
   role: UserRole
   role_display: string
+  telefone?: string | null
   cliente?: number | null
   cliente_nome?: string | null
   is_staff: boolean
+  is_superuser?: boolean
+  can_approve_cycles?: boolean
+  is_empresa?: boolean
+  is_cliente?: boolean
 }
 
 export interface Cliente {

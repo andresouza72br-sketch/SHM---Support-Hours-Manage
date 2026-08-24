@@ -1,4 +1,4 @@
-﻿from datetime import date, timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
@@ -7,13 +7,27 @@ from apps.contratos.models import Contrato, StatusContrato, TipoContrato, Aceite
 class ContratoService:
     @staticmethod
     def gerar_numero(ano=None) -> str:
+        import re
         ano = ano or timezone.localdate().year
-        ultimo = Contrato.objects.filter(numero__startswith=f"CT-{ano}-").order_by("-numero").first()
-        if ultimo:
-            seq = int(ultimo.numero.split("-")[-1]) + 1
-        else:
-            seq = 1
-        return f"CT-{ano}-{seq:04d}"
+        prefixo = f"CT-{ano}-"
+        numeros = Contrato.objects.filter(numero__startswith=prefixo).values_list("numero", flat=True)
+        max_seq = 0
+        pattern = re.compile(rf"^{re.escape(prefixo)}(\d+)$")
+        for num_str in numeros:
+            match = pattern.match(num_str)
+            if match:
+                try:
+                    num = int(match.group(1))
+                    if num > max_seq:
+                        max_seq = num
+                except ValueError:
+                    continue
+        seq = max_seq + 1
+        candidato = f"{prefixo}{seq:04d}"
+        while Contrato.objects.filter(numero=candidato).exists():
+            seq += 1
+            candidato = f"{prefixo}{seq:04d}"
+        return candidato
 
     @staticmethod
     @transaction.atomic

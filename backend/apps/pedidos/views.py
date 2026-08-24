@@ -18,11 +18,16 @@ class PedidoViewSet(viewsets.ModelViewSet):
         user = self.request.user
         contrato = serializer.validated_data.get("contrato")
         cliente = user.cliente if (hasattr(user, "is_cliente") and user.is_cliente and user.cliente) else (contrato.cliente if contrato else None)
-        serializer.save(
+        pedido = serializer.save(
             protocolo=protocolo,
             criado_por=user,
             cliente=cliente,
         )
+        try:
+            from apps.notificacoes.services import NotificacaoService
+            NotificacaoService.notificar_novo_pedido(pedido)
+        except Exception:
+            pass
 
     def get_queryset(self):
         user = self.request.user

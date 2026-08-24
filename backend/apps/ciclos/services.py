@@ -24,7 +24,7 @@ class CicloService:
 
     @staticmethod
     @transaction.atomic
-    def apresentar_orcamento(ciclo: Ciclo, horas_estimadas: Decimal) -> Ciclo:
+    def apresentar_orcamento(ciclo: Ciclo, horas_estimadas: Decimal, usuario=None) -> Ciclo:
         if horas_estimadas <= 0:
             raise ValidationError("Horas estimadas deve ser maior que zero.")
         ciclo.horas_estimadas = horas_estimadas
@@ -34,7 +34,8 @@ class CicloService:
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
         try:
             from apps.notificacoes.services import NotificacaoService
-            NotificacaoService.notificar_evento_ciclo(ciclo, "orcamento_apresentado")
+            autor = usuario or ciclo.operador
+            NotificacaoService.notificar_evento_ciclo(ciclo, "orcamento_apresentado", usuario_autor=autor)
         except Exception:
             pass
         return ciclo
@@ -56,7 +57,7 @@ class CicloService:
 
     @staticmethod
     @transaction.atomic
-    def rejeitar_orcamento(ciclo: Ciclo, justificativa: str) -> Ciclo:
+    def rejeitar_orcamento(ciclo: Ciclo, justificativa: str, usuario=None) -> Ciclo:
         if not justificativa.strip():
             raise ValidationError("Justificativa é obrigatória para rejeitar orçamento.")
         ciclo.status = StatusCiclo.ORCADO
@@ -65,28 +66,36 @@ class CicloService:
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
         try:
             from apps.notificacoes.services import NotificacaoService
-            NotificacaoService.notificar_evento_ciclo(ciclo, "orcamento_rejeitado", justificativa=justificativa)
+            autor = usuario if (hasattr(usuario, "is_authenticated") and usuario.is_authenticated) else None
+            NotificacaoService.notificar_evento_ciclo(ciclo, "orcamento_rejeitado", usuario_autor=autor, justificativa=justificativa)
         except Exception:
             pass
         return ciclo
 
     @staticmethod
     @transaction.atomic
-    def iniciar_execucao(ciclo: Ciclo) -> Ciclo:
+    def iniciar_execucao(ciclo: Ciclo, usuario=None) -> Ciclo:
         ciclo.status = StatusCiclo.EM_EXECUCAO
         ciclo.save(update_fields=["status", "atualizado_em"])
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
+        try:
+            from apps.notificacoes.services import NotificacaoService
+            autor = usuario or ciclo.operador
+            NotificacaoService.notificar_evento_ciclo(ciclo, "execucao_iniciada", usuario_autor=autor)
+        except Exception:
+            pass
         return ciclo
 
     @staticmethod
     @transaction.atomic
-    def solicitar_aceite(ciclo: Ciclo) -> Ciclo:
+    def solicitar_aceite(ciclo: Ciclo, usuario=None) -> Ciclo:
         ciclo.status = StatusCiclo.AGUARDANDO_ACEITE
         ciclo.save(update_fields=["status", "atualizado_em"])
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
         try:
             from apps.notificacoes.services import NotificacaoService
-            NotificacaoService.notificar_evento_ciclo(ciclo, "aceite_solicitado")
+            autor = usuario or ciclo.operador
+            NotificacaoService.notificar_evento_ciclo(ciclo, "aceite_solicitado", usuario_autor=autor)
         except Exception:
             pass
         return ciclo
@@ -119,7 +128,7 @@ class CicloService:
 
     @staticmethod
     @transaction.atomic
-    def recusar_aceite(ciclo: Ciclo, justificativa: str) -> Ciclo:
+    def recusar_aceite(ciclo: Ciclo, justificativa: str, usuario=None) -> Ciclo:
         if not justificativa.strip():
             raise ValidationError("Justificativa é obrigatória para recusar o aceite.")
         ciclo.status = StatusCiclo.EM_EXECUCAO
@@ -127,7 +136,8 @@ class CicloService:
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
         try:
             from apps.notificacoes.services import NotificacaoService
-            NotificacaoService.notificar_evento_ciclo(ciclo, "aceite_recusado", justificativa=justificativa)
+            autor = usuario if (hasattr(usuario, "is_authenticated") and usuario.is_authenticated) else None
+            NotificacaoService.notificar_evento_ciclo(ciclo, "aceite_recusado", usuario_autor=autor, justificativa=justificativa)
         except Exception:
             pass
         return ciclo

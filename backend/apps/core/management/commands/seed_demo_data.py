@@ -40,7 +40,7 @@ class Command(BaseCommand):
                 "first_name": "Marcos",
                 "last_name": "Técnico Especialista",
                 "role": UserRole.EMPRESA_TECNICO,
-                "is_staff": True,
+                "is_staff": False,
             }
         )
         tecnico_user.set_password("tecnico123")
@@ -290,7 +290,7 @@ class Command(BaseCommand):
 
         # Pedido 3 - MKT-DNB (Novo Contrato 100h)
         pedido_mkt, _ = Pedido.objects.get_or_create(
-            protocolo="OS202608MKT01",
+            protocolo="OS2026080003",
             defaults={
                 "cliente": cliente_mktdnb,
                 "contrato": contrato_mktdnb,
@@ -369,7 +369,7 @@ class Command(BaseCommand):
         if not Notification.objects.filter(usuario=gerente_mktdnb, titulo__startswith="Orçamento Emitido").exists():
             Notification.objects.create(
                 usuario=gerente_mktdnb,
-                titulo="Orçamento Emitido: Ciclo #OS202608MKT01 (6.0h)",
+                titulo="Orçamento Emitido: Ciclo #OS2026080003 (6.0h)",
                 mensagem="A equipe SHM apresentou o orçamento técnico de 6.0h para aprovação.",
                 url=f"/pedidos/{pedido_mkt.id}",
                 lida=False,
