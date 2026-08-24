@@ -1,6 +1,13 @@
 from django.conf import settings
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
+try:
+    from google.oauth2 import id_token
+    from google.auth.transport import requests as google_requests
+    GOOGLE_AUTH_AVAILABLE = True
+except ImportError:
+    GOOGLE_AUTH_AVAILABLE = False
+    id_token = None
+    google_requests = None
+
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -56,6 +63,11 @@ class GoogleAuthView(APIView):
                 "family_name": "Google",
             }
         else:
+            if not GOOGLE_AUTH_AVAILABLE:
+                return Response(
+                    {"detail": "A biblioteca 'google-auth' não está instalada no ambiente Python do servidor."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
             try:
                 idinfo = id_token.verify_oauth2_token(
                     credential,
