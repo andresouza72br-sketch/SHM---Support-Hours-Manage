@@ -25,6 +25,41 @@ Obtém o par de tokens JWT (`access` e `refresh`).
 }
 ```
 
+### `POST /api/v1/auth/google/`
+Autenticação via Google OAuth2 (Google Identity Services). Valida a assinatura do ID Token junto ao Google e emite os tokens JWT caso o e-mail esteja cadastrado e ativo no SHM.
+
+**Payload:**
+```json
+{
+  "credential": "eyJhbGciOiJSUzI1NiIsImtpZCI6..."
+}
+```
+
+**Resposta de Sucesso (200 OK):**
+```json
+{
+  "access": "eyJhbGciOiJIUzI1Ni...",
+  "refresh": "eyJhbGciOiJIUzI1Ni...",
+  "user": {
+    "id": 1,
+    "username": "admin",
+    "email": "andresouza72br@gmail.com",
+    "role": "EMPRESA_ADMIN",
+    "is_empresa": true,
+    "is_cliente": false
+  }
+}
+```
+
+**Resposta Bloqueada (403 Forbidden - E-mail não cadastrado):**
+```json
+{
+  "detail": "O e-mail 'desconhecido@exemplo.com' não está autorizado na plataforma SHM. Solicite o cadastro ao administrador da empresa ou cliente vinculado.",
+  "email": "desconhecido@exemplo.com",
+  "code": "user_not_found"
+}
+```
+
 ### `GET /api/v1/auth/me/`
 Retorna os dados do usuário autenticado e seus papéis no sistema.
 

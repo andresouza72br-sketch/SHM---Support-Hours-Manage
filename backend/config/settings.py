@@ -1,4 +1,4 @@
-﻿import os
+import os
 from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
@@ -153,3 +153,6 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
+
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
