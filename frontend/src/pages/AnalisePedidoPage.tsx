@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Play, Send, Layers } from 'lucide-react'
+import { ArrowLeft, Plus, Play, Send, Layers, MessageSquare } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
@@ -84,13 +84,22 @@ export function AnalisePedidoPage() {
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{pedido.assunto}</h1>
             </div>
-            <button
-              onClick={() => setShowNovoCiclo(true)}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-xs px-5 py-2.5 rounded-2xl shadow-md shadow-indigo-500/20 transition cursor-pointer self-start sm:self-auto"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Adicionar Ciclo</span>
-            </button>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <Link
+                to={`/pedidos/${pedido.id}`}
+                className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs px-4 py-2.5 rounded-2xl transition cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4 text-indigo-600" />
+                <span>Ver Pedido & Comentários</span>
+              </Link>
+              <button
+                onClick={() => setShowNovoCiclo(true)}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-xs px-5 py-2.5 rounded-2xl shadow-md shadow-indigo-500/20 transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Adicionar Ciclo</span>
+              </button>
+            </div>
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Send, Trash2, Clock } from 'lucide-react'
+import { ArrowLeft, Plus, Send, Trash2, Clock, MessageSquare } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
@@ -84,9 +84,18 @@ export function ExecucaoCicloPage() {
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Execução do Ciclo #{ciclo.id} ({ciclo.tipo_display})</h1>
               <p className="text-xs text-slate-500 font-medium mt-1">{ciclo.contexto || 'Sem contexto informado.'}</p>
             </div>
-            <span className="text-xs font-black px-3.5 py-1.5 bg-indigo-50 text-indigo-700 rounded-full uppercase tracking-wider border border-indigo-200 self-start sm:self-auto">
-              {ciclo.status_display}
-            </span>
+            <div className="flex items-center gap-2.5 self-start sm:self-auto">
+              <Link
+                to={`/pedidos/${ciclo.pedido}`}
+                className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs px-3.5 py-2 rounded-xl transition cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Ver Comentários</span>
+              </Link>
+              <span className="text-xs font-black px-3.5 py-1.5 bg-indigo-50 text-indigo-700 rounded-full uppercase tracking-wider border border-indigo-200">
+                {ciclo.status_display}
+              </span>
+            </div>
           </div>
         </div>
 

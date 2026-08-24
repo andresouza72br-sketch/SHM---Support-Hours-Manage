@@ -106,31 +106,55 @@ export function LoginPage() {
 
         <div className="pt-4 border-t border-slate-800/80 space-y-2.5">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
-            Acesso Rápido para Demonstração (1-Clique)
+            Acesso Rápido para Testes & Demonstração (1-Clique)
           </div>
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => quickLogin('gerente.acme', 'cliente123')}
-              className="text-left p-3 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl transition duration-150 group cursor-pointer"
+              onClick={() => quickLogin('gerente.mktdnb', 'cliente123')}
+              className="text-left p-2.5 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl transition duration-150 group cursor-pointer"
             >
               <div className="flex items-center gap-1.5 text-indigo-400 font-bold text-xs group-hover:text-indigo-300">
                 <UserCheck className="w-3.5 h-3.5" />
-                <span>Gerente Cliente</span>
+                <span>Gerente mkt-dnb</span>
               </div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Aprova orçamentos e aceites</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Aprova orçamentos/aceites (100h)</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => quickLogin('analista.mktdnb', 'cliente123')}
+              className="text-left p-2.5 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl transition duration-150 group cursor-pointer"
+            >
+              <div className="flex items-center gap-1.5 text-sky-400 font-bold text-xs group-hover:text-sky-300">
+                <UserCheck className="w-3.5 h-3.5" />
+                <span>Analista mkt-dnb</span>
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Abre pedidos e comenta</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => quickLogin('tecnico', 'tecnico123')}
+              className="text-left p-2.5 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition duration-150 group cursor-pointer"
+            >
+              <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs group-hover:text-emerald-300">
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Técnico Empresa</span>
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Executa ciclos e comenta</div>
             </button>
 
             <button
               type="button"
               onClick={() => quickLogin('admin', 'admin123')}
-              className="text-left p-3 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-violet-500/50 rounded-xl transition duration-150 group cursor-pointer"
+              className="text-left p-2.5 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-violet-500/50 rounded-xl transition duration-150 group cursor-pointer"
             >
               <div className="flex items-center gap-1.5 text-violet-400 font-bold text-xs group-hover:text-violet-300">
                 <Building2 className="w-3.5 h-3.5" />
                 <span>Admin Empresa</span>
               </div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Gestão geral e contratos</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Gestão geral e orçamentos</div>
             </button>
           </div>
         </div>

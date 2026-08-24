@@ -1,4 +1,4 @@
-﻿from decimal import Decimal
+from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
@@ -32,6 +32,11 @@ class CicloService:
         ciclo.apresentado_em = timezone.now()
         ciclo.save(update_fields=["horas_estimadas", "status", "apresentado_em", "atualizado_em"])
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
+        try:
+            from apps.notificacoes.services import NotificacaoService
+            NotificacaoService.notificar_evento_ciclo(ciclo, "orcamento_apresentado")
+        except Exception:
+            pass
         return ciclo
 
     @staticmethod
@@ -39,9 +44,14 @@ class CicloService:
     def aprovar_orcamento(ciclo: Ciclo, usuario) -> Ciclo:
         ciclo.status = StatusCiclo.APROVADO
         ciclo.aprovado_em = timezone.now()
-        ciclo.aprovado_por = usuario if usuario.is_authenticated else None
+        ciclo.aprovado_por = usuario if (hasattr(usuario, "is_authenticated") and usuario.is_authenticated) else None
         ciclo.save(update_fields=["status", "aprovado_em", "aprovado_por", "atualizado_em"])
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
+        try:
+            from apps.notificacoes.services import NotificacaoService
+            NotificacaoService.notificar_evento_ciclo(ciclo, "orcamento_aprovado", usuario_autor=ciclo.aprovado_por)
+        except Exception:
+            pass
         return ciclo
 
     @staticmethod
@@ -53,6 +63,11 @@ class CicloService:
         ciclo.apresentado_em = None
         ciclo.save(update_fields=["status", "apresentado_em", "atualizado_em"])
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
+        try:
+            from apps.notificacoes.services import NotificacaoService
+            NotificacaoService.notificar_evento_ciclo(ciclo, "orcamento_rejeitado", justificativa=justificativa)
+        except Exception:
+            pass
         return ciclo
 
     @staticmethod
@@ -69,6 +84,11 @@ class CicloService:
         ciclo.status = StatusCiclo.AGUARDANDO_ACEITE
         ciclo.save(update_fields=["status", "atualizado_em"])
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
+        try:
+            from apps.notificacoes.services import NotificacaoService
+            NotificacaoService.notificar_evento_ciclo(ciclo, "aceite_solicitado")
+        except Exception:
+            pass
         return ciclo
 
     @staticmethod
@@ -76,7 +96,7 @@ class CicloService:
     def aceitar_ciclo(ciclo: Ciclo, usuario) -> Ciclo:
         ciclo.status = StatusCiclo.ACEITO
         ciclo.aceito_em = timezone.now()
-        ciclo.aceito_por = usuario if usuario.is_authenticated else None
+        ciclo.aceito_por = usuario if (hasattr(usuario, "is_authenticated") and usuario.is_authenticated) else None
         ciclo.save(update_fields=["status", "aceito_em", "aceito_por", "atualizado_em"])
 
         # Débito de saldo real no contrato
@@ -90,6 +110,11 @@ class CicloService:
             )
 
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
+        try:
+            from apps.notificacoes.services import NotificacaoService
+            NotificacaoService.notificar_evento_ciclo(ciclo, "ciclo_aceito", usuario_autor=ciclo.aceito_por)
+        except Exception:
+            pass
         return ciclo
 
     @staticmethod
@@ -100,4 +125,9 @@ class CicloService:
         ciclo.status = StatusCiclo.EM_EXECUCAO
         ciclo.save(update_fields=["status", "atualizado_em"])
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
+        try:
+            from apps.notificacoes.services import NotificacaoService
+            NotificacaoService.notificar_evento_ciclo(ciclo, "aceite_recusado", justificativa=justificativa)
+        except Exception:
+            pass
         return ciclo

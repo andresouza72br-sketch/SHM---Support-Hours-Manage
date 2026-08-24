@@ -1,5 +1,16 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Send, MessageSquare, AlertTriangle } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Send,
+  MessageSquare,
+  AlertTriangle,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  User as UserIcon,
+} from 'lucide-react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
@@ -12,7 +23,7 @@ interface CicloCarouselProps {
 }
 
 export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
-  const { isEmpresa, canApprove } = useAuth()
+  const { user, isEmpresa, canApprove } = useAuth()
   const toast = useToast()
   const queryClient = useQueryClient()
   const [index, setIndex] = useState(0)
@@ -21,13 +32,18 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
   const [justificativa, setJustificativa] = useState('')
   const [comentarioTexto, setComentarioTexto] = useState('')
 
+  // Estados para edição e exclusão de comentários
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editingCommentText, setEditingCommentText] = useState('')
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
+
   const cicloAtual = ciclos[index] || null
 
   const { data: rawComentarios } = useQuery({
     queryKey: ['comentarios', cicloAtual?.id],
     queryFn: () => (cicloAtual ? clientService.comunicacao.list(cicloAtual.id) : Promise.resolve([])),
     enabled: Boolean(cicloAtual),
-    refetchInterval: 5000,
+    refetchInterval: 4000,
   })
 
   const comentarios = Array.isArray(rawComentarios) ? rawComentarios : []
@@ -108,6 +124,34 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
       toast.success('Comentário publicado no ciclo com sucesso!', 'Comunicação')
     },
     onError: () => toast.error('Erro ao enviar comentário.', 'Falha'),
+  })
+
+  const editarComentarioMutation = useMutation({
+    mutationFn: ({ id, texto }: { id: string; texto: string }) =>
+      clientService.comunicacao.update(id, { texto }),
+    onSuccess: () => {
+      setEditingCommentId(null)
+      setEditingCommentText('')
+      refreshData()
+      toast.success('Comentário editado com sucesso!', 'Comentário Atualizado')
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || 'Erro ao editar comentário. Apenas o autor pode alterá-lo.'
+      toast.error(msg, 'Falha')
+    },
+  })
+
+  const excluirComentarioMutation = useMutation({
+    mutationFn: (id: string) => clientService.comunicacao.delete(id),
+    onSuccess: () => {
+      setDeletingCommentId(null)
+      refreshData()
+      toast.success('Comentário excluído com sucesso!', 'Comentário Removido')
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || 'Erro ao excluir comentário. Apenas o autor pode apagá-lo.'
+      toast.error(msg, 'Falha')
+    },
   })
 
   if (!cicloAtual) {
@@ -323,41 +367,181 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
         </div>
       )}
 
+      {/* Modal Confirmar Exclusão de Comentário */}
+      {deletingCommentId && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+            <div className="flex items-center gap-2 text-rose-600 font-extrabold text-base">
+              <Trash2 className="w-5 h-5" />
+              <span>Excluir Comentário</span>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              Tem certeza que deseja apagar este comentário? Esta ação não pode ser desfeita e ele será removido do histórico do ciclo para todos os usuários.
+            </p>
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button
+                onClick={() => setDeletingCommentId(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={excluirComentarioMutation.isPending}
+                onClick={() => excluirComentarioMutation.mutate(deletingCommentId)}
+                className="px-5 py-2 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-40 shadow-sm cursor-pointer"
+              >
+                {excluirComentarioMutation.isPending ? 'Excluindo...' : 'Confirmar Exclusão'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Comentários Thread */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-4">
+      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-5">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2 font-extrabold text-sm text-slate-900">
             <MessageSquare className="w-4 h-4 text-indigo-600" />
             <span>Comentários & Histórico do Ciclo</span>
           </div>
-          <span className="text-xs font-bold text-slate-400">{comentarios.length} mensagens</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full">
+              Visível para Empresa e Cliente
+            </span>
+            <span className="text-xs font-black text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full">
+              {comentarios.length} {comentarios.length === 1 ? 'mensagem' : 'mensagens'}
+            </span>
+          </div>
         </div>
 
-        <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-          {comentarios.map((c) => (
-            <div key={c.id} className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/60 text-xs space-y-1.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-slate-900">{c.autor_nome}</span>
-                  <span className="text-[10px] bg-slate-200/80 text-slate-700 font-bold px-2 py-0.5 rounded-md">
-                    {c.autor_role?.split('—')[0] || c.autor_role}
-                  </span>
+        {/* Lista de Comentários */}
+        <div className="space-y-3.5 max-h-96 overflow-y-auto pr-1">
+          {comentarios.map((c) => {
+            const isOwner = Boolean(
+              user &&
+              (c.autor === user.id ||
+                (c.autor_username && c.autor_username === user.username) ||
+                (c.autor_nome && user.first_name && c.autor_nome.toLowerCase().includes(user.first_name.toLowerCase())))
+            )
+            const isEditing = editingCommentId === c.id
+            const isUpdated = Boolean(c.atualizado_em && c.criado_em && c.atualizado_em !== c.criado_em)
+
+            const formattedDate = c.criado_em
+              ? new Date(c.criado_em).toLocaleDateString('pt-BR', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : '-'
+
+            return (
+              <div
+                key={c.id}
+                className={`p-4 rounded-2xl border text-xs transition duration-150 space-y-2.5 ${
+                  isOwner
+                    ? 'bg-indigo-50/40 border-indigo-200/80 shadow-2xs'
+                    : 'bg-slate-50/80 border-slate-200/70'
+                }`}
+              >
+                {/* Header do Comentário */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-black text-[10px] flex items-center justify-center">
+                      {c.autor_nome ? c.autor_nome[0].toUpperCase() : <UserIcon className="w-3 h-3" />}
+                    </div>
+                    <span className="font-extrabold text-slate-900">{c.autor_nome}</span>
+                    <span className="text-[10px] bg-slate-200/90 text-slate-700 font-bold px-2 py-0.5 rounded-md">
+                      {c.autor_role?.split('—')[0] || c.autor_role}
+                    </span>
+                    {isOwner && (
+                      <span className="text-[9px] bg-indigo-600 text-white font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                        Você
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-slate-400 font-mono text-[10px]">
+                      <span>{formattedDate}</span>
+                      {isUpdated && <span className="text-slate-400 italic font-sans">(editado)</span>}
+                    </div>
+
+                    {/* Botões de Ação para o Dono do Comentário */}
+                    {isOwner && !isEditing && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            setEditingCommentId(c.id)
+                            setEditingCommentText(c.texto)
+                          }}
+                          className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-100/50 rounded-lg transition cursor-pointer"
+                          title="Editar meu comentário"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingCommentId(c.id)}
+                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-100/50 rounded-lg transition cursor-pointer"
+                          title="Excluir meu comentário"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <span className="text-slate-400 font-mono text-[10px]">
-                  {c.criado_em ? new Date(c.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-'}
-                </span>
+
+                {/* Conteúdo do Comentário / Modo de Edição */}
+                {isEditing ? (
+                  <div className="space-y-2 pt-1">
+                    <textarea
+                      rows={3}
+                      value={editingCommentText}
+                      onChange={(e) => setEditingCommentText(e.target.value)}
+                      className="w-full text-xs p-3 bg-white border border-indigo-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingCommentId(null)
+                          setEditingCommentText('')
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-200/60 rounded-lg transition cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                        <span>Cancelar</span>
+                      </button>
+                      <button
+                        disabled={!editingCommentText.trim() || editarComentarioMutation.isPending}
+                        onClick={() => {
+                          if (editingCommentText.trim()) {
+                            editarComentarioMutation.mutate({ id: c.id, texto: editingCommentText.trim() })
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 px-4 py-1.5 text-[11px] font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition disabled:opacity-40 cursor-pointer"
+                      >
+                        <Check className="w-3 h-3" />
+                        <span>{editarComentarioMutation.isPending ? 'Salvando...' : 'Salvar Alteração'}</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">{c.texto}</p>
+                )}
               </div>
-              <p className="text-slate-700 leading-relaxed font-medium">{c.texto}</p>
-            </div>
-          ))}
+            )
+          })}
 
           {comentarios.length === 0 && (
-            <div className="p-8 text-center text-slate-400 text-xs italic">
-              Nenhuma mensagem registrada neste ciclo.
+            <div className="p-8 text-center text-slate-400 text-xs italic bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+              Nenhuma mensagem registrada neste ciclo até o momento. Todos os usuários da empresa e do cliente podem comentar abaixo.
             </div>
           )}
         </div>
 
+        {/* Formulário de Novo Comentário */}
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -371,13 +555,14 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             type="text"
             value={comentarioTexto}
             onChange={(e) => setComentarioTexto(e.target.value)}
-            placeholder="Escreva uma mensagem ou observação sobre este ciclo..."
-            className="flex-1 text-xs bg-slate-50 border border-slate-300/80 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+            placeholder="Escreva uma mensagem ou observação sobre este ciclo (visível para todos)..."
+            className="flex-1 text-xs bg-slate-50 border border-slate-300/80 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800"
           />
           <button
             type="submit"
-            disabled={!comentarioTexto.trim()}
+            disabled={!comentarioTexto.trim() || comentarioMutation.isPending}
             className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white p-3 rounded-2xl disabled:opacity-40 transition cursor-pointer shadow-sm shadow-indigo-500/20"
+            title="Publicar Comentário"
           >
             <Send className="w-4 h-4" />
           </button>

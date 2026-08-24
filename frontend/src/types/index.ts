@@ -136,9 +136,11 @@ export interface Comentario {
   autor: number
   autor_nome: string
   autor_role: string
+  autor_username?: string
   texto: string
   tarefa_convertida?: number | null
   criado_em: string
+  atualizado_em?: string
   anexos?: { id: string; nome_original: string; url: string }[]
 }
 
