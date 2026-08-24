@@ -72,7 +72,7 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
     <header className="sticky top-0 z-40 glass-panel border-b border-slate-200/80 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand & Navigation */}
-        <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
+        <div className="flex items-center gap-3 sm:gap-4">
           <Link
             to={isEmpresa ? (activeContratoId ? `/admin/dashboard?contrato=${activeContratoId}` : "/admin/dashboard") : (activeContratoId ? `/dashboard?contrato=${activeContratoId}` : "/dashboard")}
             className="flex items-center gap-2.5 font-black text-xl text-slate-900 tracking-tight group shrink-0"
@@ -90,7 +90,7 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
 
           {/* Empresa Navigation Switcher */}
           {isEmpresa && (
-            <nav className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 shadow-2xs">
+            <nav className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 shadow-2xs shrink-0">
               <Link
                 to={activeContratoId ? `/dashboard?contrato=${activeContratoId}` : "/dashboard"}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-extrabold transition duration-150 ${
@@ -118,13 +118,13 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
 
           {listaContratos.length > 0 && (
             <div className="flex items-center gap-1.5 bg-slate-100/90 px-2 py-1 rounded-xl border border-slate-200/80 shadow-2xs">
-              <span className="hidden md:inline text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+              <span className="hidden md:inline text-[11px] font-extrabold text-slate-500 uppercase tracking-wider shrink-0">
                 Contrato:
               </span>
               <select
                 value={activeContratoId || ''}
                 onChange={(e) => handleContractChange(e.target.value ? Number(e.target.value) : null)}
-                className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs cursor-pointer max-w-[180px] sm:max-w-[240px] truncate"
+                className="text-xs bg-white border border-slate-200 rounded-lg px-3 py-1.5 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs cursor-pointer w-auto min-w-[260px] sm:min-w-[300px] max-w-[460px]"
               >
                 <option value="">Todos os Contratos ({listaContratos.length})</option>
                 {listaContratos.map((c) => (
