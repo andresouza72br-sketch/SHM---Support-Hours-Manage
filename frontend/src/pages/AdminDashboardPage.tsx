@@ -1,22 +1,38 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Layers } from 'lucide-react'
+import { Layers, X } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
 
 export function AdminDashboardPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const contratoSelecionado = searchParams.get('contrato') ? Number(searchParams.get('contrato')) : null
+
+  const handleSelectContrato = (id: number | null) => {
+    const newParams = new URLSearchParams(searchParams)
+    if (id) {
+      newParams.set('contrato', String(id))
+    } else {
+      newParams.delete('contrato')
+    }
+    setSearchParams(newParams)
+  }
 
   const { data: rawPedidos = [] } = useQuery({
-    queryKey: ['admin_pedidos'],
-    queryFn: () => clientService.pedidos.list(),
+    queryKey: ['admin_pedidos', contratoSelecionado],
+    queryFn: () => clientService.pedidos.list(contratoSelecionado ? { contrato: contratoSelecionado } : undefined),
     refetchInterval: 5000,
   })
 
   const pedidos = Array.isArray(rawPedidos) ? rawPedidos : []
 
   return (
-    <AppLayout showSidebar={false}>
+    <AppLayout
+      showSidebar={false}
+      contratoSelecionado={contratoSelecionado}
+      onSelectContrato={handleSelectContrato}
+    >
       <div className="max-w-6xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Painel Operacional da Empresa</h1>
@@ -24,8 +40,20 @@ export function AdminDashboardPage() {
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-200/90 overflow-hidden shadow-xs">
-          <div className="p-5 bg-slate-50/80 border-b border-slate-200/80 flex items-center justify-between">
-            <span className="font-extrabold text-sm text-slate-900">Fila Geral de Pedidos</span>
+          <div className="p-5 bg-slate-50/80 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="font-extrabold text-sm text-slate-900">Fila Geral de Pedidos</span>
+              {contratoSelecionado && (
+                <button
+                  onClick={() => handleSelectContrato(null)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-indigo-100 text-indigo-800 hover:bg-indigo-200 transition cursor-pointer"
+                  title="Limpar filtro de contrato"
+                >
+                  <span>Filtrado por Contrato #{contratoSelecionado}</span>
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
             <span className="text-xs bg-white text-slate-700 px-3 py-1 rounded-full font-bold border border-slate-200 shadow-2xs">
               {pedidos.length} chamados
             </span>
@@ -62,7 +90,9 @@ export function AdminDashboardPage() {
 
             {pedidos.length === 0 && (
               <div className="p-12 text-center text-slate-400 text-xs italic">
-                Nenhum chamado aberto na fila operacional.
+                {contratoSelecionado
+                  ? 'Nenhum chamado encontrado para o contrato selecionado.'
+                  : 'Nenhum chamado aberto na fila operacional.'}
               </div>
             )}
           </div>
