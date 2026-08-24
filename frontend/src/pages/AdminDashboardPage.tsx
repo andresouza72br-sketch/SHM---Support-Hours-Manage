@@ -10,6 +10,7 @@ export function AdminDashboardPage() {
   const { data: rawPedidos = [] } = useQuery({
     queryKey: ['admin_pedidos'],
     queryFn: () => clientService.pedidos.list(),
+    refetchInterval: 5000,
   })
 
   const pedidos = Array.isArray(rawPedidos) ? rawPedidos : []

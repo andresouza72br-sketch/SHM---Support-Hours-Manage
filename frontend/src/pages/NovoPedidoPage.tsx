@@ -4,10 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Send } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
+import { useToast } from '../contexts/ToastContext'
 import type { PrioridadePedido } from '../types'
 
 export function NovoPedidoPage() {
   const navigate = useNavigate()
+  const toast = useToast()
   const queryClient = useQueryClient()
   const [contratoId, setContratoId] = useState<number | ''>('')
   const [assunto, setAssunto] = useState('')
@@ -21,12 +23,22 @@ export function NovoPedidoPage() {
 
   const listaContratos = Array.isArray(contratos) ? contratos : []
 
+  React.useEffect(() => {
+    if (listaContratos.length === 1 && !contratoId) {
+      setContratoId(listaContratos[0].id)
+    }
+  }, [listaContratos, contratoId])
+
   const createMutation = useMutation({
     mutationFn: clientService.pedidos.create,
     onSuccess: (pedido) => {
       queryClient.invalidateQueries({ queryKey: ['kanban'] })
       queryClient.invalidateQueries({ queryKey: ['contratos'] })
+      toast.success(`Pedido ${pedido.protocolo} aberto com sucesso!`, 'Novo Pedido')
       navigate(`/pedidos/${pedido.id}`)
+    },
+    onError: () => {
+      toast.error('Erro ao abrir pedido. Verifique os dados.', 'Falha')
     },
   })
 
@@ -54,6 +66,11 @@ export function NovoPedidoPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-6">
+          {createMutation.isError && (
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold">
+              Erro ao abrir pedido. Por favor verifique os campos e tente novamente.
+            </div>
+          )}
           <div>
             <label className="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-2">
               Contrato Vinculado *

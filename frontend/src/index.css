@@ -52,6 +52,15 @@
   animation: pulseGlow 2.5s infinite ease-in-out;
 }
 
+@keyframes toastCountdown {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
 .glass-panel {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);

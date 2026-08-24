@@ -5,11 +5,13 @@ import { ArrowLeft, Plus, Send, Trash2, Clock } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import type { Tarefa } from '../types'
 
 export function ExecucaoCicloPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const toast = useToast()
   const queryClient = useQueryClient()
 
   const [descricaoTarefa, setDescricaoTarefa] = useState('')
@@ -19,6 +21,7 @@ export function ExecucaoCicloPage() {
     queryKey: ['ciclo_detail', id],
     queryFn: () => (id ? clientService.ciclos.get(Number(id)) : null),
     enabled: Boolean(id),
+    refetchInterval: 5000,
   })
 
   const addTarefaMutation = useMutation({
@@ -27,17 +30,27 @@ export function ExecucaoCicloPage() {
       setDescricaoTarefa('')
       setHorasRealizadas('1.0')
       queryClient.invalidateQueries({ queryKey: ['ciclo_detail', id] })
+      toast.success('Apontamento de horas lançado com sucesso!', 'Tarefa Registrada')
     },
+    onError: () => toast.error('Erro ao registrar tarefa.', 'Falha'),
   })
 
   const deleteTarefaMutation = useMutation({
     mutationFn: (tarefaId: number) => clientService.tarefas.delete(tarefaId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ciclo_detail', id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ciclo_detail', id] })
+      toast.info('Apontamento de tarefa excluído com sucesso.', 'Tarefa Excluída')
+    },
+    onError: () => toast.error('Erro ao excluir tarefa.', 'Falha'),
   })
 
   const solicitarAceiteMutation = useMutation({
     mutationFn: () => (id ? clientService.ciclos.solicitarAceite(Number(id)) : Promise.reject()),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ciclo_detail', id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ciclo_detail', id] })
+      toast.success('Solicitação de aceite enviada ao cliente com sucesso!', 'Aceite Solicitado')
+    },
+    onError: () => toast.error('Erro ao solicitar aceite.', 'Falha'),
   })
 
   if (isLoading) {

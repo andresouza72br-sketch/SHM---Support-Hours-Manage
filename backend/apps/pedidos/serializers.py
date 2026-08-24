@@ -1,4 +1,4 @@
-﻿from rest_framework import serializers
+from rest_framework import serializers
 from apps.pedidos.models import Pedido, AnexoPedido
 
 class AnexoPedidoSerializer(serializers.ModelSerializer):
@@ -59,7 +59,7 @@ class PedidoDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pedido
         fields = "__all__"
-        read_only_fields = ["id", "protocolo", "status", "criado_em", "atualizado_em"]
+        read_only_fields = ["id", "protocolo", "status", "cliente", "criado_por", "criado_em", "atualizado_em"]
 
     def get_ciclos(self, obj):
         from apps.ciclos.serializers import CicloSerializer

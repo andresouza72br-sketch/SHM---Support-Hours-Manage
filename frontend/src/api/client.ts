@@ -27,7 +27,12 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/token/')
+    ) {
       originalRequest._retry = true
       const refreshToken = localStorage.getItem('shm_refresh_token')
       if (refreshToken) {

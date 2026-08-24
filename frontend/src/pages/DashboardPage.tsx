@@ -10,6 +10,7 @@ export function DashboardPage() {
   const { data: kanbanData = {}, isLoading } = useQuery({
     queryKey: ['kanban', contratoSelecionado],
     queryFn: () => clientService.pedidos.kanban(contratoSelecionado || undefined),
+    refetchInterval: 5000,
   })
 
   return (

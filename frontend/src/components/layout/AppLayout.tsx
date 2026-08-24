@@ -24,6 +24,7 @@ export function AppLayout({
   const { data: contratos = [] } = useQuery({
     queryKey: ['contratos'],
     queryFn: clientService.contratos.list,
+    refetchInterval: 5000,
   })
 
   return (

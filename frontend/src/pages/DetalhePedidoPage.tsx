@@ -12,6 +12,7 @@ export function DetalhePedidoPage() {
     queryKey: ['pedido', id],
     queryFn: () => clientService.pedidos.get(Number(id)),
     enabled: Boolean(id),
+    refetchInterval: 5000,
   })
 
   if (isLoading) {

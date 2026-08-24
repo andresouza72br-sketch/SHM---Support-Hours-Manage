@@ -1,4 +1,4 @@
-﻿from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from apps.pedidos.models import Pedido, StatusPedido
@@ -15,10 +15,13 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         protocolo = PedidoService.gerar_protocolo()
+        user = self.request.user
+        contrato = serializer.validated_data.get("contrato")
+        cliente = user.cliente if (hasattr(user, "is_cliente") and user.is_cliente and user.cliente) else (contrato.cliente if contrato else None)
         serializer.save(
             protocolo=protocolo,
-            criado_por=self.request.user,
-            cliente=self.request.user.cliente if self.request.user.is_cliente else serializer.validated_data["cliente"]
+            criado_por=user,
+            cliente=cliente,
         )
 
     def get_queryset(self):

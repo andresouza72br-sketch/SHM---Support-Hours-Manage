@@ -1,4 +1,4 @@
-﻿from decimal import Decimal
+from decimal import Decimal
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -11,6 +11,12 @@ from apps.core.permissions import IsEmpresaUser, IsClienteGerente
 class CicloViewSet(viewsets.ModelViewSet):
     queryset = Ciclo.objects.select_related("pedido", "operador").prefetch_related("tarefas").all()
     serializer_class = CicloSerializer
+
+    def perform_create(self, serializer):
+        operador = serializer.validated_data.get("operador") or self.request.user
+        ciclo = serializer.save(operador=operador)
+        from apps.pedidos.services import PedidoService
+        PedidoService.sincronizar_status_pedido(ciclo.pedido)
 
     @action(detail=True, methods=["post"], permission_classes=[IsEmpresaUser])
     def apresentar_orcamento(self, request, pk=None):

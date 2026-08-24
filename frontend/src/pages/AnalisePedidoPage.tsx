@@ -5,12 +5,14 @@ import { ArrowLeft, Plus, Play, Send, Layers } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import type { TipoCiclo } from '../types'
 
 export function AnalisePedidoPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const toast = useToast()
   const queryClient = useQueryClient()
 
   const [showNovoCiclo, setShowNovoCiclo] = useState(false)
@@ -22,6 +24,7 @@ export function AnalisePedidoPage() {
     queryKey: ['pedido', id],
     queryFn: () => clientService.pedidos.get(Number(id)),
     enabled: Boolean(id),
+    refetchInterval: 5000,
   })
 
   const criarCicloMutation = useMutation({
@@ -30,13 +33,19 @@ export function AnalisePedidoPage() {
       setShowNovoCiclo(false)
       setContexto('')
       queryClient.invalidateQueries({ queryKey: ['pedido', id] })
+      toast.success('Novo ciclo adicionado com sucesso ao chamado!', 'Ciclo Criado')
     },
+    onError: () => toast.error('Erro ao adicionar ciclo.', 'Falha'),
   })
 
   const apresentarOrcamentoMutation = useMutation({
     mutationFn: ({ id, horas }: { id: number; horas: number }) =>
       clientService.ciclos.apresentarOrcamento(id, horas),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pedido', id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pedido', id] })
+      toast.success('Orçamento emitido para aprovação do cliente!', 'Orçamento Emitido')
+    },
+    onError: () => toast.error('Erro ao emitir orçamento.', 'Falha'),
   })
 
   if (isLoading) {

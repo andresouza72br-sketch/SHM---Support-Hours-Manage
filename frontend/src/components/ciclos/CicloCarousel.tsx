@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Send, MessageSquare, AlertTriangle } from 'l
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
+import { useToast } from '../../contexts/ToastContext'
 import type { Ciclo, Pedido } from '../../types'
 
 interface CicloCarouselProps {
@@ -12,6 +13,7 @@ interface CicloCarouselProps {
 
 export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
   const { isEmpresa, canApprove } = useAuth()
+  const toast = useToast()
   const queryClient = useQueryClient()
   const [index, setIndex] = useState(0)
 
@@ -25,6 +27,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
     queryKey: ['comentarios', cicloAtual?.id],
     queryFn: () => (cicloAtual ? clientService.comunicacao.list(cicloAtual.id) : Promise.resolve([])),
     enabled: Boolean(cicloAtual),
+    refetchInterval: 5000,
   })
 
   const comentarios = Array.isArray(rawComentarios) ? rawComentarios : []
@@ -38,7 +41,11 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
 
   const aprovarMutation = useMutation({
     mutationFn: (id: number) => clientService.ciclos.aprovar(id),
-    onSuccess: refreshData,
+    onSuccess: () => {
+      refreshData()
+      toast.success(`Orçamento de ${Number(cicloAtual?.horas_estimadas).toFixed(1)}h aprovado com sucesso!`, 'Orçamento Aprovado')
+    },
+    onError: () => toast.error('Erro ao aprovar orçamento.', 'Falha'),
   })
 
   const rejeitarMutation = useMutation({
@@ -48,22 +55,36 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
       setModalType(null)
       setJustificativa('')
       refreshData()
+      toast.info('Orçamento rejeitado com justificativa.', 'Orçamento Rejeitado')
     },
+    onError: () => toast.error('Erro ao rejeitar orçamento.', 'Falha'),
   })
 
   const iniciarExecMutation = useMutation({
     mutationFn: (id: number) => clientService.ciclos.iniciarExecucao(id),
-    onSuccess: refreshData,
+    onSuccess: () => {
+      refreshData()
+      toast.success('Execução técnica iniciada com sucesso!', 'Execução')
+    },
+    onError: () => toast.error('Erro ao iniciar execução.', 'Falha'),
   })
 
   const solicitarAceiteMutation = useMutation({
     mutationFn: (id: number) => clientService.ciclos.solicitarAceite(id),
-    onSuccess: refreshData,
+    onSuccess: () => {
+      refreshData()
+      toast.success('Solicitação de aceite enviada ao cliente com sucesso!', 'Aceite Solicitado')
+    },
+    onError: () => toast.error('Erro ao solicitar aceite.', 'Falha'),
   })
 
   const aceitarMutation = useMutation({
     mutationFn: (id: number) => clientService.ciclos.aceitar(id),
-    onSuccess: refreshData,
+    onSuccess: () => {
+      refreshData()
+      toast.success(`Aceite final concedido (${Number(cicloAtual?.horas_realizadas).toFixed(1)}h debitadas do saldo)!`, 'Aceite Concluído')
+    },
+    onError: () => toast.error('Erro ao conceder aceite.', 'Falha'),
   })
 
   const recusarMutation = useMutation({
@@ -73,7 +94,9 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
       setModalType(null)
       setJustificativa('')
       refreshData()
+      toast.info('Recusa de aceite registrada com justificativa.', 'Aceite Recusado')
     },
+    onError: () => toast.error('Erro ao recusar aceite.', 'Falha'),
   })
 
   const comentarioMutation = useMutation({
@@ -82,7 +105,9 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
     onSuccess: () => {
       setComentarioTexto('')
       refreshData()
+      toast.success('Comentário publicado no ciclo com sucesso!', 'Comunicação')
     },
+    onError: () => toast.error('Erro ao enviar comentário.', 'Falha'),
   })
 
   if (!cicloAtual) {

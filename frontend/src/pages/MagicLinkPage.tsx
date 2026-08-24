@@ -3,9 +3,11 @@ import { useParams } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Clock, CheckCircle2 } from 'lucide-react'
 import { clientService } from '../api/client'
+import { useToast } from '../contexts/ToastContext'
 
 export function MagicLinkPage() {
   const { token } = useParams<{ token: string }>()
+  const toast = useToast()
   const [justificativa] = useState('')
   const [sucesso, setSucesso] = useState<string | null>(null)
 
@@ -13,6 +15,7 @@ export function MagicLinkPage() {
     queryKey: ['magic_link', token],
     queryFn: () => (token ? clientService.ciclos.getMagicLink(token) : null),
     enabled: Boolean(token),
+    refetchInterval: 5000,
   })
 
   const actionMutation = useMutation({
@@ -20,8 +23,10 @@ export function MagicLinkPage() {
       token ? clientService.ciclos.postMagicLink(token, { acao, justificativa }) : Promise.reject(),
     onSuccess: (res: any) => {
       setSucesso(res.detail)
+      toast.success(res.detail || 'Operação processada com sucesso!', 'Magic Link')
       refetch()
     },
+    onError: () => toast.error('Erro ao processar ação via link seguro.', 'Falha'),
   })
 
   if (isLoading) {

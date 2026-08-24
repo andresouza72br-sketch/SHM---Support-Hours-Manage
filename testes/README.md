@@ -1,7 +1,8 @@
 # 🧪 Guia Prático & Roteiro de Testes — SHM 2.0
+
 > **Support Hours Manager (SHM 2.0)** — Governança e Gestão de Contratos de Suporte e Horas Técnicas.
 
-Este documento consolida o roteiro passo a passo para testes funcionais e validação de regras de negócio da plataforma SHM 2.0, abrangendo desde os fluxos primordiais do ciclo de vida das demandas até auditoria de saldo e magic links.
+Este documento consolida o roteiro passo a passo para testes funcionais e validação de regras de negócio da plataforma SHM 2.0. **Todos os dados de entrada foram estruturados em blocos de código com botão de cópia de 1 clique** para agilizar a execução dos testes.
 
 ---
 
@@ -15,9 +16,21 @@ Este documento consolida o roteiro passo a passo para testes funcionais e valida
 | 🛠️ **Empresa — Técnico** | `tecnico` | `tecnico123` | Execução técnica, lançamento de tarefas/horas e solicitação de aceite. |
 
 ### 🌐 Endereços dos Serviços Locais
-- 💻 **Aplicação Web (Frontend):** [http://localhost:5173](http://localhost:5173)
-- 📑 **Documentação Swagger (OpenAPI):** [http://localhost:8000/api/docs/](http://localhost:8000/api/docs/)
-- ⚙️ **Painel Administrativo Django:** [http://localhost:8000/admin/](http://localhost:8000/admin/)
+
+- 💻 **Aplicação Web (Frontend):**
+```text
+http://localhost:5173
+```
+
+- 📑 **Documentação Swagger (OpenAPI):**
+```text
+http://localhost:8000/api/docs/
+```
+
+- ⚙️ **Painel Administrativo Django:**
+```text
+http://localhost:8000/admin/
+```
 
 > [!TIP]
 > **Dica para Testes Concorrentes:** Abra uma **aba normal** no navegador para o perfil **Cliente** (`gerente.acme`) e uma **aba anônima** para a **Empresa** (`admin` ou `tecnico`). Assim você visualiza as ações refletindo em tempo real em ambas as pontas.
@@ -46,53 +59,121 @@ sequenceDiagram
 ---
 
 ### 🧪 Teste Primordial 1: Abertura de Novo Pedido de Suporte
-- [ ] **1.1.** Acesse `http://localhost:5173/login`.
-- [ ] **1.2.** Clique no atalho rápido **"Gerente Cliente"** (ou use `gerente.acme` / `cliente123`).
-- [ ] **1.3.** No topo direito do painel, clique em **"+ Novo Pedido"**.
-- [ ] **1.4.** Preencha o formulário:
-  - **Contrato:** Selecione `CT-2026-0001 (Acme Corp)`.
-  - **Assunto:** `Desenvolvimento de Dashboard Financeiro`
-  - **Descrição:** `Precisamos de um painel gerencial com gráficos de faturamento mensal e centros de custo.`
-  - **Prioridade:** Selecione **"Alta"** (laranja).
+
+- [ ] **1.1.** Acesse a tela de login:
+```text
+http://localhost:5173/login
+```
+
+- [ ] **1.2.** Clique no atalho rápido **"Gerente Cliente"** ou utilize as credenciais:
+  - **Usuário:**
+  ```text
+  gerente.acme
+  ```
+  - **Senha:**
+  ```text
+  cliente123
+  ```
+
+- [ ] **1.3.** No topo direito do painel, clique no botão **"+ Novo Pedido"** (ou acerte a URL `http://localhost:5173/pedidos/novo`).
+
+- [ ] **1.4.** Preencha os campos do formulário:
+  - **Contrato:** Selecione `CT-2026-0001 (Acme Corp)`
+  - **Assunto / Título:**
+  ```text
+  Desenvolvimento de Dashboard Financeiro
+  ```
+  - **Descrição Detalhada:**
+  ```text
+  Precisamos de um painel gerencial com gráficos de faturamento mensal e centros de custo.
+  ```
+  - **Prioridade:** Selecione **"Alta"** (botão laranja).
+
 - [ ] **1.5.** Clique em **"Abrir Pedido"**.
-- [ ] **Validação Esperada:** O sistema gera o protocolo `OS2026080003`, abre a tela de detalhes com status **Aberto** e o card aparece na 1ª coluna do Kanban (*Abertos*).
+- [ ] **Validação Esperada:**
+  - O sistema gera o protocolo sequencial `OS2026080003`.
+  - Redireciona automaticamente para a tela de detalhes do chamado com status **Aberto**.
+  - O chamado aparece na 1ª coluna (*Abertos*) do Kanban no Dashboard.
 
 ---
 
 ### 🧪 Teste Primordial 2: Triagem Técnica & Emissão de Orçamento
-- [ ] **2.1.** Em uma aba anônima, faça login como **Admin Empresa** (`admin` / `admin123`).
-- [ ] **2.2.** Acesse o **Painel Operacional** em `http://localhost:5173/admin/dashboard`.
-- [ ] **2.3.** Localize o chamado `OS2026080003` e clique no botão **"Triagem & Ciclos"**.
-- [ ] **2.4.** Clique no botão **"+ Adicionar Ciclo"**:
-  - **Tipo de Ciclo:** `Evolutiva`
-  - **Horas Estimadas:** `6.0`
-  - **Contexto Técnico:** `Modelagem do banco de dados e componentes visuais de gráfico.`
-- [ ] **2.5.** Clique em **"Salvar Ciclo"** (o ciclo é registrado como *Orçado*).
-- [ ] **2.6.** Clique no botão amarelo **"Emitir Orçamento"**.
-- [ ] **Validação Esperada:** O ciclo passa para status *Aguardando Aprovação*. No Kanban do Cliente, o chamado avança automaticamente para a 3ª coluna (*Ag. Aprovação*).
+
+- [ ] **2.1.** Em uma janela/aba anônima, faça login como **Admin Empresa**:
+  - **Usuário:**
+  ```text
+  admin
+  ```
+  - **Senha:**
+  ```text
+  admin123
+  ```
+
+- [ ] **2.2.** Acesse o **Painel Operacional**:
+```text
+http://localhost:5173/admin/dashboard
+```
+
+- [ ] **2.3.** Localize o chamado recém-aberto (`OS2026080003`) e clique em **"Triagem & Ciclos"**.
+
+- [ ] **2.4.** Clique no botão **"+ Adicionar Ciclo"** e preencha:
+  - **Tipo de Ciclo:** Selecione `Evolutiva`
+  - **Horas Estimadas (Orçamento):**
+  ```text
+  6.0
+  ```
+  - **Contexto Técnico do Escopo:**
+  ```text
+  Modelagem do banco de dados e componentes visuais de gráfico.
+  ```
+
+- [ ] **2.5.** Clique em **"Salvar Ciclo"** (o ciclo é registrado com status *Orçado*).
+- [ ] **2.6.** No card do ciclo, clique no botão amarelo **"Emitir Orçamento"**.
+- [ ] **Validação Esperada:**
+  - O ciclo passa para o status **Aguardando Aprovação**.
+  - No painel/Kanban do Cliente, o chamado avança automaticamente para a 3ª coluna (*Ag. Aprovação*).
 
 ---
 
 ### 🧪 Teste Primordial 3: REGRA DE OURO — Aprovação Sem Débito vs Aceite com Débito Real
+
 - [ ] **3.1. Aprovação do Orçamento (Sem Débito):**
-  - Na aba do **Gerente Cliente** (`gerente.acme`), abra o pedido `OS2026080003`.
-  - Clique no botão **"Aprovar Orçamento (6.0h)"**.
-  - 🔍 **Validação Crítica:** Verifique a barra lateral esquerda: **o saldo CONTINUA exatamente em 86.0h** (nenhuma hora é debitada na aprovação).
+  - Na aba do **Gerente Cliente** (`gerente.acme`), abra o chamado `OS2026080003`.
+  - Clique no botão roxo **"Aprovar Orçamento (6.0h)"**.
+  - 🔍 **Validação Crítica:** Verifique a barra lateral esquerda de contratos: **o saldo CONTINUA exatamente em 86.0h** (nenhuma hora é debitada na aprovação do orçamento).
+
 - [ ] **3.2. Execução Técnica & Apontamento Real:**
-  - Na aba da empresa (`admin` ou `tecnico`), acesse a execução do ciclo aprovado.
-  - Lance as tarefas realizadas:
-    - Tarefa 1: `Estruturação das rotas de API` $\rightarrow$ `2.5h`
-    - Tarefa 2: `Construção dos gráficos Tailwind` $\rightarrow$ `3.0h`
-  - Total real realizado registrado: **`5.5h`** (inferior às 6.0h estimadas).
-  - Clique em **"Finalizar & Solicitar Aceite do Cliente"**.
+  - Na aba da empresa (`admin` ou `tecnico`), acesse a tela de execução do ciclo aprovado (botão **"Ir para Execução"** ou `/admin/ciclos/<ID>/execucao`).
+  - Lance os 2 apontamentos de tarefas realizadas:
+    - **Tarefa 1:**
+      - Descrição:
+      ```text
+      Estruturação das rotas de API
+      ```
+      - Horas:
+      ```text
+      2.5
+      ```
+    - **Tarefa 2:**
+      - Descrição:
+      ```text
+      Construção dos gráficos Tailwind
+      ```
+      - Horas:
+      ```text
+      3.0
+      ```
+  - Observe o total gasto registrado: **5.5h** (menor que as 6.0h orçadas).
+  - Clique no botão verde: **"Finalizar & Solicitar Aceite do Cliente (5.5h)"**.
+
 - [ ] **3.3. Aceite Final & Débito Real:**
-  - Na aba do **Gerente Cliente**, recarregue o pedido.
+  - Na aba do **Gerente Cliente**, recarregue o chamado `OS2026080003`.
   - Observe o botão verde: **"Conceder Aceite Final (5.5h)"**.
   - Clique em **"Conceder Aceite Final"**.
   - 🔍 **Validação Crítica:**
-    - O ciclo é finalizado como *Aceito*.
-    - O pedido é movido para a 6ª coluna do Kanban (*Concluídos*).
-    - **O saldo do contrato na sidebar é debitado instantaneamente:** de `86.0h` para **`80.5h`** (débito exato das 5.5h reais!).
+    - O ciclo é finalizado como **Aceito**.
+    - O chamado vai para a 6ª coluna do Kanban (*Concluídos*).
+    - **O saldo do contrato na barra lateral é debitado instantaneamente:** de `86.0h` para **`80.5h`** (débito exato das 5.5h reais executadas!).
 
 ---
 
@@ -101,37 +182,66 @@ sequenceDiagram
 ---
 
 ### 🧪 Teste 4: Auditoria do Ledger Imutável no Extrato do Contrato
-- [ ] **4.1.** Logado como `gerente.acme`, clique no link **"Extrato Detalhado"** no card do contrato na barra lateral (ou acesse `/contratos/1/extrato`).
+
+- [ ] **4.1.** Logado como `gerente.acme`, acesse o extrato do contrato:
+```text
+http://localhost:5173/contratos/1/extrato
+```
+
 - [ ] **4.2.** Verifique os indicadores no topo:
   - **Horas Contratadas:** `100.0h`
-  - **Consumo Acumulado:** `19.5h`
+  - **Consumo Acumulado:** `19.5h` (14.0h anteriores + 5.5h da OS2026080003)
   - **Saldo Disponível:** `80.5h`
-- [ ] **4.3.** Verifique a tabela de lançamentos:
-  - O débito do ciclo do pedido `OS2026080003` consta com `-5.5h`, data, tipo e protocolo auditáveis.
+
+- [ ] **4.3.** Verifique a tabela de histórico de lançamentos:
+  - O débito do ciclo da OS `OS2026080003` consta com `-5.5h`, tipo `Evolutiva`, data/hora e contexto auditáveis.
 
 ---
 
 ### 🧪 Teste 5: Magic Link Público (Aprovação sem Login / Mobile)
-- [ ] **5.1.** Como `admin`, crie um novo ciclo em qualquer pedido e clique em **"Emitir Orçamento"**.
-- [ ] **5.2.** Acesse `http://localhost:8000/api/v1/ciclos/` e copie o `token_acesso` (UUID gerado para o ciclo).
-- [ ] **5.3.** Em uma janela anônima (sem nenhum login ativo), acesse a URL:
-  `http://localhost:5173/publico/ciclo/<TOKEN_UUID>`
-- [ ] **Validação Esperada:** Renderiza a tela de aprovação executiva com resumo do escopo e botões diretos de 1 clique para aprovar ou aceitar sem necessidade de login.
+
+- [ ] **5.1.** Como `admin`, em qualquer pedido, adicione um novo ciclo e clique em **"Emitir Orçamento"**.
+- [ ] **5.2.** Obtenha o token UUID do ciclo na API:
+```text
+http://localhost:8000/api/v1/ciclos/
+```
+*(Copie o valor do campo `token_acesso` correspondente)*
+
+- [ ] **5.3.** Em uma janela anônima (sem login ativo), abra a URL do Magic Link:
+```text
+http://localhost:5173/publico/ciclo/<TOKEN_UUID>
+```
+
+- [ ] **Validação Esperada:**
+  - Renderiza o card executivo de aprovação com protocolo, cliente, escopo e horas.
+  - Permite **Aprovar** ou **Rejeitar** o orçamento diretamente em 1 clique sem login.
 
 ---
 
 ### 🧪 Teste 6: Rejeição com Justificativa Obrigatória
-- [ ] **6.1.** Em um ciclo com orçamento emitido, logado como Cliente, clique em **"Rejeitar Orçamento"**.
-- [ ] **6.2.** Na janela modal, informe a justificativa: *"Necessário rever a estimativa para atender apenas ao módulo básico."*
+
+- [ ] **6.1.** Em um ciclo com status *Aguardando Aprovação*, logado como Cliente, clique em **"Rejeitar Orçamento"**.
+- [ ] **6.2.** No modal, cole a justificativa técnica:
+```text
+Necessário rever a estimativa para atender apenas ao módulo básico de exportação.
+```
 - [ ] **6.3.** Clique em **"Confirmar Recusa"**.
-- [ ] **Validação Esperada:** O ciclo retorna para a equipe técnica com status *Rejeitado* e a justificativa visível para readequação de escopo.
+- [ ] **Validação Esperada:** O ciclo retorna para a equipe técnica com status **Orçado** para readequação de escopo.
 
 ---
 
 ### 🧪 Teste 7: Feed de Mensagens e Comunicação Técnica do Ciclo
+
 - [ ] **7.1.** Na tela de detalhes de qualquer chamado, role até a seção **Comentários & Histórico do Ciclo**.
-- [ ] **7.2.** Envie uma mensagem como Cliente e outra como Técnico.
-- [ ] **Validação Esperada:** Mensagens são listadas cronologicamente com o nome do autor, crachá do perfil (`Gerente Cliente` vs `Admin Empresa`) e horário exato.
+- [ ] **7.2.** Envie uma mensagem como Cliente (`gerente.acme`):
+```text
+Favor verificar os detalhes do layout e prazos de entrega.
+```
+- [ ] **7.3.** Em seguida, responda como Técnico (`tecnico`):
+```text
+Entendido! Já estamos implementando conforme solicitado.
+```
+- [ ] **Validação Esperada:** Mensagens são exibidas cronologicamente com identificação de autor, crachá do perfil (`Gerente Cliente` vs `Empresa — Técnico`) e horário exato.
 
 ---
 

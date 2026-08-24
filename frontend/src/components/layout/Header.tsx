@@ -6,6 +6,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 import type { Contrato, Notification } from '../../types'
 
+import { useToast } from '../../contexts/ToastContext'
+
 interface HeaderProps {
   contratoSelecionado?: number | null
   onSelectContrato?: (id: number | null) => void
@@ -15,13 +17,14 @@ interface HeaderProps {
 export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }: HeaderProps) {
   const { user, logout, isEmpresa } = useAuth()
   const navigate = useNavigate()
+  const toast = useToast()
   const queryClient = useQueryClient()
   const [showNotifs, setShowNotifs] = useState(false)
 
   const { data: rawNotifs } = useQuery({
     queryKey: ['notificacoes'],
     queryFn: clientService.notificacoes.list,
-    refetchInterval: 30000,
+    refetchInterval: 5000,
   })
 
   const notificacoes: Notification[] = Array.isArray(rawNotifs) ? rawNotifs : []
@@ -35,7 +38,10 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
 
   const marcarTodasMutation = useMutation({
     mutationFn: clientService.notificacoes.marcarTodasLidas,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notificacoes'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notificacoes'] })
+      toast.success('Todas as notificações foram marcadas como lidas.', 'Notificações')
+    },
   })
 
   const userInitials = (user?.first_name ? user.first_name[0] : user?.username?.[0] || 'U').toUpperCase()
