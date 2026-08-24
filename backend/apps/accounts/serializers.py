@@ -56,3 +56,10 @@ class UserCreateSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+
+class GoogleAuthSerializer(serializers.Serializer):
+    credential = serializers.CharField(
+        required=True,
+        help_text="Google OAuth2 ID Token retornado pelo Google Identity Services.",
+    )

@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   login: (credentials: { username: string; password: string }) => Promise<User>
+  loginGoogle: (credential: string) => Promise<User>
   logout: () => void
   isEmpresa: boolean
   isCliente: boolean
@@ -43,6 +44,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return userData
   }
 
+  const loginGoogle = async (credential: string) => {
+    const data = await clientService.auth.loginGoogle(credential)
+    localStorage.setItem('shm_access_token', data.access)
+    localStorage.setItem('shm_refresh_token', data.refresh)
+    const userData = data.user || (await clientService.auth.me())
+    setUser(userData)
+    return userData
+  }
+
   const logout = () => {
     localStorage.removeItem('shm_access_token')
     localStorage.removeItem('shm_refresh_token')
@@ -55,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const canApprove = Boolean(user && (user.can_approve_cycles ?? (user.role === 'CLIENTE_GERENTE' || user.is_superuser)))
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isEmpresa, isCliente, canApprove }}>
+    <AuthContext.Provider value={{ user, loading, login, loginGoogle, logout, isEmpresa, isCliente, canApprove }}>
       {children}
     </AuthContext.Provider>
   )

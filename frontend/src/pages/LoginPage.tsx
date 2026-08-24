@@ -2,9 +2,10 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Clock, ArrowRight, Shield, UserCheck, Sparkles, Building2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { GoogleLoginButton } from '../components/auth/GoogleLoginButton'
 
 export function LoginPage() {
-  const { login } = useAuth()
+  const { login, loginGoogle } = useAuth()
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -23,6 +24,18 @@ export function LoginPage() {
       setError('Credenciais inválidas. Verifique usuário e senha.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGoogleSuccess = async (credential: string) => {
+    setError(null)
+    try {
+      const loggedUser = await loginGoogle(credential)
+      const isEmp = loggedUser.role === 'EMPRESA_ADMIN' || loggedUser.role === 'EMPRESA_TECNICO' || loggedUser.is_staff
+      navigate(isEmp ? '/admin/dashboard' : '/dashboard')
+    } catch (err: any) {
+      const detail = err.response?.data?.detail || err.message || 'Erro ao processar autenticação pelo Google.'
+      setError(detail)
     }
   }
 
@@ -47,7 +60,7 @@ export function LoginPage() {
       <div className="absolute top-1/4 -left-32 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="max-w-md w-full glass-panel-dark rounded-3xl p-8 sm:p-10 shadow-2xl border border-slate-800/80 relative z-10 space-y-6">
+      <div className="max-w-md w-full glass-panel-dark rounded-3xl p-8 sm:p-10 shadow-2xl border border-slate-800/80 relative z-10 space-y-5">
         <div className="text-center space-y-3">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-500 text-white rounded-2xl shadow-xl shadow-indigo-500/25 ring-4 ring-indigo-500/10">
             <Clock className="w-8 h-8" />
@@ -63,11 +76,28 @@ export function LoginPage() {
         </div>
 
         {error && (
-          <div className="p-3.5 bg-rose-950/50 border border-rose-800/80 text-rose-300 text-xs font-medium rounded-xl flex items-center gap-2">
-            <Shield className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>{error}</span>
+          <div className="p-3.5 bg-rose-950/50 border border-rose-800/80 text-rose-300 text-xs font-medium rounded-xl flex items-start gap-2.5">
+            <Shield className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <span className="leading-snug">{error}</span>
           </div>
         )}
+
+        {/* Botão de Autenticação Google OAuth2 */}
+        <div className="space-y-3">
+          <GoogleLoginButton
+            onSuccess={handleGoogleSuccess}
+            onError={(msg) => setError(msg)}
+            disabled={loading}
+          />
+
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-slate-800"></div>
+            <span className="flex-shrink mx-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+              ou acesse com usuário e senha
+            </span>
+            <div className="flex-grow border-t border-slate-800"></div>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

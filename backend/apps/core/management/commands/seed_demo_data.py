@@ -22,7 +22,7 @@ class Command(BaseCommand):
         admin_user, _ = User.objects.get_or_create(
             username="admin",
             defaults={
-                "email": "admin@empresa.com",
+                "email": "andresouza72br@gmail.com",
                 "first_name": "Carlos",
                 "last_name": "Diretor",
                 "role": UserRole.EMPRESA_ADMIN,
@@ -30,6 +30,7 @@ class Command(BaseCommand):
                 "is_superuser": True,
             }
         )
+        admin_user.email = "andresouza72br@gmail.com"
         admin_user.set_password("admin123")
         admin_user.save()
 
@@ -122,13 +123,14 @@ class Command(BaseCommand):
         gerente_mktdnb, _ = User.objects.get_or_create(
             username="gerente.mktdnb",
             defaults={
-                "email": "marcelo.gerente@mkt-dnb.com",
+                "email": "workspace.icb@gmail.com",
                 "first_name": "Marcelo",
                 "last_name": "Ribeiro (Gerente)",
                 "role": UserRole.CLIENTE_GERENTE,
                 "cliente": cliente_mktdnb,
             }
         )
+        gerente_mktdnb.email = "workspace.icb@gmail.com"
         gerente_mktdnb.set_password("cliente123")
         gerente_mktdnb.save()
 

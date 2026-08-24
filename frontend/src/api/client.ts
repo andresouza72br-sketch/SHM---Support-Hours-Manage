@@ -60,6 +60,8 @@ export const clientService = {
   auth: {
     login: (credentials: { username: string; password: string }) =>
       api.post<{ access: string; refresh: string }>('/auth/token/', credentials).then((r) => r.data),
+    loginGoogle: (credential: string) =>
+      api.post<{ access: string; refresh: string; user: any }>('/auth/google/', { credential }).then((r) => r.data),
     me: () => api.get('/auth/me/').then((r) => r.data),
   },
   contratos: {
