@@ -1,18 +1,31 @@
-﻿from django.db import transaction
+from django.db import transaction
 from django.utils import timezone
 from apps.pedidos.models import Pedido, StatusPedido
 
 class PedidoService:
     @staticmethod
     def gerar_protocolo() -> str:
+        import re
         hoje = timezone.localdate()
         prefixo = f"OS{hoje.year}{hoje.month:02d}"
-        ultimo = Pedido.objects.filter(protocolo__startswith=prefixo).order_by("-protocolo").first()
-        if ultimo:
-            seq = int(ultimo.protocolo[-4:]) + 1
-        else:
-            seq = 1
-        return f"{prefixo}{seq:04d}"
+        protocolos = Pedido.objects.filter(protocolo__startswith=prefixo).values_list("protocolo", flat=True)
+        max_seq = 0
+        pattern = re.compile(rf"^{re.escape(prefixo)}(\d+)$")
+        for prot in protocolos:
+            match = pattern.match(prot)
+            if match:
+                try:
+                    num = int(match.group(1))
+                    if num > max_seq:
+                        max_seq = num
+                except ValueError:
+                    continue
+        seq = max_seq + 1
+        candidato = f"{prefixo}{seq:04d}"
+        while Pedido.objects.filter(protocolo=candidato).exists():
+            seq += 1
+            candidato = f"{prefixo}{seq:04d}"
+        return candidato
 
     @staticmethod
     @transaction.atomic

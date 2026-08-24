@@ -22,7 +22,7 @@ class CicloViewSet(viewsets.ModelViewSet):
     def apresentar_orcamento(self, request, pk=None):
         ciclo = self.get_object()
         horas = Decimal(str(request.data.get("horas_estimadas", 0)))
-        ciclo = CicloService.apresentar_orcamento(ciclo, horas)
+        ciclo = CicloService.apresentar_orcamento(ciclo, horas, usuario=request.user)
         return Response(self.get_serializer(ciclo).data)
 
     @action(detail=True, methods=["post"], permission_classes=[IsClienteGerente])
@@ -35,19 +35,19 @@ class CicloViewSet(viewsets.ModelViewSet):
     def rejeitar(self, request, pk=None):
         ciclo = self.get_object()
         justificativa = request.data.get("justificativa", "")
-        ciclo = CicloService.rejeitar_orcamento(ciclo, justificativa)
+        ciclo = CicloService.rejeitar_orcamento(ciclo, justificativa, usuario=request.user)
         return Response(self.get_serializer(ciclo).data)
 
     @action(detail=True, methods=["post"], permission_classes=[IsEmpresaUser])
     def iniciar_execucao(self, request, pk=None):
         ciclo = self.get_object()
-        ciclo = CicloService.iniciar_execucao(ciclo)
+        ciclo = CicloService.iniciar_execucao(ciclo, usuario=request.user)
         return Response(self.get_serializer(ciclo).data)
 
     @action(detail=True, methods=["post"], permission_classes=[IsEmpresaUser])
     def solicitar_aceite(self, request, pk=None):
         ciclo = self.get_object()
-        ciclo = CicloService.solicitar_aceite(ciclo)
+        ciclo = CicloService.solicitar_aceite(ciclo, usuario=request.user)
         return Response(self.get_serializer(ciclo).data)
 
     @action(detail=True, methods=["post"], permission_classes=[IsClienteGerente])
@@ -60,7 +60,7 @@ class CicloViewSet(viewsets.ModelViewSet):
     def recusar(self, request, pk=None):
         ciclo = self.get_object()
         justificativa = request.data.get("justificativa", "")
-        ciclo = CicloService.recusar_aceite(ciclo, justificativa)
+        ciclo = CicloService.recusar_aceite(ciclo, justificativa, usuario=request.user)
         return Response(self.get_serializer(ciclo).data)
 
 class MagicLinkCicloView(APIView):
@@ -88,15 +88,16 @@ class MagicLinkCicloView(APIView):
         
         acao = request.data.get("acao")
         justificativa = request.data.get("justificativa", "")
+        user = request.user if (hasattr(request.user, "is_authenticated") and request.user.is_authenticated) else None
 
         if acao == "aprovar":
-            CicloService.aprovar_orcamento(ciclo, request.user)
+            CicloService.aprovar_orcamento(ciclo, user)
         elif acao == "rejeitar":
-            CicloService.rejeitar_orcamento(ciclo, justificativa)
+            CicloService.rejeitar_orcamento(ciclo, justificativa, usuario=user)
         elif acao == "aceitar":
-            CicloService.aceitar_ciclo(ciclo, request.user)
+            CicloService.aceitar_ciclo(ciclo, user)
         elif acao == "recusar":
-            CicloService.recusar_aceite(ciclo, justificativa)
+            CicloService.recusar_aceite(ciclo, justificativa, usuario=user)
         else:
             return Response({"detail": "Ação inválida."}, status=status.HTTP_400_BAD_REQUEST)
 

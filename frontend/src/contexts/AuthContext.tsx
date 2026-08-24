@@ -50,9 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = '/login'
   }
 
-  const isEmpresa = Boolean(user && (user.role === 'EMPRESA_ADMIN' || user.role === 'EMPRESA_TECNICO' || user.is_staff))
-  const isCliente = Boolean(user && (user.role === 'CLIENTE_GERENTE' || user.role === 'CLIENTE_ANALISTA'))
-  const canApprove = Boolean(user && (user.role === 'CLIENTE_GERENTE' || user.role === 'EMPRESA_ADMIN' || user.is_staff))
+  const isEmpresa = Boolean(user && (user.is_empresa ?? (user.role === 'EMPRESA_ADMIN' || user.role === 'EMPRESA_TECNICO' || user.is_superuser)))
+  const isCliente = Boolean(user && (user.is_cliente ?? (user.role === 'CLIENTE_GERENTE' || user.role === 'CLIENTE_ANALISTA')))
+  const canApprove = Boolean(user && (user.can_approve_cycles ?? (user.role === 'CLIENTE_GERENTE' || user.is_superuser)))
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, isEmpresa, isCliente, canApprove }}>

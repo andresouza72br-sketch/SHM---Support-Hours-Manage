@@ -1,9 +1,12 @@
-﻿from rest_framework import serializers
+from rest_framework import serializers
 from apps.accounts.models import User, UserRole
 
 class UserSerializer(serializers.ModelSerializer):
     cliente_nome = serializers.SerializerMethodField()
     role_display = serializers.CharField(source="get_role_display", read_only=True)
+    can_approve_cycles = serializers.BooleanField(read_only=True)
+    is_empresa = serializers.BooleanField(read_only=True)
+    is_cliente = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
@@ -19,9 +22,13 @@ class UserSerializer(serializers.ModelSerializer):
             "cliente",
             "cliente_nome",
             "is_staff",
+            "is_superuser",
             "is_active",
+            "can_approve_cycles",
+            "is_empresa",
+            "is_cliente",
         ]
-        read_only_fields = ["id", "is_staff", "is_active"]
+        read_only_fields = ["id", "is_staff", "is_superuser", "is_active", "can_approve_cycles", "is_empresa", "is_cliente"]
 
     def get_cliente_nome(self, obj):
         return str(obj.cliente) if obj.cliente else None

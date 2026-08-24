@@ -1,4 +1,4 @@
-﻿from rest_framework import serializers
+from rest_framework import serializers
 from apps.comunicacao.models import Comentario, AnexoComentario
 
 class AnexoComentarioSerializer(serializers.ModelSerializer):
@@ -11,9 +11,23 @@ class AnexoComentarioSerializer(serializers.ModelSerializer):
 class ComentarioSerializer(serializers.ModelSerializer):
     autor_nome = serializers.CharField(source="autor.get_full_name", read_only=True)
     autor_role = serializers.CharField(source="autor.get_role_display", read_only=True)
+    autor_username = serializers.CharField(source="autor.username", read_only=True)
     anexos = AnexoComentarioSerializer(many=True, read_only=True)
 
     class Meta:
         model = Comentario
-        fields = "__all__"
-        read_only_fields = ["id", "autor", "criado_em", "atualizado_em"]
+        fields = [
+            "id",
+            "ciclo",
+            "tarefa",
+            "autor",
+            "autor_nome",
+            "autor_role",
+            "autor_username",
+            "texto",
+            "tarefa_convertida",
+            "anexos",
+            "criado_em",
+            "atualizado_em",
+        ]
+        read_only_fields = ["id", "autor", "tarefa_convertida", "criado_em", "atualizado_em"]

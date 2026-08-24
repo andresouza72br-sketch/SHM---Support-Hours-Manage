@@ -1,4 +1,4 @@
-﻿from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from apps.contratos.models import Contrato
@@ -17,6 +17,7 @@ class ContratoViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         contrato = ContratoService.criar_contrato(self.request.data, self.request.user)
+        serializer.instance = contrato
         return contrato
 
     def get_queryset(self):

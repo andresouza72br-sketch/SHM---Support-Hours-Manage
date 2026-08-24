@@ -100,6 +100,8 @@ export const clientService = {
   comunicacao: {
     list: (cicloId: number) => api.get<any>(`/comunicacao/comentarios/?ciclo=${cicloId}`).then((r) => normalizeArray<Comentario>(r.data)),
     create: (data: { ciclo: number; texto: string }) => api.post<Comentario>('/comunicacao/comentarios/', data).then((r) => r.data),
+    update: (id: string, data: { texto: string }) => api.patch<Comentario>(`/comunicacao/comentarios/${id}/`, data).then((r) => r.data),
+    delete: (id: string) => api.delete(`/comunicacao/comentarios/${id}/`).then((r) => r.data),
     converterEmTarefa: (id: string, data: { descricao: string; horas_estimadas: number }) =>
       api.post(`/comunicacao/comentarios/${id}/converter_em_tarefa/`, data).then((r) => r.data),
   },

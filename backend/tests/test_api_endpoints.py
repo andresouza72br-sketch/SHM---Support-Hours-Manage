@@ -87,3 +87,111 @@ class TestApiEndpoints:
         assert res_action.status_code == 200
         ciclo.refresh_from_db()
         assert ciclo.status == StatusCiclo.APROVADO
+
+    def test_criar_pedido_por_empresa_e_cliente(self):
+        from apps.notificacoes.models import Notification, TimelineEvent, TipoEventoTimeline
+
+        # 1. Cria pedido com protocolo irregular pré-existente
+        Pedido.objects.create(
+            protocolo="OS202608MKT01",
+            cliente=self.cliente,
+            contrato=self.contrato,
+            assunto="Existente",
+            descricao="Desc",
+            criado_por=self.admin,
+        )
+
+        Notification.objects.all().delete()
+        TimelineEvent.objects.all().delete()
+
+        # 2. Cliente cria novo pedido
+        self.client.force_authenticate(user=self.gerente_cliente)
+        res_cli = self.client.post("/api/v1/pedidos/", {
+            "contrato": self.contrato.id,
+            "assunto": "Erro ao emitir relatório",
+            "descricao": "Detalhes do erro do cliente",
+            "prioridade": "alta",
+        })
+        assert res_cli.status_code == 201
+        assert res_cli.data["protocolo"].startswith("OS202608")
+        assert res_cli.data["cliente"] == self.cliente.id
+        assert res_cli.data["assunto"] == "Erro ao emitir relatório"
+
+        # Notificação enviada para a Empresa (admin), mas não para o autor (gerente_cliente)
+        notifs_admin = Notification.objects.filter(usuario=self.admin)
+        notifs_autor = Notification.objects.filter(usuario=self.gerente_cliente)
+        assert notifs_admin.exists()
+        assert not notifs_autor.exists()
+        assert "Erro ao emitir relatório" in notifs_admin.first().mensagem or "Novo Pedido" in notifs_admin.first().titulo
+
+        # Timeline event registrado
+        timeline_events = TimelineEvent.objects.filter(pedido_id=res_cli.data["id"], tipo=TipoEventoTimeline.PEDIDO_CRIADO)
+        assert timeline_events.exists()
+
+        # 3. Empresa cria novo pedido
+        Notification.objects.all().delete()
+        self.client.force_authenticate(user=self.admin)
+        res_adm = self.client.post("/api/v1/pedidos/", {
+            "contrato": self.contrato.id,
+            "assunto": "Abertura interna pelo suporte",
+            "descricao": "Demanda originada internamente",
+            "prioridade": "media",
+        })
+        assert res_adm.status_code == 201
+        assert res_adm.data["protocolo"].startswith("OS202608")
+        assert res_adm.data["cliente"] == self.cliente.id
+        assert res_adm.data["protocolo"] != res_cli.data["protocolo"]
+
+        # Notificação enviada para o Cliente (gerente_cliente), mas não para o autor (admin)
+        notifs_cliente = Notification.objects.filter(usuario=self.gerente_cliente)
+        notifs_autor_adm = Notification.objects.filter(usuario=self.admin)
+        assert notifs_cliente.exists()
+        assert not notifs_autor_adm.exists()
+
+    def test_permissao_aprovacao_orcamento_somente_cliente_gerente(self):
+        # Cria técnico da empresa
+        tecnico = User.objects.create_user(
+            username="tecnico_api",
+            password="password123",
+            role=UserRole.EMPRESA_TECNICO,
+        )
+        # Cria analista do cliente
+        analista_cliente = User.objects.create_user(
+            username="analista_api",
+            password="password123",
+            role=UserRole.CLIENTE_ANALISTA,
+            cliente=self.cliente,
+        )
+        # Pedido e Ciclo aguardando aprovação
+        pedido = Pedido.objects.create(
+            protocolo="OS2026087777",
+            cliente=self.cliente,
+            contrato=self.contrato,
+            assunto="Teste de permissão de aprovação",
+            descricao="Verificando se técnico e analista são bloqueados",
+            criado_por=self.gerente_cliente,
+        )
+        ciclo = Ciclo.objects.create(
+            pedido=pedido,
+            tipo=TipoCiclo.ANALISE,
+            operador=tecnico,
+            horas_estimadas=Decimal("4.00"),
+            status=StatusCiclo.AGUARDANDO_APROVACAO,
+        )
+
+        # 1. Técnico da empresa tenta aprovar -> Bloqueado (403)
+        self.client.force_authenticate(user=tecnico)
+        res_tec = self.client.post(f"/api/v1/ciclos/{ciclo.id}/aprovar/")
+        assert res_tec.status_code == 403
+
+        # 2. Analista do cliente tenta aprovar -> Bloqueado (403)
+        self.client.force_authenticate(user=analista_cliente)
+        res_ana = self.client.post(f"/api/v1/ciclos/{ciclo.id}/aprovar/")
+        assert res_ana.status_code == 403
+
+        # 3. Gerente do cliente aprova -> Permitido (200)
+        self.client.force_authenticate(user=self.gerente_cliente)
+        res_ger = self.client.post(f"/api/v1/ciclos/{ciclo.id}/aprovar/")
+        assert res_ger.status_code == 200
+        ciclo.refresh_from_db()
+        assert ciclo.status == StatusCiclo.APROVADO
