@@ -7,6 +7,7 @@ from apps.clientes.models import Cliente, TipoCliente
 from apps.contratos.models import Contrato, StatusContrato
 from apps.pedidos.models import Pedido, StatusPedido, PrioridadePedido
 from apps.ciclos.models import Ciclo, StatusCiclo, TipoCiclo
+from apps.ciclos.services import CicloService
 
 @pytest.mark.django_db
 class TestApiEndpoints:
@@ -195,3 +196,189 @@ class TestApiEndpoints:
         assert res_ger.status_code == 200
         ciclo.refresh_from_db()
         assert ciclo.status == StatusCiclo.APROVADO
+
+    def test_magic_link_expiracao_7_dias(self):
+        from datetime import timedelta
+        from apps.ciclos.models import CicloMagicLink, TipoAcaoMagicLink
+
+        pedido = Pedido.objects.create(
+            protocolo="OS202608EXP01",
+            cliente=self.cliente,
+            contrato=self.contrato,
+            assunto="Teste de Expiração de 7 dias",
+            descricao="Verificação de bloqueio por expiração",
+            prioridade=PrioridadePedido.MEDIA,
+            criado_por=self.gerente_cliente,
+        )
+        ciclo = Ciclo.objects.create(
+            pedido=pedido,
+            tipo=TipoCiclo.ANALISE,
+            operador=self.admin,
+            horas_estimadas=Decimal("6.00"),
+            status=StatusCiclo.AGUARDANDO_APROVACAO,
+        )
+        magic_link = CicloService.gerar_magic_link(ciclo, TipoAcaoMagicLink.APROVACAO_ORCAMENTO)
+
+        # Força expiração do token (8 dias no passado)
+        magic_link.expira_em = timezone.now() - timedelta(days=8)
+        magic_link.save()
+
+        client_publico = APIClient()
+        res_get = client_publico.get(f"/api/v1/ciclos/publico/{magic_link.token}/")
+        assert res_get.status_code == 200
+        assert res_get.data["expirado"] is True
+
+        res_post = client_publico.post(
+            f"/api/v1/ciclos/publico/{magic_link.token}/",
+            {"acao": "aprovar"},
+        )
+        assert res_post.status_code == 410
+        assert "expirou" in res_post.data["detail"]
+
+    def test_magic_link_single_use_e_idempotencia(self):
+        from apps.ciclos.models import TipoAcaoMagicLink
+
+        pedido = Pedido.objects.create(
+            protocolo="OS202608SGL01",
+            cliente=self.cliente,
+            contrato=self.contrato,
+            assunto="Teste de Uso Único",
+            descricao="Verificação de Idempotência e Single-Use",
+            prioridade=PrioridadePedido.BAIXA,
+            criado_por=self.gerente_cliente,
+        )
+        ciclo = Ciclo.objects.create(
+            pedido=pedido,
+            tipo=TipoCiclo.CORRETIVA,
+            operador=self.admin,
+            horas_estimadas=Decimal("4.50"),
+            status=StatusCiclo.AGUARDANDO_APROVACAO,
+        )
+        magic_link = CicloService.gerar_magic_link(ciclo, TipoAcaoMagicLink.APROVACAO_ORCAMENTO)
+
+        client_publico = APIClient()
+
+        # 1º Uso -> Sucesso (200)
+        res1 = client_publico.post(
+            f"/api/v1/ciclos/publico/{magic_link.token}/",
+            {"acao": "aprovar"},
+            REMOTE_ADDR="192.168.1.100",
+            HTTP_USER_AGENT="TestClient/1.0",
+        )
+        assert res1.status_code == 200
+        ciclo.refresh_from_db()
+        assert ciclo.status == StatusCiclo.APROVADO
+
+        magic_link.refresh_from_db()
+        assert magic_link.usado is True
+        assert magic_link.usado_em is not None
+        assert magic_link.usado_ip == "192.168.1.100"
+
+        # 2º Uso -> Bloqueio de Idempotência (409 Conflict)
+        res2 = client_publico.post(
+            f"/api/v1/ciclos/publico/{magic_link.token}/",
+            {"acao": "aprovar"},
+        )
+        assert res2.status_code == 409
+        assert "já foi consumido" in res2.data["detail"] or "já foi utilizado" in res2.data["detail"]
+
+    def test_magic_link_bloqueia_rejeicao_e_recusa_publica(self):
+        from apps.ciclos.models import TipoAcaoMagicLink
+
+        pedido = Pedido.objects.create(
+            protocolo="OS202608BLK01",
+            cliente=self.cliente,
+            contrato=self.contrato,
+            assunto="Teste de Bloqueio de Rejeição Pública",
+            descricao="Rejeição deve ser exclusiva via App com justificativa",
+            prioridade=PrioridadePedido.ALTA,
+            criado_por=self.gerente_cliente,
+        )
+        ciclo = Ciclo.objects.create(
+            pedido=pedido,
+            tipo=TipoCiclo.EVOLUTIVA,
+            operador=self.admin,
+            horas_estimadas=Decimal("12.00"),
+            status=StatusCiclo.AGUARDANDO_APROVACAO,
+        )
+        magic_link = CicloService.gerar_magic_link(ciclo, TipoAcaoMagicLink.APROVACAO_ORCAMENTO)
+
+        client_publico = APIClient()
+
+        # Tentativa de rejeitar via Magic Link -> 403 Forbidden
+        res_rej = client_publico.post(
+            f"/api/v1/ciclos/publico/{magic_link.token}/",
+            {"acao": "rejeitar"},
+        )
+        assert res_rej.status_code == 403
+        assert "Operação não permitida via Magic Link" in res_rej.data["detail"]
+
+        # Tentativa de recusar via Magic Link -> 403 Forbidden
+        res_rec = client_publico.post(
+            f"/api/v1/ciclos/publico/{magic_link.token}/",
+            {"acao": "recusar"},
+        )
+        assert res_rec.status_code == 403
+
+    def test_auditoria_forense_e_debito_ledger_no_aceite_final(self):
+        from apps.ciclos.models import TipoAcaoMagicLink
+        from apps.saldo.models import HistoricoSaldo, TipoOperacaoSaldo
+        from apps.notificacoes.models import TimelineEvent, TipoEventoTimeline
+
+        pedido = Pedido.objects.create(
+            protocolo="OS202608AUD01",
+            cliente=self.cliente,
+            contrato=self.contrato,
+            assunto="Demanda de Auditoria Forense Completa",
+            descricao="Validação de IP, User-Agent e carimbo ISO 8601",
+            prioridade=PrioridadePedido.URGENTE,
+            criado_por=self.gerente_cliente,
+        )
+        ciclo = Ciclo.objects.create(
+            pedido=pedido,
+            tipo=TipoCiclo.CONSULTORIA,
+            operador=self.admin,
+            horas_estimadas=Decimal("15.00"),
+            horas_realizadas=Decimal("14.00"),
+            status=StatusCiclo.AGUARDANDO_ACEITE,
+        )
+        magic_link = CicloService.gerar_magic_link(ciclo, TipoAcaoMagicLink.ACEITE_CICLO)
+
+        client_publico = APIClient()
+        ip_teste = "198.51.100.77"
+        ua_teste = "Mozilla/5.0 (ComplianceAuditor/2.0)"
+
+        res = client_publico.post(
+            f"/api/v1/ciclos/publico/{magic_link.token}/",
+            {"acao": "aceitar"},
+            REMOTE_ADDR=ip_teste,
+            HTTP_USER_AGENT=ua_teste,
+        )
+        assert res.status_code == 200
+
+        # 1. Valida Ciclo
+        ciclo.refresh_from_db()
+        assert ciclo.status == StatusCiclo.ACEITO
+        assert ciclo.aceito_ip == ip_teste
+        assert ciclo.aceito_user_agent == ua_teste
+        assert ciclo.aceito_metodo == "MAGIC_LINK"
+        assert ciclo.aceito_em is not None
+
+        # 2. Valida Débito no Contrato e Histórico de Saldo (Ledger)
+        self.contrato.refresh_from_db()
+        assert self.contrato.saldo == Decimal("36.00")  # 50.00 - 14.00 = 36.00h
+        assert self.contrato.horas_consumidas == Decimal("14.00")
+
+        historico = HistoricoSaldo.objects.filter(ciclo=ciclo, tipo_operacao=TipoOperacaoSaldo.CONSUMO).first()
+        assert historico is not None
+        assert historico.quantidade == Decimal("-14.00")
+        assert historico.saldo_resultante == Decimal("36.00")
+        assert historico.ip_origem == ip_teste
+        assert historico.user_agent == ua_teste
+        assert historico.metodo_aprovacao == "MAGIC_LINK"
+
+        # 3. Valida TimelineEvent
+        timeline_event = TimelineEvent.objects.filter(ciclo=ciclo, tipo=TipoEventoTimeline.CICLO_ACEITO).first()
+        assert timeline_event is not None
+        assert timeline_event.ip_origem == ip_teste
+        assert timeline_event.user_agent == ua_teste

@@ -1,4 +1,4 @@
-﻿import uuid
+import uuid
 from decimal import Decimal
 from django.db import models
 from django.conf import settings
@@ -45,6 +45,9 @@ class HistoricoSaldo(models.Model):
         related_name="consumos_saldo",
     )
     operacao_original_id = models.UUIDField("operação original estornada", null=True, blank=True)
+    ip_origem = models.GenericIPAddressField("IP de origem", null=True, blank=True)
+    user_agent = models.TextField("User-Agent", null=True, blank=True)
+    metodo_aprovacao = models.CharField("método de aprovação", max_length=50, default="APP")
     criado_em = models.DateTimeField("criado em", auto_now_add=True, db_index=True)
 
     class Meta:

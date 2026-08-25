@@ -1,4 +1,4 @@
-﻿import uuid
+import uuid
 from decimal import Decimal
 from datetime import date, timedelta
 from django.db import models
@@ -91,6 +91,8 @@ class AceiteLink(TimeStampedModel):
     data_expiracao = models.DateTimeField("data de expiração")
     usado = models.BooleanField("usado", default=False)
     usado_em = models.DateTimeField("usado em", null=True, blank=True)
+    usado_ip = models.GenericIPAddressField("IP de uso", null=True, blank=True)
+    usado_user_agent = models.TextField("User-Agent de uso", null=True, blank=True)
 
     class Meta:
         db_table = "shm_aceite_link"

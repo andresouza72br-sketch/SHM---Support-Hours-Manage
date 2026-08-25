@@ -142,3 +142,87 @@ class GoogleAuthView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+class PasswordlessRequestView(APIView):
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        from datetime import timedelta
+        from django.utils import timezone
+        from apps.accounts.models import PasswordlessLoginToken
+
+        email = request.data.get("email", "").strip()
+        if not email:
+            return Response({"detail": "Informe o endereço de e-mail."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(email__iexact=email, is_active=True).first()
+        if not user:
+            return Response(
+                {"detail": f"O e-mail '{email}' não está cadastrado na plataforma SHM."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Expiração curta de 15 minutos
+        expira_em = timezone.now() + timedelta(minutes=15)
+        token_obj = PasswordlessLoginToken.objects.create(
+            user=user,
+            expira_em=expira_em,
+            usado=False,
+        )
+
+        return Response({
+            "detail": "Link seguro de acesso emitido com sucesso (validade: 15 minutos).",
+            "token": str(token_obj.token) if settings.DEBUG else None,
+            "expira_em": expira_em.isoformat(),
+        })
+
+class PasswordlessVerifyView(APIView):
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        from django.utils import timezone
+        from apps.accounts.models import PasswordlessLoginToken
+        from apps.core.utils import get_client_ip, get_client_user_agent
+
+        token_str = request.data.get("token")
+        if not token_str:
+            return Response({"detail": "Token não informado."}, status=status.HTTP_400_BAD_REQUEST)
+
+        token_obj = PasswordlessLoginToken.objects.select_related("user").filter(token=token_str).first()
+        if not token_obj:
+            return Response({"detail": "Token inválido ou não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+        if token_obj.usado:
+            data_formatada = token_obj.usado_em.strftime("%d/%m/%Y às %H:%M") if token_obj.usado_em else "data anterior"
+            return Response(
+                {"detail": f"Este link seguro de login já foi utilizado em {data_formatada}."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        if timezone.now() > token_obj.expira_em:
+            return Response(
+                {"detail": "Este link de login expirou (validade de 15 minutos). Solicite um novo link."},
+                status=status.HTTP_410_GONE,
+            )
+
+        # Auditoria Forense
+        ip = get_client_ip(request)
+        ua = get_client_user_agent(request)
+
+        token_obj.usado = True
+        token_obj.usado_em = timezone.now()
+        token_obj.ip_origem = ip
+        token_obj.user_agent = ua
+        token_obj.save(update_fields=["usado", "usado_em", "ip_origem", "user_agent"])
+
+        user = token_obj.user
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": UserSerializer(user).data,
+            "metodo": "MAGIC_LINK_PASSWORDLESS",
+            "ip_origem": ip,
+        })

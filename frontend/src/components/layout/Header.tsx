@@ -88,6 +88,18 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
             </div>
           </Link>
 
+          {/* Live Session & Version Indicator */}
+          <div
+            title="Versão ao vivo da sessão: A2 & A3 Magic Link ativo e sincronizado"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold shadow-2xs cursor-default"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>v2.0 • Sessão Live (A2/A3)</span>
+          </div>
+
           {/* Empresa Navigation Switcher */}
           {isEmpresa && (
             <nav className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 shadow-2xs shrink-0">

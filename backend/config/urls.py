@@ -4,9 +4,23 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from django.http import JsonResponse
+from django.utils import timezone
+
+def status_view(request):
+    return JsonResponse({
+        "status": "ok",
+        "service": "SHM 2.0",
+        "version": "2.0.0",
+        "sessao": "A2 & A3 Magic Link (Governança, Single-Use, Expiração 7d, Auditoria Forense)",
+        "regras_envio": "E-mails de aprovação/aceite restritos exclusivamente ao CLIENTE_GERENTE",
+        "avisos_empresa": "Gerente e Técnicos avisados na aprovação do orçamento e concessão do aceite",
+        "timestamp": timezone.now().isoformat(),
+    })
 
 urlpatterns = [
+    # Status / Health Check
+    path("api/v1/status/", status_view, name="api_status"),
+
     # Django Admin
     path("admin/", admin.site.urls),
     
@@ -24,9 +38,6 @@ urlpatterns = [
     path("api/v1/saldo/", include("apps.saldo.urls")),
     path("api/v1/comunicacao/", include("apps.comunicacao.urls")),
     path("api/v1/notificacoes/", include("apps.notificacoes.urls")),
-
-    # Health Check
-    path("api/v1/status/", lambda r: JsonResponse({"status": "ok", "service": "SHM 2.0", "version": "2.0.0"}), name="health_check"),
 ]
 
 if settings.DEBUG:

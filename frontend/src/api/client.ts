@@ -112,4 +112,7 @@ export const clientService = {
     marcarLida: (id: number) => api.post(`/notificacoes/notificacoes/${id}/marcar_lida/`).then((r) => r.data),
     marcarTodasLidas: () => api.post('/notificacoes/notificacoes/marcar_todas_lidas/').then((r) => r.data),
   },
+  system: {
+    status: () => api.get('/status/').then((r) => r.data),
+  },
 }

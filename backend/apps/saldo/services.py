@@ -1,4 +1,4 @@
-﻿from decimal import Decimal
+from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from apps.contratos.models import Contrato, StatusContrato
@@ -7,7 +7,16 @@ from apps.saldo.models import HistoricoSaldo, TipoOperacaoSaldo, TransferenciaSa
 class SaldoService:
     @staticmethod
     @transaction.atomic
-    def consumir(contrato: Contrato, horas: Decimal, pedido=None, ciclo=None) -> HistoricoSaldo:
+    def consumir(
+        contrato: Contrato,
+        horas: Decimal,
+        pedido=None,
+        ciclo=None,
+        autor=None,
+        ip_origem: str = None,
+        user_agent: str = None,
+        metodo_aprovacao: str = "APP",
+    ) -> HistoricoSaldo:
         contrato = Contrato.objects.select_for_update().get(id=contrato.id)
         if horas <= 0:
             return None
@@ -22,9 +31,13 @@ class SaldoService:
             tipo_operacao=TipoOperacaoSaldo.CONSUMO,
             quantidade=-horas,
             saldo_resultante=novo_saldo,
+            autor=autor,
             pedido=pedido,
             ciclo=ciclo,
             descricao=f"Consumo referente ao aceite do Ciclo #{ciclo.id if ciclo else '?'} (Pedido {pedido.protocolo if pedido else '?'})",
+            ip_origem=ip_origem,
+            user_agent=user_agent,
+            metodo_aprovacao=metodo_aprovacao,
         )
 
     @staticmethod
