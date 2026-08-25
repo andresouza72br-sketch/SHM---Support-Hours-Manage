@@ -12,6 +12,7 @@ class ComentarioSerializer(serializers.ModelSerializer):
     autor_nome = serializers.CharField(source="autor.get_full_name", read_only=True)
     autor_role = serializers.CharField(source="autor.get_role_display", read_only=True)
     autor_username = serializers.CharField(source="autor.username", read_only=True)
+    autor_avatar_url = serializers.CharField(source="autor.avatar_url", read_only=True)
     anexos = AnexoComentarioSerializer(many=True, read_only=True)
 
     class Meta:
@@ -24,6 +25,7 @@ class ComentarioSerializer(serializers.ModelSerializer):
             "autor_nome",
             "autor_role",
             "autor_username",
+            "autor_avatar_url",
             "texto",
             "tarefa_convertida",
             "anexos",

@@ -61,6 +61,7 @@ class GoogleAuthView(APIView):
                 "email_verified": True,
                 "given_name": sim_email.split("@")[0].capitalize(),
                 "family_name": "Google",
+                "picture": f"https://api.dicebear.com/7.x/avataaars/svg?seed={sim_email}",
             }
         else:
             if not GOOGLE_AUTH_AVAILABLE:
@@ -123,15 +124,20 @@ class GoogleAuthView(APIView):
 
         given_name = idinfo.get("given_name")
         family_name = idinfo.get("family_name")
-        changed = False
+        picture = idinfo.get("picture")
+
+        update_fields = []
+        if picture and user.avatar_url != picture:
+            user.avatar_url = picture
+            update_fields.append("avatar_url")
         if given_name and not user.first_name:
             user.first_name = given_name
-            changed = True
+            update_fields.append("first_name")
         if family_name and not user.last_name:
             user.last_name = family_name
-            changed = True
-        if changed:
-            user.save(update_fields=["first_name", "last_name"])
+            update_fields.append("last_name")
+        if update_fields:
+            user.save(update_fields=update_fields)
 
         refresh = RefreshToken.for_user(user)
         return Response(

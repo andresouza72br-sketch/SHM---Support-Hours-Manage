@@ -6,6 +6,7 @@ export interface User {
   email: string
   first_name: string
   last_name: string
+  avatar_url?: string | null
   role: UserRole
   role_display: string
   telefone?: string | null
@@ -142,6 +143,7 @@ export interface Comentario {
   autor_nome: string
   autor_role: string
   autor_username?: string
+  autor_avatar_url?: string | null
   texto: string
   tarefa_convertida?: number | null
   criado_em: string

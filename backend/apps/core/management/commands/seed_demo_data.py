@@ -31,6 +31,7 @@ class Command(BaseCommand):
             }
         )
         admin_user.email = "andresouza72br@gmail.com"
+        admin_user.avatar_url = "https://api.dicebear.com/7.x/avataaars/svg?seed=andresouza72br@gmail.com"
         admin_user.set_password("admin123")
         admin_user.save()
 
@@ -131,6 +132,7 @@ class Command(BaseCommand):
             }
         )
         gerente_mktdnb.email = "workspace.icb@gmail.com"
+        gerente_mktdnb.avatar_url = "https://api.dicebear.com/7.x/avataaars/svg?seed=workspace.icb@gmail.com"
         gerente_mktdnb.set_password("cliente123")
         gerente_mktdnb.save()
 
@@ -195,6 +197,91 @@ class Command(BaseCommand):
                 "status": StatusContrato.ATIVO,
                 "descricao_servicos": "Contrato de Manutenção e Suporte SHM — Empresa mkt-dnb (Pacote de 100 Horas)",
                 "valor_mensal": Decimal("5000.00"),
+                "criado_por": admin_user,
+            }
+        )
+
+        contrato_acme2, _ = Contrato.objects.get_or_create(
+            numero="CT-2026-0004",
+            defaults={
+                "tipo": TipoContrato.NOVO,
+                "cliente": cliente_acme,
+                "data_inicio": hoje - timedelta(days=45),
+                "data_termino": hoje + timedelta(days=320),
+                "horas_contratadas": Decimal("80.00"),
+                "saldo": Decimal("64.00"),
+                "horas_consumidas": Decimal("16.00"),
+                "status": StatusContrato.ATIVO,
+                "descricao_servicos": "Consultoria Contábil & Automação Fiscal",
+                "valor_mensal": Decimal("3800.00"),
+                "criado_por": admin_user,
+            }
+        )
+
+        contrato_tech2, _ = Contrato.objects.get_or_create(
+            numero="CT-2026-0005",
+            defaults={
+                "tipo": TipoContrato.NOVO,
+                "cliente": cliente_tech,
+                "data_inicio": hoje - timedelta(days=20),
+                "data_termino": hoje + timedelta(days=345),
+                "horas_contratadas": Decimal("120.00"),
+                "saldo": Decimal("105.50"),
+                "horas_consumidas": Decimal("14.50"),
+                "status": StatusContrato.ATIVO,
+                "descricao_servicos": "Suporte Avançado Cloud & DevOps",
+                "valor_mensal": Decimal("6200.00"),
+                "criado_por": admin_user,
+            }
+        )
+
+        contrato_mkt2, _ = Contrato.objects.get_or_create(
+            numero="CT-2026-0006",
+            defaults={
+                "tipo": TipoContrato.NOVO,
+                "cliente": cliente_mktdnb,
+                "data_inicio": hoje - timedelta(days=10),
+                "data_termino": hoje + timedelta(days=355),
+                "horas_contratadas": Decimal("60.00"),
+                "saldo": Decimal("42.00"),
+                "horas_consumidas": Decimal("18.00"),
+                "status": StatusContrato.ATIVO,
+                "descricao_servicos": "Automação de Marketing e Integrações Webhooks",
+                "valor_mensal": Decimal("3200.00"),
+                "criado_por": admin_user,
+            }
+        )
+
+        contrato_acme3, _ = Contrato.objects.get_or_create(
+            numero="CT-2026-0007",
+            defaults={
+                "tipo": TipoContrato.NOVO,
+                "cliente": cliente_acme,
+                "data_inicio": hoje - timedelta(days=50),
+                "data_termino": hoje + timedelta(days=315),
+                "horas_contratadas": Decimal("150.00"),
+                "saldo": Decimal("130.00"),
+                "horas_consumidas": Decimal("20.00"),
+                "status": StatusContrato.ATIVO,
+                "descricao_servicos": "Desenvolvimento e Sustentação de Módulos ERP",
+                "valor_mensal": Decimal("7500.00"),
+                "criado_por": admin_user,
+            }
+        )
+
+        contrato_tech3, _ = Contrato.objects.get_or_create(
+            numero="CT-2026-0008",
+            defaults={
+                "tipo": TipoContrato.NOVO,
+                "cliente": cliente_tech,
+                "data_inicio": hoje - timedelta(days=5),
+                "data_termino": hoje + timedelta(days=360),
+                "horas_contratadas": Decimal("40.00"),
+                "saldo": Decimal("8.00"),
+                "horas_consumidas": Decimal("32.00"),
+                "status": StatusContrato.ATIVO,
+                "descricao_servicos": "Auditoria de Segurança e Otimização de Performance",
+                "valor_mensal": Decimal("2800.00"),
                 "criado_por": admin_user,
             }
         )

@@ -52,13 +52,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       {/* Floating Toasts Container */}
       <div
-        className="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none"
+        className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3 max-w-md w-[calc(100%-2rem)] sm:w-full pointer-events-none"
         aria-live="polite"
       >
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-start gap-3 p-4 rounded-2xl shadow-2xl border backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-top-4 relative overflow-hidden ${
+            className={`pointer-events-auto w-full flex items-start gap-3 p-4 rounded-2xl shadow-2xl border backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-top-4 relative overflow-hidden ${
               t.type === 'success'
                 ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-100 shadow-emerald-950/40 ring-1 ring-emerald-500/30'
                 : t.type === 'error'

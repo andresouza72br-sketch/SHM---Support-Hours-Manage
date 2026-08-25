@@ -28,7 +28,7 @@ export function AppLayout({
   })
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-slate-100/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <Header
         contratoSelecionado={selected}
         onSelectContrato={setSelected}

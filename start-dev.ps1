@@ -26,25 +26,23 @@ if ($Visible) {
     $frontendProc = Start-Process -FilePath "cmd.exe" -ArgumentList "/k cd /d `"$frontendDir`" && npm run dev" -PassThru
 } else {
     $backendLog = Join-Path $PSScriptRoot ".logs\backend.log"
+    $backendErrLog = Join-Path $PSScriptRoot ".logs\backend.err.log"
     $frontendLog = Join-Path $PSScriptRoot ".logs\frontend.log"
+    $frontendErrLog = Join-Path $PSScriptRoot ".logs\frontend.err.log"
     $logDir = Join-Path $PSScriptRoot ".logs"
     if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
 
     Write-Host "[2/3] Iniciando Backend Django na porta 8000 (Segundo plano)..." -ForegroundColor Cyan
-    $psiBackend = New-Object System.Diagnostics.ProcessStartInfo
-    $psiBackend.FileName = "cmd.exe"
-    $psiBackend.Arguments = "/c cd /d `"$PSScriptRoot`" && `"$pyExe`" backend\manage.py runserver 0.0.0.0:8000 --noreload > `"$backendLog`" 2>&1"
-    $psiBackend.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
-    $psiBackend.UseShellExecute = $true
-    $backendProc = [System.Diagnostics.Process]::Start($psiBackend)
+    $backendProc = Start-Process -FilePath $pyExe -ArgumentList "backend\manage.py runserver 0.0.0.0:8000" -WorkingDirectory $PSScriptRoot -RedirectStandardOutput $backendLog -RedirectStandardError $backendErrLog -WindowStyle Hidden -PassThru
 
     Write-Host "[3/3] Iniciando Frontend React na porta 5173 (Segundo plano)..." -ForegroundColor Cyan
-    $psiFrontend = New-Object System.Diagnostics.ProcessStartInfo
-    $psiFrontend.FileName = "cmd.exe"
-    $psiFrontend.Arguments = "/c set CI=true && cd /d `"$frontendDir`" && npm run dev > `"$frontendLog`" 2>&1"
-    $psiFrontend.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
-    $psiFrontend.UseShellExecute = $true
-    $frontendProc = [System.Diagnostics.Process]::Start($psiFrontend)
+    $frontendProc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c npm run dev" -WorkingDirectory $frontendDir -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendErrLog -WindowStyle Hidden -PassThru
+
+    $pidsFile = Join-Path $PSScriptRoot ".logs\pids.json"
+    @{
+        BackendPid = $backendProc.Id
+        FrontendPid = $frontendProc.Id
+    } | ConvertTo-Json | Set-Content -Path $pidsFile -Encoding UTF8
 }
 
 Start-Sleep -Seconds 4
