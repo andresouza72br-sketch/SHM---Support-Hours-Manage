@@ -211,9 +211,6 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                 <span className="text-[11px] font-black bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-3 py-0.5 rounded-full uppercase tracking-wider shadow-xs shadow-indigo-500/20">
                   {ciclos.length === 1 ? 'Ciclo Único' : `Ciclo ${index + 1} de ${ciclos.length}`}
                 </span>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                  #{cicloAtual.id}
-                </span>
                 <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-slate-700 dark:text-slate-300">
                   <span className={`w-2 h-2 rounded-full ${getCicloStatusDot(cicloAtual.status)}`} />
                   <span>{cicloAtual.status_display}</span>

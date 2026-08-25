@@ -204,10 +204,17 @@ export function AdminDashboardPage() {
             {contratoSelecionado && (
               <button
                 onClick={() => handleSelectContrato(null)}
-                className="text-xs font-black text-indigo-700 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-indigo-100 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 border border-indigo-300 dark:border-indigo-800 transition cursor-pointer shadow-2xs group"
+                title="Clique para limpar o filtro de contrato"
               >
-                <X className="w-3.5 h-3.5" />
-                <span>Limpar filtro de contrato</span>
+                <span>
+                  Filtrado por:{' '}
+                  <strong className="font-mono text-indigo-950 dark:text-indigo-200 font-bold">
+                    {contratoAtivo?.numero || `#${contratoSelecionado}`}
+                  </strong>
+                  {contratoAtivo?.cliente_nome ? ` — ${contratoAtivo.cliente_nome}` : ''}
+                </span>
+                <X className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-900 dark:group-hover:text-indigo-200 transition shrink-0" />
               </button>
             )}
           </div>
@@ -432,7 +439,7 @@ export function AdminDashboardPage() {
                       : isOrcamento
                       ? 'border-l-amber-500 bg-amber-50/25 dark:bg-amber-950/10 hover:bg-amber-50/40 dark:hover:bg-amber-900/20'
                       : isConcluido
-                      ? 'border-l-emerald-500 opacity-80 hover:opacity-100 bg-slate-50/50 dark:bg-slate-850/30'
+                      ? 'border-l-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/10 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20'
                       : 'border-l-sky-500 hover:bg-slate-50 dark:hover:bg-slate-800/60'
                   }`}
                 >
