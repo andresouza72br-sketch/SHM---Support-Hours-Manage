@@ -4,6 +4,8 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from django.http import JsonResponse
+
 urlpatterns = [
     # Django Admin
     path("admin/", admin.site.urls),
@@ -22,6 +24,9 @@ urlpatterns = [
     path("api/v1/saldo/", include("apps.saldo.urls")),
     path("api/v1/comunicacao/", include("apps.comunicacao.urls")),
     path("api/v1/notificacoes/", include("apps.notificacoes.urls")),
+
+    # Health Check
+    path("api/v1/status/", lambda r: JsonResponse({"status": "ok", "service": "SHM 2.0", "version": "2.0.0"}), name="health_check"),
 ]
 
 if settings.DEBUG:
