@@ -5,6 +5,29 @@ from apps.pedidos.models import Pedido, StatusPedido
 from apps.pedidos.serializers import PedidoListSerializer, PedidoDetailSerializer
 from apps.pedidos.services import PedidoService
 
+from django.db.models import Case, When, Value, IntegerField
+
+STATUS_ORDER = Case(
+    When(status="em_execucao", then=Value(1)),
+    When(status="aberto", then=Value(2)),
+    When(status="em_orcamento", then=Value(3)),
+    When(status="aguardando_aprovacao", then=Value(4)),
+    When(status="aguardando_aceite", then=Value(5)),
+    When(status="concluido", then=Value(6)),
+    When(status="cancelado", then=Value(7)),
+    default=Value(8),
+    output_field=IntegerField(),
+)
+
+PRIORITY_ORDER = Case(
+    When(prioridade="urgente", then=Value(1)),
+    When(prioridade="alta", then=Value(2)),
+    When(prioridade="media", then=Value(3)),
+    When(prioridade="baixa", then=Value(4)),
+    default=Value(5),
+    output_field=IntegerField(),
+)
+
 class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.select_related("cliente", "contrato", "criado_por").prefetch_related("ciclos", "anexos").all()
 
@@ -36,9 +59,15 @@ class PedidoViewSet(viewsets.ModelViewSet):
         if contrato_id:
             qs = qs.filter(contrato_id=contrato_id)
         if user.is_empresa:
-            return qs
+            return qs.annotate(
+                status_order=STATUS_ORDER,
+                priority_order=PRIORITY_ORDER,
+            ).order_by("status_order", "priority_order", "-criado_em")
         if user.cliente_id:
-            return qs.filter(cliente_id=user.cliente_id)
+            return qs.filter(cliente_id=user.cliente_id).annotate(
+                status_order=STATUS_ORDER,
+                priority_order=PRIORITY_ORDER,
+            ).order_by("status_order", "priority_order", "-criado_em")
         return qs.none()
 
     @action(detail=False, methods=["get"])

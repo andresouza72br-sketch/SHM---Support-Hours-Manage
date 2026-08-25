@@ -16,6 +16,7 @@ class User(AbstractUser):
         db_index=True,
     )
     telefone = models.CharField("telefone", max_length=20, blank=True, null=True)
+    avatar_url = models.URLField("foto de perfil / avatar", max_length=500, blank=True, null=True)
     cliente = models.ForeignKey(
         "clientes.Cliente",
         on_delete=models.SET_NULL,

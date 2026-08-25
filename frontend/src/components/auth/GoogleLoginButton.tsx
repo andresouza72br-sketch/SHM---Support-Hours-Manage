@@ -121,7 +121,7 @@ export function GoogleLoginButton({ onSuccess, onError, disabled }: GoogleLoginB
           type="button"
           onClick={handleButtonClick}
           disabled={disabled || loading}
-          className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-semibold text-sm bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-700/80 hover:border-slate-600 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer group relative overflow-hidden"
+          className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl font-bold text-sm bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-slate-200 dark:border-slate-700/80 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 cursor-pointer group relative overflow-hidden"
         >
           {/* Logo Oficial do Google */}
           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">

@@ -44,6 +44,7 @@ class TestGoogleAuthentication:
             "email_verified": True,
             "given_name": "Carlos",
             "family_name": "Diretor",
+            "picture": "https://lh3.googleusercontent.com/a/admin-photo-url",
         }
         res = self.client.post("/api/v1/auth/google/", {"credential": "fake_google_token"})
         assert res.status_code == status.HTTP_200_OK
@@ -52,6 +53,9 @@ class TestGoogleAuthentication:
         assert res.data["user"]["email"] == "andresouza72br@gmail.com"
         assert res.data["user"]["role"] == UserRole.EMPRESA_ADMIN
         assert res.data["user"]["is_empresa"] is True
+        assert res.data["user"]["avatar_url"] == "https://lh3.googleusercontent.com/a/admin-photo-url"
+        self.admin_user.refresh_from_db()
+        assert self.admin_user.avatar_url == "https://lh3.googleusercontent.com/a/admin-photo-url"
 
     @patch("apps.accounts.views.id_token.verify_oauth2_token")
     def test_google_login_cliente_gerente_mktdnb_success(self, mock_verify):
