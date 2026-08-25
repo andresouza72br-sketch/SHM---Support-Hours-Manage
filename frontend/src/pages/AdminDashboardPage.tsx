@@ -108,12 +108,20 @@ export function AdminDashboardPage() {
                     </div>
                     <div className="w-full h-2 bg-slate-200/80 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all"
-                        style={{ width: `${Math.max(100 - percentConsumido, 5)}%` }}
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          percentConsumido <= 25
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                            : percentConsumido <= 50
+                            ? 'bg-gradient-to-r from-emerald-500 to-amber-400'
+                            : percentConsumido <= 75
+                            ? 'bg-gradient-to-r from-amber-400 to-orange-500'
+                            : 'bg-gradient-to-r from-orange-500 to-rose-600'
+                        }`}
+                        style={{ width: `${percentConsumido}%` }}
                       />
                     </div>
                     <div className="flex justify-between text-[10px] text-slate-400 font-semibold pt-0.5">
-                      <span>Gasto: {consumido.toFixed(1)}h</span>
+                      <span>Gasto: {consumido.toFixed(1)}h ({percentConsumido}%)</span>
                       <span>Total: {totalHoras.toFixed(1)}h</span>
                     </div>
                   </div>

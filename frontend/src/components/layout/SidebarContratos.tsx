@@ -68,11 +68,13 @@ export function SidebarContratos({ contratos = [], contratoSelecionado, onSelect
                 <div className="w-full h-2 bg-slate-200/80 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
-                      percentConsumido > 85
-                        ? 'bg-rose-500'
-                        : percentConsumido > 60
-                        ? 'bg-amber-500'
-                        : 'bg-emerald-500'
+                      percentConsumido <= 25
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                        : percentConsumido <= 50
+                        ? 'bg-gradient-to-r from-emerald-500 to-amber-400'
+                        : percentConsumido <= 75
+                        ? 'bg-gradient-to-r from-amber-400 to-orange-500'
+                        : 'bg-gradient-to-r from-orange-500 to-rose-600'
                     }`}
                     style={{ width: `${percentConsumido}%` }}
                   />

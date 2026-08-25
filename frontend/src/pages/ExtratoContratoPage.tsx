@@ -67,9 +67,23 @@ export function ExtratoContratoPage() {
             <div className="text-[11px] text-slate-400 font-medium">Franquia total contratual</div>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-1">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-2">
             <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Consumo Acumulado</div>
             <div className="text-3xl font-black text-rose-600 tracking-tight">{consumido.toFixed(1)}h</div>
+            <div className="w-full h-2 bg-slate-200/80 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  percentConsumido <= 25
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                    : percentConsumido <= 50
+                    ? 'bg-gradient-to-r from-emerald-500 to-amber-400'
+                    : percentConsumido <= 75
+                    ? 'bg-gradient-to-r from-amber-400 to-orange-500'
+                    : 'bg-gradient-to-r from-orange-500 to-rose-600'
+                }`}
+                style={{ width: `${percentConsumido}%` }}
+              />
+            </div>
             <div className="text-[11px] text-slate-400 font-medium">{percentConsumido}% do pacote consumido</div>
           </div>
 

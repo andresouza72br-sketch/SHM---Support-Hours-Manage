@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { Bell, LogOut, Clock, CheckCheck, LayoutDashboard, Layers, Loader2 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
@@ -22,6 +22,58 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
   const toast = useToast()
   const queryClient = useQueryClient()
   const [showNotifs, setShowNotifs] = useState(false)
+  const notifContainerRef = useRef<HTMLDivElement>(null)
+  const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const clearAutoCloseTimer = useCallback(() => {
+    if (autoCloseTimerRef.current) {
+      clearTimeout(autoCloseTimerRef.current)
+      autoCloseTimerRef.current = null
+    }
+  }, [])
+
+  const startAutoCloseTimer = useCallback(() => {
+    clearAutoCloseTimer()
+    autoCloseTimerRef.current = setTimeout(() => {
+      setShowNotifs(false)
+    }, 5000)
+  }, [clearAutoCloseTimer])
+
+  useEffect(() => {
+    if (!showNotifs) {
+      clearAutoCloseTimer()
+      return
+    }
+
+    // Inicia contagem regressiva de 5 segundos quando o menu abre
+    startAutoCloseTimer()
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (
+        notifContainerRef.current &&
+        !notifContainerRef.current.contains(event.target as Node)
+      ) {
+        setShowNotifs(false)
+      }
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowNotifs(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      clearAutoCloseTimer()
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [showNotifs, startAutoCloseTimer, clearAutoCloseTimer])
 
   const activeContratoId =
     contratoSelecionado !== undefined
@@ -147,11 +199,25 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
         {/* Right Action Icons & Profile */}
         <div className="flex items-center gap-3">
           {/* Notificações Dropdown */}
-          <div className="relative">
+          <div
+            ref={notifContainerRef}
+            onMouseEnter={clearAutoCloseTimer}
+            onMouseLeave={() => {
+              if (showNotifs) startAutoCloseTimer()
+            }}
+            onFocus={clearAutoCloseTimer}
+            onBlur={(e) => {
+              if (showNotifs && !notifContainerRef.current?.contains(e.relatedTarget as Node)) {
+                startAutoCloseTimer()
+              }
+            }}
+            className="relative"
+          >
             <button
-              onClick={() => setShowNotifs(!showNotifs)}
+              onClick={() => setShowNotifs((prev) => !prev)}
               className="relative p-2.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/80 rounded-xl transition cursor-pointer"
               title="Notificações"
+              aria-expanded={showNotifs}
             >
               <Bell className="w-5 h-5" />
               {naoLidas.length > 0 && (
