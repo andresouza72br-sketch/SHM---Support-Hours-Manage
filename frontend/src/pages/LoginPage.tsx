@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Clock, ArrowRight, Shield, UserCheck, Sparkles, Building2 } from 'lucide-react'
+import { Clock, ArrowRight, Shield, UserCheck, Sparkles, Building2, Loader2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { GoogleLoginButton } from '../components/auth/GoogleLoginButton'
 
@@ -11,6 +11,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [quickLoggingInUser, setQuickLoggingInUser] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,6 +45,7 @@ export function LoginPage() {
     setPassword(p)
     setError(null)
     setLoading(true)
+    setQuickLoggingInUser(u)
     try {
       const loggedUser = await login({ username: u, password: p })
       const isEmp = loggedUser.role === 'EMPRESA_ADMIN' || loggedUser.role === 'EMPRESA_TECNICO' || loggedUser.is_staff
@@ -52,6 +54,7 @@ export function LoginPage() {
       setError('Falha ao autenticar com usuário de demonstração.')
     } finally {
       setLoading(false)
+      setQuickLoggingInUser(null)
     }
   }
 
@@ -127,10 +130,19 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 transition duration-200 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 transition duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-wait cursor-pointer"
           >
-            <span>{loading ? 'Autenticando...' : 'Acessar Plataforma'}</span>
-            <ArrowRight className="w-4 h-4" />
+            {loading && !quickLoggingInUser ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Autenticando...</span>
+              </>
+            ) : (
+              <>
+                <span>Acessar Plataforma</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </form>
 
@@ -141,48 +153,68 @@ export function LoginPage() {
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
+              disabled={loading}
               onClick={() => quickLogin('gerente.mktdnb', 'cliente123')}
-              className="text-left p-2.5 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl transition duration-150 group cursor-pointer"
+              className="text-left p-2.5 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl transition duration-150 group cursor-pointer disabled:opacity-50 disabled:cursor-wait"
             >
               <div className="flex items-center gap-1.5 text-indigo-400 font-bold text-xs group-hover:text-indigo-300">
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>Gerente mkt-dnb</span>
+                {quickLoggingInUser === 'gerente.mktdnb' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <UserCheck className="w-3.5 h-3.5" />
+                )}
+                <span>{quickLoggingInUser === 'gerente.mktdnb' ? 'Entrando...' : 'Gerente mkt-dnb'}</span>
               </div>
               <div className="text-[10px] text-slate-400 mt-0.5">Aprova orçamentos/aceites (100h)</div>
             </button>
 
             <button
               type="button"
+              disabled={loading}
               onClick={() => quickLogin('analista.mktdnb', 'cliente123')}
-              className="text-left p-2.5 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl transition duration-150 group cursor-pointer"
+              className="text-left p-2.5 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl transition duration-150 group cursor-pointer disabled:opacity-50 disabled:cursor-wait"
             >
               <div className="flex items-center gap-1.5 text-sky-400 font-bold text-xs group-hover:text-sky-300">
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>Analista mkt-dnb</span>
+                {quickLoggingInUser === 'analista.mktdnb' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <UserCheck className="w-3.5 h-3.5" />
+                )}
+                <span>{quickLoggingInUser === 'analista.mktdnb' ? 'Entrando...' : 'Analista mkt-dnb'}</span>
               </div>
               <div className="text-[10px] text-slate-400 mt-0.5">Abre pedidos e comenta</div>
             </button>
 
             <button
               type="button"
+              disabled={loading}
               onClick={() => quickLogin('tecnico', 'tecnico123')}
-              className="text-left p-2.5 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition duration-150 group cursor-pointer"
+              className="text-left p-2.5 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition duration-150 group cursor-pointer disabled:opacity-50 disabled:cursor-wait"
             >
               <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs group-hover:text-emerald-300">
-                <Building2 className="w-3.5 h-3.5" />
-                <span>Técnico Empresa</span>
+                {quickLoggingInUser === 'tecnico' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Building2 className="w-3.5 h-3.5" />
+                )}
+                <span>{quickLoggingInUser === 'tecnico' ? 'Entrando...' : 'Técnico Empresa'}</span>
               </div>
               <div className="text-[10px] text-slate-400 mt-0.5">Executa ciclos e comenta</div>
             </button>
 
             <button
               type="button"
+              disabled={loading}
               onClick={() => quickLogin('admin', 'admin123')}
-              className="text-left p-2.5 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-violet-500/50 rounded-xl transition duration-150 group cursor-pointer"
+              className="text-left p-2.5 bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-violet-500/50 rounded-xl transition duration-150 group cursor-pointer disabled:opacity-50 disabled:cursor-wait"
             >
               <div className="flex items-center gap-1.5 text-violet-400 font-bold text-xs group-hover:text-violet-300">
-                <Building2 className="w-3.5 h-3.5" />
-                <span>Admin Empresa</span>
+                {quickLoggingInUser === 'admin' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Building2 className="w-3.5 h-3.5" />
+                )}
+                <span>{quickLoggingInUser === 'admin' ? 'Entrando...' : 'Admin Empresa'}</span>
               </div>
               <div className="text-[10px] text-slate-400 mt-0.5">Gestão geral e orçamentos</div>
             </button>

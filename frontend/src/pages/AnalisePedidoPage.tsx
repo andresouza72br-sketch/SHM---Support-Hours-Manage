@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Play, Send, Layers, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Plus, Play, Send, Layers, MessageSquare, Loader2 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
@@ -148,10 +148,15 @@ export function AnalisePedidoPage() {
               />
             </div>
             <div className="flex justify-end gap-2.5 pt-2">
-              <button onClick={() => setShowNovoCiclo(false)} className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer">
+              <button
+                disabled={criarCicloMutation.isPending}
+                onClick={() => setShowNovoCiclo(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer disabled:opacity-50"
+              >
                 Cancelar
               </button>
               <button
+                disabled={!contexto.trim() || criarCicloMutation.isPending}
                 onClick={() => {
                   if (user && contexto.trim()) {
                     criarCicloMutation.mutate({
@@ -163,9 +168,16 @@ export function AnalisePedidoPage() {
                     })
                   }
                 }}
-                className="px-6 py-2.5 text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 rounded-2xl shadow-md cursor-pointer"
+                className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 rounded-2xl shadow-md cursor-pointer disabled:opacity-75 disabled:cursor-wait"
               >
-                Salvar Ciclo
+                {criarCicloMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Salvando Ciclo...</span>
+                  </>
+                ) : (
+                  <span>Salvar Ciclo</span>
+                )}
               </button>
             </div>
           </div>
@@ -191,11 +203,21 @@ export function AnalisePedidoPage() {
                 </span>
                 {c.status === 'orcado' && (
                   <button
+                    disabled={apresentarOrcamentoMutation.isPending}
                     onClick={() => apresentarOrcamentoMutation.mutate({ id: c.id, horas: Number(c.horas_estimadas) })}
-                    className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-sm transition cursor-pointer"
+                    className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-sm transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
                   >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Emitir Orçamento</span>
+                    {apresentarOrcamentoMutation.isPending && (apresentarOrcamentoMutation.variables as any)?.id === c.id ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Emitindo Orçamento...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Emitir Orçamento</span>
+                      </>
+                    )}
                   </button>
                 )}
                 {c.status === 'aprovado' || c.status === 'em_execucao' ? (

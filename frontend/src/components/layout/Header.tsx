@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
-import { Bell, LogOut, Clock, CheckCheck, LayoutDashboard, Layers } from 'lucide-react'
+import { Bell, LogOut, Clock, CheckCheck, LayoutDashboard, Layers, Loader2 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
@@ -80,12 +80,7 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition">
               <Clock className="w-5 h-5" />
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-slate-900">SHM</span>
-              <span className="text-[10px] bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                Pro
-              </span>
-            </div>
+            <span className="font-extrabold text-slate-900">SHM</span>
           </Link>
 
           {/* Live Session & Version Indicator */}
@@ -179,11 +174,21 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
                   </div>
                   {naoLidas.length > 0 && (
                     <button
+                      disabled={marcarTodasMutation.isPending}
                       onClick={() => marcarTodasMutation.mutate()}
-                      className="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer"
+                      className="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                     >
-                      <CheckCheck className="w-3.5 h-3.5" />
-                      <span>Ler todas</span>
+                      {marcarTodasMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Lendo todas...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCheck className="w-3.5 h-3.5" />
+                          <span>Ler todas</span>
+                        </>
+                      )}
                     </button>
                   )}
                 </div>

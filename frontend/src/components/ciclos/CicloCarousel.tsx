@@ -10,6 +10,7 @@ import {
   Check,
   X,
   User as UserIcon,
+  Loader2,
 } from 'lucide-react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
@@ -268,16 +269,25 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             {canApprove && cicloAtual.status === 'aguardando_aprovacao' && (
               <>
                 <button
+                  disabled={aprovarMutation.isPending}
                   onClick={() => setModalType('rejeitar')}
-                  className="px-4 py-2.5 text-xs font-extrabold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition cursor-pointer"
+                  className="px-4 py-2.5 text-xs font-extrabold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Rejeitar Orçamento
                 </button>
                 <button
+                  disabled={aprovarMutation.isPending}
                   onClick={() => aprovarMutation.mutate(cicloAtual.id)}
-                  className="px-6 py-2.5 text-xs font-extrabold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-xl shadow-md shadow-indigo-500/20 transition cursor-pointer"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-extrabold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-xl shadow-md shadow-indigo-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
                 >
-                  Aprovar Orçamento ({Number(cicloAtual.horas_estimadas).toFixed(1)}h)
+                  {aprovarMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Aprovando Orçamento...</span>
+                    </>
+                  ) : (
+                    <span>Aprovar Orçamento ({Number(cicloAtual.horas_estimadas).toFixed(1)}h)</span>
+                  )}
                 </button>
               </>
             )}
@@ -285,16 +295,25 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             {canApprove && cicloAtual.status === 'aguardando_aceite' && (
               <>
                 <button
+                  disabled={aceitarMutation.isPending}
                   onClick={() => setModalType('recusar')}
-                  className="px-4 py-2.5 text-xs font-extrabold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition cursor-pointer"
+                  className="px-4 py-2.5 text-xs font-extrabold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Recusar Aceite
                 </button>
                 <button
+                  disabled={aceitarMutation.isPending}
                   onClick={() => aceitarMutation.mutate(cicloAtual.id)}
-                  className="px-6 py-2.5 text-xs font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-500/20 transition cursor-pointer"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
                 >
-                  Conceder Aceite Final ({Number(cicloAtual.horas_realizadas).toFixed(1)}h)
+                  {aceitarMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Concedendo Aceite Final...</span>
+                    </>
+                  ) : (
+                    <span>Conceder Aceite Final ({Number(cicloAtual.horas_realizadas).toFixed(1)}h)</span>
+                  )}
                 </button>
               </>
             )}
@@ -302,19 +321,35 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             {/* Ações Técnico */}
             {isEmpresa && cicloAtual.status === 'aprovado' && (
               <button
+                disabled={iniciarExecMutation.isPending}
                 onClick={() => iniciarExecMutation.mutate(cicloAtual.id)}
-                className="px-6 py-2.5 text-xs font-extrabold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-xl shadow-md shadow-indigo-500/20 transition cursor-pointer"
+                className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-extrabold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-xl shadow-md shadow-indigo-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
               >
-                Iniciar Execução Técnica
+                {iniciarExecMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Iniciando Execução Técnica...</span>
+                  </>
+                ) : (
+                  <span>Iniciar Execução Técnica</span>
+                )}
               </button>
             )}
 
             {isEmpresa && cicloAtual.status === 'em_execucao' && (
               <button
+                disabled={solicitarAceiteMutation.isPending}
                 onClick={() => solicitarAceiteMutation.mutate(cicloAtual.id)}
-                className="px-6 py-2.5 text-xs font-extrabold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-md shadow-purple-500/20 transition cursor-pointer"
+                className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-extrabold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-md shadow-purple-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
               >
-                Solicitar Aceite ao Cliente
+                {solicitarAceiteMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Solicitando Aceite ao Cliente...</span>
+                  </>
+                ) : (
+                  <span>Solicitar Aceite ao Cliente</span>
+                )}
               </button>
             )}
           </div>
@@ -341,16 +376,17 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             />
             <div className="flex justify-end gap-2.5 pt-2">
               <button
+                disabled={rejeitarMutation.isPending || recusarMutation.isPending}
                 onClick={() => {
                   setModalType(null)
                   setJustificativa('')
                 }}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
-                disabled={!justificativa.trim()}
+                disabled={!justificativa.trim() || rejeitarMutation.isPending || recusarMutation.isPending}
                 onClick={() => {
                   if (modalType === 'rejeitar') {
                     rejeitarMutation.mutate({ id: cicloAtual.id, justificativa })
@@ -358,9 +394,21 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                     recusarMutation.mutate({ id: cicloAtual.id, justificativa })
                   }
                 }}
-                className="px-5 py-2 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-40 shadow-sm cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-50 disabled:cursor-wait shadow-sm cursor-pointer"
               >
-                Confirmar Recusa
+                {rejeitarMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Rejeitando Orçamento...</span>
+                  </>
+                ) : recusarMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Recusando Aceite...</span>
+                  </>
+                ) : (
+                  <span>Confirmar Recusa</span>
+                )}
               </button>
             </div>
           </div>
@@ -388,9 +436,16 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
               <button
                 disabled={excluirComentarioMutation.isPending}
                 onClick={() => excluirComentarioMutation.mutate(deletingCommentId)}
-                className="px-5 py-2 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-40 shadow-sm cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-50 disabled:cursor-wait shadow-sm cursor-pointer"
               >
-                {excluirComentarioMutation.isPending ? 'Excluindo...' : 'Confirmar Exclusão'}
+                {excluirComentarioMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Excluindo Comentário...</span>
+                  </>
+                ) : (
+                  <span>Confirmar Exclusão</span>
+                )}
               </button>
             </div>
           </div>
@@ -520,10 +575,19 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                             editarComentarioMutation.mutate({ id: c.id, texto: editingCommentText.trim() })
                           }
                         }}
-                        className="inline-flex items-center gap-1 px-4 py-1.5 text-[11px] font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition disabled:opacity-40 cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-4 py-1.5 text-[11px] font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition disabled:opacity-50 disabled:cursor-wait cursor-pointer"
                       >
-                        <Check className="w-3 h-3" />
-                        <span>{editarComentarioMutation.isPending ? 'Salvando...' : 'Salvar Alteração'}</span>
+                        {editarComentarioMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span>Salvando Alteração...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-3 h-3" />
+                            <span>Salvar Alteração</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -553,18 +617,23 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
         >
           <input
             type="text"
+            disabled={comentarioMutation.isPending}
             value={comentarioTexto}
             onChange={(e) => setComentarioTexto(e.target.value)}
-            placeholder="Escreva uma mensagem ou observação sobre este ciclo (visível para todos)..."
-            className="flex-1 text-xs bg-slate-50 border border-slate-300/80 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800"
+            placeholder={comentarioMutation.isPending ? 'Enviando comentário...' : 'Escreva uma mensagem ou observação sobre este ciclo (visível para todos)...'}
+            className="flex-1 text-xs bg-slate-50 border border-slate-300/80 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 disabled:opacity-60"
           />
           <button
             type="submit"
             disabled={!comentarioTexto.trim() || comentarioMutation.isPending}
-            className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white p-3 rounded-2xl disabled:opacity-40 transition cursor-pointer shadow-sm shadow-indigo-500/20"
-            title="Publicar Comentário"
+            className="inline-flex items-center justify-center bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white p-3 rounded-2xl disabled:opacity-50 disabled:cursor-wait transition cursor-pointer shadow-sm shadow-indigo-500/20 shrink-0"
+            title={comentarioMutation.isPending ? 'Enviando comentário...' : 'Publicar Comentário'}
           >
-            <Send className="w-4 h-4" />
+            {comentarioMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </button>
         </form>
       </div>

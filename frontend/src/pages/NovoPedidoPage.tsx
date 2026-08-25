@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Send } from 'lucide-react'
+import { ArrowLeft, Send, Loader2 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
 import { useToast } from '../contexts/ToastContext'
@@ -170,18 +170,28 @@ export function NovoPedidoPage() {
           <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
             <button
               type="button"
+              disabled={createMutation.isPending}
               onClick={() => navigate('/dashboard')}
-              className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+              className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-xs px-6 py-3 rounded-2xl shadow-lg shadow-indigo-500/20 transition cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-xs px-6 py-3 rounded-2xl shadow-lg shadow-indigo-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
             >
-              <Send className="w-4 h-4" />
-              <span>{createMutation.isPending ? 'Enviando...' : 'Abrir Pedido'}</span>
+              {createMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Criando Pedido...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  <span>Abrir Pedido</span>
+                </>
+              )}
             </button>
           </div>
         </form>

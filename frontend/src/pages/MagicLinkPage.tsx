@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { Clock, CheckCircle2, AlertTriangle, ShieldCheck, ArrowRight, ExternalLink } from 'lucide-react'
+import { Clock, CheckCircle2, AlertTriangle, ShieldCheck, ArrowRight, ExternalLink, Loader2 } from 'lucide-react'
 import { clientService } from '../api/client'
 import { useToast } from '../contexts/ToastContext'
 
@@ -168,10 +168,19 @@ export function MagicLinkPage() {
                 <button
                   disabled={actionMutation.isPending}
                   onClick={() => actionMutation.mutate({ acao: 'aprovar' })}
-                  className="w-full py-4 text-sm font-black text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-2xl shadow-xl shadow-indigo-500/25 transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-4 text-sm font-black text-white bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-2xl shadow-xl shadow-indigo-500/25 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait flex items-center justify-center gap-2.5"
                 >
-                  <ShieldCheck className="w-5 h-5" />
-                  <span>Aprovar Orçamento ({Number(ciclo.horas_estimadas).toFixed(1)}h)</span>
+                  {actionMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Aprovando Orçamento com Assinatura Digital...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-5 h-5" />
+                      <span>Aprovar Orçamento ({Number(ciclo.horas_estimadas).toFixed(1)}h)</span>
+                    </>
+                  )}
                 </button>
 
                 {/* Caixa Informativa sobre Rejeição Exclusiva via App */}
@@ -202,10 +211,19 @@ export function MagicLinkPage() {
                 <button
                   disabled={actionMutation.isPending}
                   onClick={() => actionMutation.mutate({ acao: 'aceitar' })}
-                  className="w-full py-4 text-sm font-black text-white bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-2xl shadow-xl shadow-emerald-500/25 transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-4 text-sm font-black text-white bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-2xl shadow-xl shadow-emerald-500/25 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait flex items-center justify-center gap-2.5"
                 >
-                  <CheckCircle2 className="w-5 h-5" />
-                  <span>Aceitar Entrega / De acordo em Debitar horas realizadas ({Number(ciclo.horas_realizadas).toFixed(1)}h)</span>
+                  {actionMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Registrando Aceite Final & Debitando Horas...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span>Aceitar Entrega / De acordo em Debitar horas realizadas ({Number(ciclo.horas_realizadas).toFixed(1)}h)</span>
+                    </>
+                  )}
                 </button>
 
                 {/* Caixa Informativa sobre Recusa de Aceite Exclusiva via App */}

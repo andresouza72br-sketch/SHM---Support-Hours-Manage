@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Send, Trash2, Clock, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Plus, Send, Trash2, Clock, MessageSquare, Loader2 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
@@ -127,7 +127,7 @@ export function ExecucaoCicloPage() {
           </div>
           <div className="flex justify-end">
             <button
-              disabled={!descricaoTarefa.trim()}
+              disabled={!descricaoTarefa.trim() || addTarefaMutation.isPending}
               onClick={() => {
                 addTarefaMutation.mutate({
                   ciclo: ciclo.id,
@@ -138,10 +138,19 @@ export function ExecucaoCicloPage() {
                   operador: user?.id,
                 })
               }}
-              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-5 py-3 rounded-2xl shadow-md transition disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-5 py-3 rounded-2xl shadow-md transition disabled:opacity-50 disabled:cursor-wait cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              <span>Registrar Tarefa</span>
+              {addTarefaMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Registrando Tarefa...</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  <span>Registrar Tarefa</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -165,11 +174,16 @@ export function ExecucaoCicloPage() {
                     {Number(t.horas_realizadas).toFixed(1)}h
                   </span>
                   <button
+                    disabled={deleteTarefaMutation.isPending && (deleteTarefaMutation.variables as any) === t.id}
                     onClick={() => deleteTarefaMutation.mutate(t.id)}
-                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer disabled:opacity-50"
                     title="Excluir Apontamento"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    {deleteTarefaMutation.isPending && (deleteTarefaMutation.variables as any) === t.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-rose-600" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -185,11 +199,21 @@ export function ExecucaoCicloPage() {
 
         <div className="flex justify-end gap-3 pt-4">
           <button
+            disabled={solicitarAceiteMutation.isPending}
             onClick={() => solicitarAceiteMutation.mutate()}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm px-7 py-3.5 rounded-2xl shadow-lg shadow-emerald-500/20 transition cursor-pointer"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm px-7 py-3.5 rounded-2xl shadow-lg shadow-emerald-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
           >
-            <Send className="w-4 h-4" />
-            <span>Finalizar & Solicitar Aceite do Cliente ({Number(ciclo.horas_realizadas).toFixed(1)}h)</span>
+            {solicitarAceiteMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Solicitando Aceite do Cliente...</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4" />
+                <span>Finalizar & Solicitar Aceite do Cliente ({Number(ciclo.horas_realizadas).toFixed(1)}h)</span>
+              </>
+            )}
           </button>
         </div>
       </div>
