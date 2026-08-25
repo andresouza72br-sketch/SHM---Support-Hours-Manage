@@ -1,3 +1,4 @@
+import uuid
 from decimal import Decimal
 from datetime import timedelta
 from django.utils import timezone
@@ -81,21 +82,36 @@ class MagicLinkCicloView(APIView):
     def _get_magic_link_or_fallback(self, token):
         from django.db.models import Q
         token_str = str(token).strip()
+        token_uuid = None
+        try:
+            token_uuid = uuid.UUID(token_str)
+        except (ValueError, TypeError):
+            pass
+
+        # 1. Busca no modelo CicloMagicLink
+        q_magic = Q(token=token_str)
+        if token_uuid:
+            q_magic |= Q(token=token_uuid) | Q(token=token_uuid.hex) | Q(token=str(token_uuid))
+
         magic_link = CicloMagicLink.objects.select_related(
             "ciclo__pedido__cliente",
             "ciclo__pedido__contrato",
             "ciclo__operador",
-        ).filter(Q(token=token_str) | Q(token=token)).first()
+        ).prefetch_related("ciclo__tarefas").filter(q_magic).first()
 
         if magic_link:
             return magic_link
 
-        # Retrocompatibilidade com token_acesso legado no Ciclo
+        # 2. Retrocompatibilidade com token_acesso legado no Ciclo
+        q_ciclo = Q(token_acesso=token_str)
+        if token_uuid:
+            q_ciclo |= Q(token_acesso=token_uuid) | Q(token_acesso=token_uuid.hex) | Q(token_acesso=str(token_uuid))
+
         ciclo = Ciclo.objects.select_related(
             "pedido__cliente",
             "pedido__contrato",
             "operador",
-        ).filter(Q(token_acesso=token_str) | Q(token_acesso=token)).first()
+        ).prefetch_related("tarefas").filter(q_ciclo).first()
 
         if ciclo:
             tipo_acao = (
