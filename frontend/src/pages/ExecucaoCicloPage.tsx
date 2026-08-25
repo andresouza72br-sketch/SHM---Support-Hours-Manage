@@ -81,7 +81,7 @@ export function ExecucaoCicloPage() {
           </Link>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Execução do Ciclo #{ciclo.id} ({ciclo.tipo_display})</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Execução do Ciclo ({ciclo.tipo_display})</h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">{ciclo.contexto || 'Sem contexto informado.'}</p>
             </div>
             <div className="flex items-center gap-2.5 self-start sm:self-auto">
