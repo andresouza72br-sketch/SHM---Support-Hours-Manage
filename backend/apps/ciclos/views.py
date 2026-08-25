@@ -68,7 +68,12 @@ class MagicLinkCicloView(APIView):
 
     def get(self, request, token):
         try:
-            ciclo = Ciclo.objects.select_related("pedido__cliente", "pedido__contrato", "operador").prefetch_related("tarefas").get(token_acesso=token)
+            token_uuid = uuid.UUID(str(token))
+        except (ValueError, TypeError):
+            return Response({"detail": "Token inválido ou não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            ciclo = Ciclo.objects.select_related("pedido__cliente", "pedido__contrato", "operador").prefetch_related("tarefas").get(token_acesso=token_uuid)
         except Ciclo.DoesNotExist:
             return Response({"detail": "Token inválido ou não encontrado."}, status=status.HTTP_404_NOT_FOUND)
         
@@ -82,7 +87,12 @@ class MagicLinkCicloView(APIView):
 
     def post(self, request, token):
         try:
-            ciclo = Ciclo.objects.get(token_acesso=token)
+            token_uuid = uuid.UUID(str(token))
+        except (ValueError, TypeError):
+            return Response({"detail": "Token inválido."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            ciclo = Ciclo.objects.get(token_acesso=token_uuid)
         except Ciclo.DoesNotExist:
             return Response({"detail": "Token inválido."}, status=status.HTTP_404_NOT_FOUND)
         
