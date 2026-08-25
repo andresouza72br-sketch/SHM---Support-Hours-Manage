@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Layers, X, MessageSquare, FileText, Building2, CheckCircle2, Flame, AlertTriangle, Play, Inbox, Clock, CheckCheck, Sparkles } from 'lucide-react'
+import { Layers, X, MessageSquare, FileText, Building2, CheckCircle2, Flame, AlertTriangle, Play, Inbox, Clock, CheckCheck, Sparkles, ArrowDown, ArrowUp } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
 import type { Contrato, Pedido } from '../types'
@@ -117,6 +117,27 @@ function getPriorityBadge(prioridade?: string, prioridadeDisplay?: string) {
   return null
 }
 
+function getStatusRowStyle(status: string) {
+  switch (status) {
+    case 'em_execucao':
+      return 'border-l-4 border-l-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-50/70 dark:hover:bg-indigo-900/30'
+    case 'aberto':
+      return 'border-l-4 border-l-violet-500 bg-violet-50/30 dark:bg-violet-950/15 hover:bg-violet-50/50 dark:hover:bg-violet-900/25'
+    case 'em_orcamento':
+      return 'border-l-4 border-l-amber-500 bg-amber-50/25 dark:bg-amber-950/10 hover:bg-amber-50/40 dark:hover:bg-amber-900/20'
+    case 'aguardando_aprovacao':
+      return 'border-l-4 border-l-sky-500 bg-sky-50/30 dark:bg-sky-950/15 hover:bg-sky-50/50 dark:hover:bg-sky-900/25'
+    case 'aguardando_aceite':
+      return 'border-l-4 border-l-teal-500 bg-teal-50/30 dark:bg-teal-950/15 hover:bg-teal-50/50 dark:hover:bg-teal-900/25'
+    case 'concluido':
+      return 'border-l-4 border-l-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/10 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20'
+    case 'cancelado':
+      return 'border-l-4 border-l-slate-400 bg-slate-100/40 dark:bg-slate-800/30 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
+    default:
+      return 'border-l-4 border-l-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+  }
+}
+
 export function AdminDashboardPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -132,6 +153,96 @@ export function AdminDashboardPage() {
 
   const [filterTab, setFilterTab] = useState<FilterTab>('todos')
   const [dateFilter, setDateFilter] = useState<DateFilter>('todos')
+  const contratosRef = useRef<HTMLDivElement>(null)
+  const filaRef = useRef<HTMLDivElement>(null)
+  const [buttonMode, setButtonMode] = useState<'down' | 'up' | null>('down')
+
+  useEffect(() => {
+    const checkVisibility = () => {
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop || window.scrollY || 0
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0
+      const totalHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)
+
+      const isWindowAtBottom = scrollY + viewportHeight >= totalHeight - 50
+      const mainEl = document.querySelector('main')
+      const isMainAtBottom = mainEl && mainEl.scrollHeight > mainEl.clientHeight
+        ? mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight - 50
+        : false
+
+      // 1. Se chegou ao fim da página -> mostra botão "Topo Painel ↑"
+      if (isWindowAtBottom || isMainAtBottom) {
+        setButtonMode('up')
+        return
+      }
+
+      // 2. Se o frame de contratos está visível -> mostra botão "Fila de Pedidos ↓"
+      if (contratosRef.current) {
+        const rect = contratosRef.current.getBoundingClientRect()
+        const isVisible = rect.bottom > 80
+        if (isVisible) {
+          setButtonMode('down')
+        } else {
+          setButtonMode(null)
+        }
+      } else {
+        if (scrollY < 180) {
+          setButtonMode('down')
+        } else {
+          setButtonMode(null)
+        }
+      }
+    }
+
+    window.addEventListener('scroll', checkVisibility, { passive: true })
+    window.addEventListener('resize', checkVisibility, { passive: true })
+    document.addEventListener('scroll', checkVisibility, { passive: true })
+
+    const mainEl = document.querySelector('main')
+    if (mainEl) {
+      mainEl.addEventListener('scroll', checkVisibility, { passive: true })
+    }
+
+    checkVisibility()
+
+    return () => {
+      window.removeEventListener('scroll', checkVisibility)
+      window.removeEventListener('resize', checkVisibility)
+      document.removeEventListener('scroll', checkVisibility)
+      if (mainEl) {
+        mainEl.removeEventListener('scroll', checkVisibility)
+      }
+    }
+  }, [])
+
+  const handleButtonClick = () => {
+    if (buttonMode === 'up') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      const mainEl = document.querySelector('main')
+      if (mainEl) {
+        mainEl.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    } else if (buttonMode === 'down') {
+      if (filaRef.current) {
+        const headerHeight = 64
+        const topMargin = 16
+        const filaRect = filaRef.current.getBoundingClientRect()
+        const currentScrollY = window.pageYOffset || document.documentElement.scrollTop || window.scrollY || 0
+        const targetY = currentScrollY + filaRect.top - (headerHeight + topMargin)
+
+        window.scrollTo({
+          top: Math.max(0, targetY),
+          behavior: 'smooth',
+        })
+
+        const mainEl = filaRef.current.closest('main') || document.querySelector('main')
+        if (mainEl && mainEl.scrollHeight > mainEl.clientHeight) {
+          const mainRect = mainEl.getBoundingClientRect()
+          const targetScroll = mainEl.scrollTop + (filaRect.top - mainRect.top) - topMargin
+          mainEl.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' })
+        }
+      }
+    }
+  }
 
   const handleToggleContrato = (id: number, isMulti: boolean = false) => {
     const newParams = new URLSearchParams(searchParams)
@@ -271,7 +382,7 @@ export function AdminDashboardPage() {
         </div>
 
         {/* Grid de Contratos Ativos */}
-        <div className="space-y-3">
+        <div ref={contratosRef} className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
@@ -404,7 +515,7 @@ export function AdminDashboardPage() {
         </div>
 
         {/* Fila Geral de Pedidos com Ordenação Inteligente & Abas de Filtro */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+        <div ref={filaRef} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs scroll-mt-4">
           {/* Header da Seção */}
           <div className="p-5 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -554,27 +665,14 @@ export function AdminDashboardPage() {
           </div>
 
           {/* Listagem de Pedidos Ordenados */}
-          <div className="divide-y divide-slate-200 dark:divide-slate-800">
+          <div>
             {pedidosOrdenados.map((p) => {
-              const isExec = p.status === 'em_execucao'
-              const isAberto = p.status === 'aberto'
-              const isOrcamento = p.status === 'em_orcamento'
-              const isConcluido = p.status === 'concluido' || p.status === 'cancelado'
+              const rowStyle = getStatusRowStyle(p.status)
 
               return (
                 <div
                   key={p.id}
-                  className={`p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition duration-150 border-l-4 ${
-                    isExec
-                      ? 'border-l-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-50/70 dark:hover:bg-indigo-900/30'
-                      : isAberto
-                      ? 'border-l-violet-500 bg-violet-50/30 dark:bg-violet-950/15 hover:bg-violet-50/50 dark:hover:bg-violet-900/25'
-                      : isOrcamento
-                      ? 'border-l-amber-500 bg-amber-50/25 dark:bg-amber-950/10 hover:bg-amber-50/40 dark:hover:bg-amber-900/20'
-                      : isConcluido
-                      ? 'border-l-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/10 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20'
-                      : 'border-l-sky-500 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                  }`}
+                  className={`p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition duration-150 border-b border-slate-200 dark:border-slate-800 last:border-b-0 ${rowStyle}`}
                 >
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -635,6 +733,28 @@ export function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Botão Flutuante de Navegação Rápida (Fila de Pedidos no topo / Topo Painel no fim) */}
+      <button
+        type="button"
+        onClick={handleButtonClick}
+        title={buttonMode === 'up' ? "Ir para o Início / Topo do Painel" : "Descer para a Fila de Pedidos"}
+        aria-label={buttonMode === 'up' ? "Topo Painel" : "Fila de Pedidos"}
+        className={`fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-xs rounded-full shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer border border-indigo-400/40 backdrop-blur-sm group ${
+          buttonMode !== null
+            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+      >
+        <span className="hidden sm:inline">
+          {buttonMode === 'up' ? 'Topo Painel' : 'Fila de Pedidos'}
+        </span>
+        {buttonMode === 'up' ? (
+          <ArrowUp className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
+        ) : (
+          <ArrowDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+        )}
+      </button>
     </AppLayout>
   )
 }

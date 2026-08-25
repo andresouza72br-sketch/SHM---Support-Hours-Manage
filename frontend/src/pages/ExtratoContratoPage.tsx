@@ -1,17 +1,63 @@
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ArrowUp } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
 
 export function ExtratoContratoPage() {
   const { id } = useParams<{ id: string }>()
+  const [showScrollTopBtn, setShowScrollTopBtn] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['extrato', id],
     queryFn: () => clientService.contratos.extrato(Number(id)),
     enabled: Boolean(id),
   })
+
+  useEffect(() => {
+    const checkAtBottom = () => {
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop || window.scrollY || 0
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0
+      const totalHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)
+
+      const isWindowAtBottom = scrollY > 80 && scrollY + viewportHeight >= totalHeight - 50
+      const mainEl = document.querySelector('main')
+      const isMainAtBottom = mainEl && mainEl.scrollHeight > mainEl.clientHeight
+        ? mainEl.scrollTop > 80 && mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight - 50
+        : false
+
+      setShowScrollTopBtn(isWindowAtBottom || isMainAtBottom)
+    }
+
+    window.addEventListener('scroll', checkAtBottom, { passive: true })
+    window.addEventListener('resize', checkAtBottom, { passive: true })
+    document.addEventListener('scroll', checkAtBottom, { passive: true })
+
+    const mainEl = document.querySelector('main')
+    if (mainEl) {
+      mainEl.addEventListener('scroll', checkAtBottom, { passive: true })
+    }
+
+    checkAtBottom()
+
+    return () => {
+      window.removeEventListener('scroll', checkAtBottom)
+      window.removeEventListener('resize', checkAtBottom)
+      document.removeEventListener('scroll', checkAtBottom)
+      if (mainEl) {
+        mainEl.removeEventListener('scroll', checkAtBottom)
+      }
+    }
+  }, [])
+
+  const handleScrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    const mainEl = document.querySelector('main')
+    if (mainEl) {
+      mainEl.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
 
   if (isLoading) {
     return (
@@ -138,6 +184,22 @@ export function ExtratoContratoPage() {
           </div>
         </div>
       </div>
+
+      {/* Botão Flutuante Topo Relatório (aparece ao atingir o fim da página) */}
+      <button
+        type="button"
+        onClick={handleScrollToTop}
+        title="Voltar ao início do relatório"
+        aria-label="Topo Relatório"
+        className={`fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-xs rounded-full shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer border border-indigo-400/40 backdrop-blur-sm group ${
+          showScrollTopBtn
+            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+      >
+        <span className="hidden sm:inline">Topo Relatório</span>
+        <ArrowUp className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
+      </button>
     </AppLayout>
   )
 }
