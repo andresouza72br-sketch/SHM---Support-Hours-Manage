@@ -1,0 +1,56 @@
+#!/bin/sh
+
+echo ""
+echo "======================================================="
+echo " [SHM Auto-Sync] Verificando alteracoes apos git pull..."
+echo "======================================================="
+
+PREV_HEAD="ORIG_HEAD"
+if ! git rev-parse --verify ORIG_HEAD >/dev/null 2>&1; then
+    PREV_HEAD="HEAD@{1}"
+fi
+
+CHANGED_FILES=$(git diff-tree -r --name-only --no-commit-id "$PREV_HEAD" HEAD 2>/dev/null)
+
+# 1. Dependencias Python (backend/requirements.txt)
+if echo "$CHANGED_FILES" | grep -E "(backend/requirements\.txt|pyproject\.toml)" >/dev/null 2>&1; then
+    echo "📦 [Python] Alteracoes em dependencias detectadas. Sincronizando com uv..."
+    if command -v uv >/dev/null 2>&1; then
+        uv pip install --python .venv/Scripts/python.exe -r backend/requirements.txt
+    elif [ -f ".venv/Scripts/pip.exe" ]; then
+        .venv/Scripts/pip.exe install -r backend/requirements.txt
+    else
+        echo "⚠️ Python venv nao encontrado para instalar dependencias."
+    fi
+else
+    echo "✓ [Python] Nenhuma alteracao em requirements.txt."
+fi
+
+# 2. Dependencias Frontend (frontend/package.json ou bun.lock)
+if echo "$CHANGED_FILES" | grep -E "frontend/(package\.json|bun\.lock|bun\.lockb)" >/dev/null 2>&1; then
+    echo "📦 [Frontend] Alteracoes no package.json detectadas. Rodando bun install..."
+    if command -v bun >/dev/null 2>&1; then
+        (cd frontend && bun install)
+    else
+        echo "⚠️ Bun nao encontrado no PATH."
+    fi
+else
+    echo "✓ [Frontend] Nenhuma alteracao em package.json."
+fi
+
+# 3. Migracoes Django (backend/apps/*/migrations/*)
+if echo "$CHANGED_FILES" | grep -E "backend/apps/.*/migrations/.*\.py" >/dev/null 2>&1; then
+    echo "🗄️ [Banco] Novas migrations detectadas. Rodando python manage.py migrate..."
+    if [ -f ".venv/Scripts/python.exe" ]; then
+        .venv/Scripts/python.exe backend/manage.py migrate
+    else
+        python backend/manage.py migrate
+    fi
+else
+    echo "✓ [Banco] Nenhuma nova migration detectada."
+fi
+
+echo "======================================================="
+echo " [SHM Auto-Sync] Sincronizacao concluida com sucesso!"
+echo "======================================================="
+echo ""
