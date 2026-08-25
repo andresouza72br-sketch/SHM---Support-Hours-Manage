@@ -153,7 +153,7 @@ SIMPLE_JWT = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "SHM API — Support Hours Manager",
     "DESCRIPTION": "API REST para governança, orçamento, execução e aceite de horas técnicas em contratos de suporte.",
-    "VERSION": "1.0.0",
+    "VERSION": "2.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
 
