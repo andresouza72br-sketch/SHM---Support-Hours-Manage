@@ -1,4 +1,4 @@
-﻿from django.db import models
+from django.db import models
 from django.conf import settings
 from apps.core.models import TimeStampedModel
 
@@ -18,6 +18,8 @@ class TimelineEvent(models.Model):
     tipo = models.CharField("tipo de evento", max_length=30, choices=TipoEventoTimeline.choices)
     descricao = models.CharField("descrição", max_length=255)
     autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    ip_origem = models.GenericIPAddressField("IP de origem", null=True, blank=True)
+    user_agent = models.TextField("User-Agent", null=True, blank=True)
     timestamp = models.DateTimeField("timestamp", auto_now_add=True, db_index=True)
 
     class Meta:

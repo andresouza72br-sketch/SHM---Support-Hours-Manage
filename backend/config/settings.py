@@ -3,9 +3,11 @@ from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR.parent / ".env")
+load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-shm-production-ready-super-secret-key-2026")
 
@@ -93,6 +95,7 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
+            "CONN_MAX_AGE": 0,
         }
     }
 
@@ -156,3 +159,24 @@ SPECTACULAR_SETTINGS = {
 
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+
+# Frontend Base URL
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+# E-mail Configuration
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", os.getenv("EMAIL_HOST_USER", "SHM Suporte <suporte@shm.com>"))
+
+import sys
+IS_TESTING = "pytest" in sys.modules or any("test" in arg for arg in sys.argv) or os.getenv("TESTING", "").lower() in ("true", "1")
+
+if IS_TESTING:
+    EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

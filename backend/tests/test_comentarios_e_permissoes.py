@@ -17,6 +17,7 @@ class TestComentariosEPermissoes:
         # Empresa users
         self.admin = User.objects.create_user(
             username="admin_test",
+            email="admin@empresa.com",
             password="password123",
             role=UserRole.EMPRESA_ADMIN,
             first_name="Carlos",
@@ -25,6 +26,7 @@ class TestComentariosEPermissoes:
         )
         self.tecnico = User.objects.create_user(
             username="tecnico_test",
+            email="tecnico@empresa.com",
             password="password123",
             role=UserRole.EMPRESA_TECNICO,
             first_name="Marcos",
@@ -44,6 +46,7 @@ class TestComentariosEPermissoes:
         # Client users
         self.gerente_mktdnb = User.objects.create_user(
             username="gerente.mktdnb",
+            email="marcelo.gerente@mkt-dnb.com",
             password="password123",
             role=UserRole.CLIENTE_GERENTE,
             first_name="Marcelo",
@@ -52,6 +55,7 @@ class TestComentariosEPermissoes:
         )
         self.analista_mktdnb = User.objects.create_user(
             username="analista.mktdnb",
+            email="fernanda.analista@mkt-dnb.com",
             password="password123",
             role=UserRole.CLIENTE_ANALISTA,
             first_name="Fernanda",
@@ -281,4 +285,64 @@ class TestComentariosEPermissoes:
         assert Notification.objects.filter(usuario=self.analista_mktdnb).exists()
         assert not Notification.objects.filter(usuario=self.gerente_mktdnb).exists()
         assert TimelineEvent.objects.filter(tipo=TipoEventoTimeline.CICLO_ACEITO).exists()
+
+    def test_email_orcamento_e_aceite_apenas_para_gerente_cliente(self):
+        from django.core import mail
+        from apps.ciclos.services import CicloService
+        from decimal import Decimal
+
+        mail.outbox.clear()
+
+        # 1. Apresentação de Orçamento -> E-mail deve ir EXCLUSIVAMENTE para o Gerente do Cliente
+        self.ciclo.status = StatusCiclo.ORCADO
+        self.ciclo.save()
+        CicloService.apresentar_orcamento(self.ciclo, Decimal("6.00"), usuario=self.tecnico)
+
+        assert len(mail.outbox) == 1
+        destinatarios_orcamento = mail.outbox[0].to
+        assert self.gerente_mktdnb.email in destinatarios_orcamento
+        assert self.analista_mktdnb.email not in destinatarios_orcamento
+        assert self.tecnico.email not in destinatarios_orcamento
+        assert self.admin.email not in destinatarios_orcamento
+
+        # 2. Solicitação de Aceite -> E-mail deve ir EXCLUSIVAMENTE para o Gerente do Cliente
+        mail.outbox.clear()
+        self.ciclo.status = StatusCiclo.EM_EXECUCAO
+        self.ciclo.horas_realizadas = Decimal("5.50")
+        self.ciclo.save()
+        CicloService.solicitar_aceite(self.ciclo, usuario=self.tecnico)
+
+        assert len(mail.outbox) == 1
+        destinatarios_aceite = mail.outbox[0].to
+        assert self.gerente_mktdnb.email in destinatarios_aceite
+        assert self.analista_mktdnb.email not in destinatarios_aceite
+        assert self.tecnico.email not in destinatarios_aceite
+        assert self.admin.email not in destinatarios_aceite
+
+        # 3. Orçamento Aprovado pelo Cliente -> Notifica Gerente e Técnicos da Empresa
+        mail.outbox.clear()
+        self.ciclo.status = StatusCiclo.AGUARDANDO_APROVACAO
+        self.ciclo.save()
+        CicloService.aprovar_orcamento(self.ciclo, usuario=self.gerente_mktdnb)
+
+        assert len(mail.outbox) == 1
+        destinatarios_orc_aprovado = mail.outbox[0].to
+        assert self.admin.email in destinatarios_orc_aprovado
+        assert self.tecnico.email in destinatarios_orc_aprovado
+        assert self.analista_mktdnb.email in destinatarios_orc_aprovado
+
+        # 4. Aceite Concedido pelo Cliente -> Notifica Gerente e Técnicos da Empresa
+        mail.outbox.clear()
+        self.ciclo.status = StatusCiclo.AGUARDANDO_ACEITE
+        self.ciclo.horas_realizadas = Decimal("5.50")
+        self.ciclo.save()
+        CicloService.aceitar_ciclo(self.ciclo, usuario=self.gerente_mktdnb)
+
+        assert len(mail.outbox) == 1
+        destinatarios_ciclo_aceito = mail.outbox[0].to
+        assert self.admin.email in destinatarios_ciclo_aceito
+        assert self.tecnico.email in destinatarios_ciclo_aceito
+        assert self.analista_mktdnb.email in destinatarios_ciclo_aceito
+
+
 

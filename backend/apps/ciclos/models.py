@@ -1,4 +1,4 @@
-﻿import uuid
+import uuid
 from decimal import Decimal
 from django.db import models
 from django.conf import settings
@@ -57,6 +57,12 @@ class Ciclo(TimeStampedModel):
         related_name="ciclos_aceitos",
     )
     token_acesso = models.UUIDField("token Magic Link", default=uuid.uuid4, unique=True, editable=False)
+    aprovado_ip = models.GenericIPAddressField("IP de aprovação", null=True, blank=True)
+    aprovado_user_agent = models.TextField("User-Agent de aprovação", null=True, blank=True)
+    aprovado_metodo = models.CharField("método de aprovação", max_length=20, default="APP")
+    aceito_ip = models.GenericIPAddressField("IP de aceite", null=True, blank=True)
+    aceito_user_agent = models.TextField("User-Agent de aceite", null=True, blank=True)
+    aceito_metodo = models.CharField("método de aceite", max_length=20, default="APP")
 
     class Meta:
         db_table = "shm_ciclo"
@@ -66,3 +72,32 @@ class Ciclo(TimeStampedModel):
 
     def __str__(self):
         return f"Ciclo #{self.id} — {self.get_tipo_display()} ({self.pedido.protocolo})"
+
+class TipoAcaoMagicLink(models.TextChoices):
+    APROVACAO_ORCAMENTO = "aprovacao_orcamento", "Aprovação de Orçamento"
+    ACEITE_CICLO = "aceite_ciclo", "Aceite Final de Ciclo"
+
+class CicloMagicLink(TimeStampedModel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ciclo = models.ForeignKey(
+        Ciclo,
+        on_delete=models.CASCADE,
+        related_name="magic_links",
+        verbose_name="ciclo",
+    )
+    tipo_acao = models.CharField("tipo de ação", max_length=30, choices=TipoAcaoMagicLink.choices, db_index=True)
+    token = models.UUIDField("token seguro", default=uuid.uuid4, unique=True, db_index=True, editable=False)
+    expira_em = models.DateTimeField("expira em", db_index=True)
+    usado = models.BooleanField("usado", default=False, db_index=True)
+    usado_em = models.DateTimeField("usado em", null=True, blank=True)
+    usado_ip = models.GenericIPAddressField("IP de uso", null=True, blank=True)
+    usado_user_agent = models.TextField("User-Agent de uso", null=True, blank=True)
+
+    class Meta:
+        db_table = "shm_ciclo_magic_link"
+        ordering = ["-criado_em"]
+        verbose_name = "magic link de ciclo"
+        verbose_name_plural = "magic links de ciclos"
+
+    def __str__(self):
+        return f"Magic Link ({self.get_tipo_acao_display()}) — Ciclo #{self.ciclo_id} [Usado: {self.usado}]"

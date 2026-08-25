@@ -41,6 +41,7 @@ export default function App() {
             <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
             <Route path="/admin/pedidos/:id/analise" element={<ProtectedRoute><AnalisePedidoPage /></ProtectedRoute>} />
             <Route path="/admin/ciclos/:id/execucao" element={<ProtectedRoute><ExecucaoCicloPage /></ProtectedRoute>} />
+            <Route path="/magic-link/:token" element={<MagicLinkPage />} />
             <Route path="/publico/ciclo/:token" element={<MagicLinkPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
