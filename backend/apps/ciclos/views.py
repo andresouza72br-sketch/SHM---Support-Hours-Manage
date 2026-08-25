@@ -1,3 +1,4 @@
+import uuid
 from decimal import Decimal
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
@@ -66,15 +67,22 @@ class CicloViewSet(viewsets.ModelViewSet):
 class MagicLinkCicloView(APIView):
     permission_classes = [permissions.AllowAny]
 
-    def get(self, request, token):
+    def _get_ciclo(self, token):
         try:
             token_uuid = uuid.UUID(str(token))
         except (ValueError, TypeError):
-            return Response({"detail": "Token inválido ou não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+            return None
+        
+        ciclo = Ciclo.objects.select_related("pedido__cliente", "pedido__contrato", "operador").prefetch_related("tarefas").filter(token_acesso=token_uuid).first()
+        if not ciclo:
+            ciclo = Ciclo.objects.select_related("pedido__cliente", "pedido__contrato", "operador").prefetch_related("tarefas").filter(token_acesso=token_uuid.hex).first()
+        if not ciclo:
+            ciclo = Ciclo.objects.select_related("pedido__cliente", "pedido__contrato", "operador").prefetch_related("tarefas").filter(token_acesso=str(token_uuid)).first()
+        return ciclo
 
-        try:
-            ciclo = Ciclo.objects.select_related("pedido__cliente", "pedido__contrato", "operador").prefetch_related("tarefas").get(token_acesso=token_uuid)
-        except Ciclo.DoesNotExist:
+    def get(self, request, token):
+        ciclo = self._get_ciclo(token)
+        if not ciclo:
             return Response({"detail": "Token inválido ou não encontrado."}, status=status.HTTP_404_NOT_FOUND)
         
         serializer = CicloSerializer(ciclo)
@@ -86,14 +94,8 @@ class MagicLinkCicloView(APIView):
         })
 
     def post(self, request, token):
-        try:
-            token_uuid = uuid.UUID(str(token))
-        except (ValueError, TypeError):
-            return Response({"detail": "Token inválido."}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            ciclo = Ciclo.objects.get(token_acesso=token_uuid)
-        except Ciclo.DoesNotExist:
+        ciclo = self._get_ciclo(token)
+        if not ciclo:
             return Response({"detail": "Token inválido."}, status=status.HTTP_404_NOT_FOUND)
         
         acao = request.data.get("acao")
