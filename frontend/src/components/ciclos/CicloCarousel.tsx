@@ -168,56 +168,56 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
   return (
     <div className="space-y-6">
       {/* Navigation Header */}
-      <div className="flex items-center justify-between bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-xs">
+      <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs transition-colors">
         <div className="flex items-center gap-3">
           <span className="text-xs font-black bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-3.5 py-1.5 rounded-full uppercase tracking-wider shadow-xs shadow-indigo-500/20">
             Ciclo {index + 1} de {ciclos.length}
           </span>
-          <span className="font-extrabold text-slate-900 text-base sm:text-lg">{cicloAtual.tipo_display}</span>
+          <span className="font-black text-slate-900 dark:text-white text-base sm:text-lg">{cicloAtual.tipo_display}</span>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             disabled={index === 0}
             onClick={() => setIndex((prev) => Math.max(prev - 1, 0))}
-            className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+            className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
             title="Ciclo Anterior"
           >
-            <ChevronLeft className="w-5 h-5 text-slate-700" />
+            <ChevronLeft className="w-5 h-5 text-slate-800 dark:text-slate-300" />
           </button>
           <button
             disabled={index === ciclos.length - 1}
             onClick={() => setIndex((prev) => Math.min(prev + 1, ciclos.length - 1))}
-            className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+            className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
             title="Próximo Ciclo"
           >
-            <ChevronRight className="w-5 h-5 text-slate-700" />
+            <ChevronRight className="w-5 h-5 text-slate-800 dark:text-slate-300" />
           </button>
         </div>
       </div>
 
       {/* Ciclo Detail Card */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
           <div className="space-y-1.5 flex-1">
-            <div className="text-[11px] text-slate-400 font-extrabold uppercase tracking-wider">Escopo Técnico do Ciclo</div>
-            <p className="text-slate-800 font-medium text-sm leading-relaxed">{cicloAtual.contexto || 'Sem contexto detalhado.'}</p>
+            <div className="text-[11px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-wider">Escopo Técnico do Ciclo</div>
+            <p className="text-slate-900 dark:text-slate-100 font-medium text-sm leading-relaxed">{cicloAtual.contexto || 'Sem contexto detalhado.'}</p>
           </div>
 
-          <div className="flex items-center gap-6 bg-slate-50/80 p-4 rounded-2xl border border-slate-100 self-start lg:self-auto">
+          <div className="flex items-center gap-6 bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 self-start lg:self-auto">
             <div className="text-left sm:text-right">
-              <div className="text-[10px] text-slate-400 font-extrabold uppercase">Estimadas</div>
-              <div className="text-lg font-black text-slate-700">{Number(cicloAtual.horas_estimadas).toFixed(1)}h</div>
+              <div className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase">Estimadas</div>
+              <div className="text-lg font-black text-slate-900 dark:text-slate-100">{Number(cicloAtual.horas_estimadas).toFixed(1)}h</div>
             </div>
-            <div className="w-px h-8 bg-slate-200" />
+            <div className="w-px h-8 bg-slate-300 dark:bg-slate-700" />
             <div className="text-left sm:text-right">
-              <div className="text-[10px] text-slate-400 font-extrabold uppercase">Realizadas</div>
-              <div className="text-lg font-black text-indigo-600">{Number(cicloAtual.horas_realizadas).toFixed(1)}h</div>
+              <div className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase">Realizadas</div>
+              <div className="text-lg font-black text-indigo-700 dark:text-indigo-400">{Number(cicloAtual.horas_realizadas).toFixed(1)}h</div>
             </div>
-            <div className="w-px h-8 bg-slate-200" />
+            <div className="w-px h-8 bg-slate-300 dark:bg-slate-700" />
             <div className="text-left sm:text-right">
-              <div className="text-[10px] text-slate-400 font-extrabold uppercase">Status</div>
-              <span className="inline-block mt-0.5 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <div className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase">Status</div>
+              <span className="inline-block mt-0.5 text-[11px] font-black px-3 py-1 rounded-full uppercase bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
                 {cicloAtual.status_display}
               </span>
             </div>
@@ -227,20 +227,20 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
         {/* Tarefas List */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Tarefas & Apontamentos Realizados</h4>
-            <span className="text-xs font-bold text-slate-500">{tarefas.length} tarefas</span>
+            <h4 className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">Tarefas & Apontamentos Realizados</h4>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-400">{tarefas.length} tarefas</span>
           </div>
 
           <div className="space-y-2.5">
             {tarefas.map((t) => (
-              <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 text-sm gap-2 hover:bg-slate-50 transition">
+              <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-sm gap-2 hover:bg-slate-100/70 dark:hover:bg-slate-800 transition">
                 <div className="flex items-center gap-3">
-                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${t.status === 'realizada' ? 'bg-emerald-500 ring-2 ring-emerald-100' : 'bg-amber-400 ring-2 ring-amber-100'}`} />
-                  <span className="font-semibold text-slate-800">{t.descricao}</span>
+                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${t.status === 'realizada' ? 'bg-emerald-600 ring-2 ring-emerald-100 dark:ring-emerald-950' : 'bg-amber-500 ring-2 ring-amber-100 dark:ring-amber-950'}`} />
+                  <span className="font-bold text-slate-900 dark:text-slate-100">{t.descricao}</span>
                 </div>
                 <div className="flex items-center gap-4 text-xs font-bold shrink-0 self-end sm:self-auto">
-                  <span className="text-slate-400 font-medium">Est: {Number(t.horas_estimadas).toFixed(1)}h</span>
-                  <span className="text-indigo-600 font-black bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+                  <span className="text-slate-600 dark:text-slate-400 font-semibold">Est: {Number(t.horas_estimadas).toFixed(1)}h</span>
+                  <span className="text-indigo-800 dark:text-indigo-300 font-black bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 shadow-2xs">
                     Gasto: {Number(t.horas_realizadas).toFixed(1)}h
                   </span>
                 </div>
@@ -248,7 +248,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             ))}
 
             {tarefas.length === 0 && (
-              <div className="p-6 text-center text-slate-400 text-xs italic bg-slate-50/60 rounded-2xl border border-dashed border-slate-200">
+              <div className="p-6 text-center text-slate-400 dark:text-slate-500 text-xs italic bg-slate-50/60 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
                 Nenhuma tarefa apontada neste ciclo até o momento.
               </div>
             )}
@@ -256,10 +256,10 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
         </div>
 
         {/* Action Bar */}
-        <div className="pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
-          <div className="text-xs text-slate-500 flex items-center gap-1.5">
+        <div className="pt-5 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+          <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <span>Operador Técnico:</span>
-            <strong className="text-slate-800 font-bold bg-slate-100 px-2.5 py-0.5 rounded-md">
+            <strong className="text-slate-800 dark:text-slate-200 font-bold bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700">
               {cicloAtual.operador_nome || 'A definir'}
             </strong>
           </div>
@@ -271,7 +271,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                 <button
                   disabled={aprovarMutation.isPending}
                   onClick={() => setModalType('rejeitar')}
-                  className="px-4 py-2.5 text-xs font-extrabold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2.5 text-xs font-extrabold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Rejeitar Orçamento
                 </button>
@@ -297,7 +297,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                 <button
                   disabled={aceitarMutation.isPending}
                   onClick={() => setModalType('recusar')}
-                  className="px-4 py-2.5 text-xs font-extrabold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2.5 text-xs font-extrabold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 rounded-xl transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Recusar Aceite
                 </button>
@@ -358,13 +358,13 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
 
       {/* Modal Justificativa */}
       {modalType && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-4 border border-slate-100">
-            <div className="flex items-center gap-2 text-rose-600 font-extrabold text-base">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-4 border border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-extrabold text-base">
               <AlertTriangle className="w-5 h-5" />
               <span>{modalType === 'rejeitar' ? 'Rejeitar Orçamento' : 'Recusar Aceite de Conclusão'}</span>
             </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               Por favor, informe a justificativa técnica para que nossa equipe possa reavaliar o escopo e realizar os ajustes necessários:
             </p>
             <textarea
@@ -372,7 +372,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
               value={justificativa}
               onChange={(e) => setJustificativa(e.target.value)}
               placeholder="Descreva o motivo da recusa ou pendências identificadas..."
-              className="w-full text-xs p-3.5 border border-slate-300 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 font-medium"
+              className="w-full text-xs p-3.5 border border-slate-300 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 dark:bg-slate-800 font-medium text-slate-800 dark:text-slate-100"
             />
             <div className="flex justify-end gap-2.5 pt-2">
               <button
@@ -381,7 +381,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                   setModalType(null)
                   setJustificativa('')
                 }}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -417,19 +417,19 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
 
       {/* Modal Confirmar Exclusão de Comentário */}
       {deletingCommentId && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-slate-100">
-            <div className="flex items-center gap-2 text-rose-600 font-extrabold text-base">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-extrabold text-base">
               <Trash2 className="w-5 h-5" />
               <span>Excluir Comentário</span>
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed font-medium">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
               Tem certeza que deseja apagar este comentário? Esta ação não pode ser desfeita e ele será removido do histórico do ciclo para todos os usuários.
             </p>
             <div className="flex justify-end gap-2.5 pt-2">
               <button
                 onClick={() => setDeletingCommentId(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
               >
                 Cancelar
               </button>
@@ -453,17 +453,17 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
       )}
 
       {/* Comentários Thread */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-5">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2 font-extrabold text-sm text-slate-900">
-            <MessageSquare className="w-4 h-4 text-indigo-600" />
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-5 transition-colors">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-2 font-black text-sm text-slate-900 dark:text-white">
+            <MessageSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             <span>Comentários & Histórico do Ciclo</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full">
+            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
               Visível para Empresa e Cliente
             </span>
-            <span className="text-xs font-black text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs font-black text-slate-800 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
               {comentarios.length} {comentarios.length === 1 ? 'mensagem' : 'mensagens'}
             </span>
           </div>
@@ -496,31 +496,42 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                 key={c.id}
                 className={`p-4 rounded-2xl border text-xs transition duration-150 space-y-2.5 ${
                   isOwner
-                    ? 'bg-indigo-50/40 border-indigo-200/80 shadow-2xs'
-                    : 'bg-slate-50/80 border-slate-200/70'
+                    ? 'bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800/60 shadow-2xs'
+                    : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/70'
                 }`}
               >
                 {/* Header do Comentário */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-black text-[10px] flex items-center justify-center">
-                      {c.autor_nome ? c.autor_nome[0].toUpperCase() : <UserIcon className="w-3 h-3" />}
-                    </div>
-                    <span className="font-extrabold text-slate-900">{c.autor_nome}</span>
-                    <span className="text-[10px] bg-slate-200/90 text-slate-700 font-bold px-2 py-0.5 rounded-md">
+                    {c.autor_avatar_url ? (
+                      <div className="w-6 h-6 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        <img
+                          src={c.autor_avatar_url}
+                          alt={c.autor_nome || 'Avatar'}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-black text-[10px] flex items-center justify-center shrink-0">
+                        {c.autor_nome ? c.autor_nome[0].toUpperCase() : <UserIcon className="w-3 h-3" />}
+                      </div>
+                    )}
+                    <span className="font-black text-slate-900 dark:text-white">{c.autor_nome}</span>
+                    <span className="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-300 font-bold px-2 py-0.5 rounded-md border border-slate-300 dark:border-slate-600">
                       {c.autor_role?.split('—')[0] || c.autor_role}
                     </span>
                     {isOwner && (
-                      <span className="text-[9px] bg-indigo-600 text-white font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                      <span className="text-[9px] bg-indigo-600 text-white font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
                         Você
                       </span>
                     )}
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-slate-400 font-mono text-[10px]">
+                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-mono text-[10px] font-semibold">
                       <span>{formattedDate}</span>
-                      {isUpdated && <span className="text-slate-400 italic font-sans">(editado)</span>}
+                      {isUpdated && <span className="text-slate-500 italic font-sans">(editado)</span>}
                     </div>
 
                     {/* Botões de Ação para o Dono do Comentário */}
@@ -531,14 +542,14 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                             setEditingCommentId(c.id)
                             setEditingCommentText(c.texto)
                           }}
-                          className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-100/50 rounded-lg transition cursor-pointer"
+                          className="p-1 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-100/60 dark:hover:bg-slate-750 rounded-lg transition cursor-pointer"
                           title="Editar meu comentário"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setDeletingCommentId(c.id)}
-                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-100/50 rounded-lg transition cursor-pointer"
+                          className="p-1 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-100/60 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
                           title="Excluir meu comentário"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -555,7 +566,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                       rows={3}
                       value={editingCommentText}
                       onChange={(e) => setEditingCommentText(e.target.value)}
-                      className="w-full text-xs p-3 bg-white border border-indigo-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800"
+                      className="w-full text-xs p-3 bg-white dark:bg-slate-800 border border-indigo-300 dark:border-indigo-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 dark:text-slate-100"
                     />
                     <div className="flex justify-end gap-2">
                       <button
@@ -563,7 +574,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                           setEditingCommentId(null)
                           setEditingCommentText('')
                         }}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-200/60 rounded-lg transition cursor-pointer"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700 rounded-lg transition cursor-pointer"
                       >
                         <X className="w-3 h-3" />
                         <span>Cancelar</span>
@@ -592,14 +603,14 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">{c.texto}</p>
+                  <p className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">{c.texto}</p>
                 )}
               </div>
             )
           })}
 
           {comentarios.length === 0 && (
-            <div className="p-8 text-center text-slate-400 text-xs italic bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+            <div className="p-8 text-center text-slate-400 dark:text-slate-500 text-xs italic bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
               Nenhuma mensagem registrada neste ciclo até o momento. Todos os usuários da empresa e do cliente podem comentar abaixo.
             </div>
           )}
@@ -613,7 +624,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
               comentarioMutation.mutate({ cicloId: cicloAtual.id, texto: comentarioTexto.trim() })
             }
           }}
-          className="flex gap-2.5 pt-3 border-t border-slate-100"
+          className="flex gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800"
         >
           <input
             type="text"
@@ -621,7 +632,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             value={comentarioTexto}
             onChange={(e) => setComentarioTexto(e.target.value)}
             placeholder={comentarioMutation.isPending ? 'Enviando comentário...' : 'Escreva uma mensagem ou observação sobre este ciclo (visível para todos)...'}
-            className="flex-1 text-xs bg-slate-50 border border-slate-300/80 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 disabled:opacity-60"
+            className="flex-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 dark:text-slate-100 disabled:opacity-60"
           />
           <button
             type="submit"

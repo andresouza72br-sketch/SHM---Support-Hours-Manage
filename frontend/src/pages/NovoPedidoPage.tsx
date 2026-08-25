@@ -80,29 +80,29 @@ export function NovoPedidoPage() {
     <AppLayout showSidebar={false}>
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
-          <Link to="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-indigo-600 hover:text-indigo-800 mb-3 group">
+          <Link to="/dashboard" className="inline-flex items-center gap-2 text-xs font-black text-indigo-700 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mb-3 group">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition" />
             <span>Voltar ao Painel</span>
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Novo Pedido de Suporte</h1>
-          <p className="text-xs text-slate-500 font-medium mt-1">Descreva sua demanda para que a equipe técnica realize a triagem e orce os ciclos.</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Novo Pedido de Suporte</h1>
+          <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1">Descreva sua demanda para que a equipe técnica realize a triagem e orce os ciclos.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
           {createMutation.isError && (
-            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold">
+            <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800/60 text-rose-900 dark:text-rose-300 text-xs font-black">
               {getErrorMessage()}
             </div>
           )}
           <div>
-            <label className="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-[11px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-wider mb-2">
               Contrato Vinculado *
             </label>
             <select
               required
               value={contratoId}
               onChange={(e) => setContratoId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-300/80 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800 cursor-pointer"
+              className="w-full text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-900 dark:text-slate-100 cursor-pointer shadow-xs"
             >
               <option value="">Selecione um contrato ativo...</option>
               {listaContratos.map((c) => (
@@ -114,7 +114,7 @@ export function NovoPedidoPage() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-[11px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-wider mb-2">
               Assunto / Título Resumido *
             </label>
             <input
@@ -123,12 +123,12 @@ export function NovoPedidoPage() {
               value={assunto}
               onChange={(e) => setAssunto(e.target.value)}
               placeholder="ex: Erro ao emitir relatório de notas ou solicitação de novo layout"
-              className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-300/80 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800"
+              className="w-full text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-900 dark:text-slate-100 shadow-xs"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-[11px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-wider mb-2">
               Descrição Detalhada do Problema / Necessidade *
             </label>
             <textarea
@@ -137,12 +137,12 @@ export function NovoPedidoPage() {
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               placeholder="Explique o que precisa ser feito, detalhes do problema, passos para reproduzir ou escopo desejado..."
-              className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-300/80 rounded-2xl p-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 leading-relaxed"
+              className="w-full text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl p-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-900 dark:text-slate-100 leading-relaxed shadow-xs"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-extrabold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-[11px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-wider mb-2">
               Nível de Prioridade
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -151,14 +151,14 @@ export function NovoPedidoPage() {
                   key={p}
                   type="button"
                   onClick={() => setPrioridade(p)}
-                  className={`py-3 text-xs font-bold rounded-2xl border capitalize transition duration-150 cursor-pointer ${
+                  className={`py-3 text-xs font-black rounded-2xl border capitalize transition duration-150 cursor-pointer ${
                     prioridade === p
                       ? p === 'urgente'
                         ? 'bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-500/20'
                         : p === 'alta'
                         ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20'
                         : 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/20'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-2xs'
                   }`}
                 >
                   {p}
@@ -167,19 +167,19 @@ export function NovoPedidoPage() {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
             <button
               type="button"
               disabled={createMutation.isPending}
               onClick={() => navigate('/dashboard')}
-              className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer disabled:opacity-50"
+              className="px-5 py-2.5 text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-xs px-6 py-3 rounded-2xl shadow-lg shadow-indigo-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs px-6 py-3 rounded-2xl shadow-lg shadow-indigo-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
             >
               {createMutation.isPending ? (
                 <>

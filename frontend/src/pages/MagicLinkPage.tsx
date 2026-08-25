@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { Clock, CheckCircle2, AlertTriangle, ShieldCheck, ArrowRight, ExternalLink, Loader2 } from 'lucide-react'
 import { clientService } from '../api/client'
 import { useToast } from '../contexts/ToastContext'
+import { ThemeToggle } from '../components/ui/ThemeToggle'
 
 export function MagicLinkPage() {
   const { token } = useParams<{ token: string }>()
@@ -33,7 +34,10 @@ export function MagicLinkPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 gap-3 text-sm font-semibold">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 gap-3 text-sm font-semibold relative">
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50">
+          <ThemeToggle />
+        </div>
         <Clock className="w-8 h-8 text-indigo-500 animate-pulse" />
         <span>Validando token seguro e credenciais forenses...</span>
       </div>
@@ -42,13 +46,16 @@ export function MagicLinkPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-4 shadow-2xl">
-          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col items-center justify-center p-4 relative">
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50">
+          <ThemeToggle />
+        </div>
+        <div className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 dark:text-rose-400 flex items-center justify-center mx-auto">
             <AlertTriangle className="w-6 h-6" />
           </div>
-          <h3 className="text-lg font-black text-white">Link Não Encontrado</h3>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <h3 className="text-lg font-black text-slate-900 dark:text-white">Link Não Encontrado</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
             Este link seguro não é válido ou já foi revogado. Se precisar de assistência, acesse o portal ou entre em contato com o suporte.
           </p>
           <Link
@@ -75,20 +82,25 @@ export function MagicLinkPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 relative overflow-hidden flex flex-col justify-center items-center p-4">
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 relative overflow-hidden flex flex-col justify-center items-center p-4 transition-colors duration-200">
+      {/* Switch Light/Dark Mode no Canto Superior Direito */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50">
+        <ThemeToggle />
+      </div>
 
-      <div className="max-w-xl w-full bg-white rounded-3xl p-8 sm:p-10 shadow-2xl space-y-6 relative z-10 border border-slate-100">
+      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-indigo-600/10 dark:bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-violet-600/10 dark:bg-violet-600/20 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="max-w-xl w-full bg-white dark:bg-slate-900 rounded-3xl p-8 sm:p-10 shadow-2xl space-y-6 relative z-10 border border-slate-200/90 dark:border-slate-800 transition-colors">
         {/* Header com Protocolo e Badge de Segurança */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-          <div className="flex items-center gap-2.5 text-indigo-600 font-extrabold text-lg">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2.5 text-indigo-600 dark:text-indigo-400 font-extrabold text-lg">
             <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <span>SHM Secure Link</span>
           </div>
-          <span className="text-xs font-mono font-bold bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200">
+          <span className="text-xs font-mono font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800/60">
             {pedido_protocolo}
           </span>
         </div>
@@ -96,43 +108,43 @@ export function MagicLinkPage() {
         {/* Informações do Pedido e Cliente */}
         <div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-indigo-600 font-black uppercase tracking-wider">{cliente_nome}</span>
+            <span className="text-xs text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-wider">{cliente_nome}</span>
             {contrato_numero && (
-              <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700">
                 Contrato: {contrato_numero} {contrato_saldo !== undefined && `(Saldo: ${Number(contrato_saldo).toFixed(1)}h)`}
               </span>
             )}
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1.5">{pedido_assunto}</h2>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1.5">{pedido_assunto}</h2>
         </div>
 
         {/* Card Resumo do Atendimento */}
-        <div className="p-5 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-3">
-          <div className="flex justify-between items-center text-xs font-bold text-slate-600">
-            <span>Tipo de Atendimento: <strong className="text-slate-900">{ciclo.tipo_display}</strong></span>
-            <span className="text-indigo-600 font-extrabold uppercase">{ciclo.status_display}</span>
+        <div className="p-5 bg-slate-50/80 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+          <div className="flex justify-between items-center text-xs font-bold text-slate-600 dark:text-slate-300">
+            <span>Tipo de Atendimento: <strong className="text-slate-900 dark:text-white">{ciclo.tipo_display}</strong></span>
+            <span className="text-indigo-600 dark:text-indigo-400 font-extrabold uppercase">{ciclo.status_display}</span>
           </div>
-          <p className="text-xs text-slate-700 leading-relaxed font-medium">{ciclo.contexto || 'Sem contexto detalhado.'}</p>
-          <div className="flex justify-between pt-3 border-t border-slate-200 text-xs font-black">
-            <span>Horas Estimadas: {Number(ciclo.horas_estimadas).toFixed(1)}h</span>
-            <span className="text-indigo-600">Horas Realizadas: {Number(ciclo.horas_realizadas).toFixed(1)}h</span>
+          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">{ciclo.contexto || 'Sem contexto detalhado.'}</p>
+          <div className="flex justify-between pt-3 border-t border-slate-200 dark:border-slate-700 text-xs font-black">
+            <span className="text-slate-700 dark:text-slate-300">Horas Estimadas: {Number(ciclo.horas_estimadas).toFixed(1)}h</span>
+            <span className="text-indigo-600 dark:text-indigo-400">Horas Realizadas: {Number(ciclo.horas_realizadas).toFixed(1)}h</span>
           </div>
         </div>
 
         {/* Estado 1: Link Expirado (> 7 dias) */}
         {expirado ? (
-          <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 space-y-2">
-            <div className="flex items-center gap-2 text-amber-800 text-sm font-black">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+          <div className="p-5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl text-amber-900 dark:text-amber-200 space-y-2">
+            <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400 text-sm font-black">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
               <span>Link Expirado (Validade de 7 dias)</span>
             </div>
-            <p className="text-xs text-amber-700 leading-relaxed">
+            <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
               Este link seguro expirou em <strong>{formatarData(expira_em)}</strong>. Para aprovar ou revisar este ciclo, faça login na plataforma ou solicite um novo link à equipe técnica.
             </p>
             <div className="pt-2">
               <Link
                 to="/login"
-                className="inline-flex items-center gap-1.5 text-xs font-extrabold text-indigo-600 hover:text-indigo-700"
+                className="inline-flex items-center gap-1.5 text-xs font-extrabold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
               >
                 <span>Acessar plataforma autenticada</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -141,18 +153,18 @@ export function MagicLinkPage() {
           </div>
         ) : usado || sucesso ? (
           /* Estado 2: Link Já Consumido (Uso Único / Single-Use) */
-          <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-900 space-y-2">
-            <div className="flex items-center gap-2 text-emerald-800 text-sm font-black">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <div className="p-5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl text-emerald-900 dark:text-emerald-200 space-y-2">
+            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400 text-sm font-black">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>Ação Processada com Sucesso</span>
             </div>
-            <p className="text-xs text-emerald-700 leading-relaxed">
+            <p className="text-xs text-emerald-700 dark:text-emerald-300 leading-relaxed">
               {sucesso || `Este link de uso único foi utilizado com sucesso em ${formatarData(usado_em)}.`}
             </p>
             <div className="pt-2">
               <Link
                 to="/login"
-                className="inline-flex items-center gap-1.5 text-xs font-extrabold text-indigo-600 hover:text-indigo-700"
+                className="inline-flex items-center gap-1.5 text-xs font-extrabold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
               >
                 <span>Acompanhar na plataforma SHM</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -184,8 +196,8 @@ export function MagicLinkPage() {
                 </button>
 
                 {/* Caixa Informativa sobre Rejeição Exclusiva via App */}
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-1.5">
-                  <div className="font-extrabold text-slate-800 flex items-center gap-1.5">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
+                  <div className="font-extrabold text-slate-800 dark:text-white flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4 text-amber-500" />
                     <span>Deseja Não Aprovar / Recusar este orçamento?</span>
                   </div>
@@ -195,7 +207,7 @@ export function MagicLinkPage() {
                   <div className="pt-1">
                     <Link
                       to="/login"
-                      className="text-indigo-600 hover:text-indigo-700 font-extrabold inline-flex items-center gap-1"
+                      className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-extrabold inline-flex items-center gap-1"
                     >
                       <span>Entrar no App para Recusar</span>
                       <ArrowRight className="w-3 h-3" />
@@ -227,8 +239,8 @@ export function MagicLinkPage() {
                 </button>
 
                 {/* Caixa Informativa sobre Recusa de Aceite Exclusiva via App */}
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-1.5">
-                  <div className="font-extrabold text-slate-800 flex items-center gap-1.5">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
+                  <div className="font-extrabold text-slate-800 dark:text-white flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4 text-amber-500" />
                     <span>Identificou inconformidades na entrega?</span>
                   </div>
@@ -238,7 +250,7 @@ export function MagicLinkPage() {
                   <div className="pt-1">
                     <Link
                       to="/login"
-                      className="text-indigo-600 hover:text-indigo-700 font-extrabold inline-flex items-center gap-1"
+                      className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-extrabold inline-flex items-center gap-1"
                     >
                       <span>Entrar no App para Recusar Aceite</span>
                       <ArrowRight className="w-3 h-3" />
@@ -251,7 +263,7 @@ export function MagicLinkPage() {
         )}
 
         {/* Rodapé com Validade do Token */}
-        <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-semibold">
           <span>Validade do Link: 7 dias</span>
           {expira_em && <span>Expira em: {formatarData(expira_em)}</span>}
         </div>
