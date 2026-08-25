@@ -11,12 +11,34 @@ import {
   X,
   User as UserIcon,
   Loader2,
+  Layers,
 } from 'lucide-react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import type { Ciclo, Pedido } from '../../types'
+
+function getCicloStatusDot(status: string) {
+  switch (status) {
+    case 'aceito':
+      return 'bg-emerald-500 ring-2 ring-emerald-300 dark:ring-emerald-900'
+    case 'em_execucao':
+      return 'bg-indigo-500 ring-2 ring-indigo-300 dark:ring-indigo-900 animate-pulse'
+    case 'aguardando_aceite':
+      return 'bg-purple-500 ring-2 ring-purple-300 dark:ring-purple-900'
+    case 'aguardando_aprovacao':
+      return 'bg-sky-500 ring-2 ring-sky-300 dark:ring-sky-900'
+    case 'orcado':
+      return 'bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-900'
+    case 'aprovado':
+      return 'bg-teal-500 ring-2 ring-teal-300 dark:ring-teal-900'
+    case 'cancelado':
+      return 'bg-rose-500 ring-2 ring-rose-300 dark:ring-rose-900'
+    default:
+      return 'bg-slate-400 ring-2 ring-slate-300 dark:ring-slate-700'
+  }
+}
 
 interface CicloCarouselProps {
   pedido: Pedido
@@ -157,8 +179,18 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
 
   if (!cicloAtual) {
     return (
-      <div className="p-12 text-center bg-white rounded-3xl border border-slate-200/90 text-slate-400 text-sm font-medium shadow-xs">
-        Nenhum ciclo cadastrado para este pedido ainda.
+      <div className="p-8 sm:p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs transition-colors space-y-3">
+        <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 mx-auto flex items-center justify-center border border-slate-200/80 dark:border-slate-700/60 shadow-2xs">
+          <Layers className="w-6 h-6" />
+        </div>
+        <div className="space-y-1">
+          <h4 className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">
+            Nenhum ciclo cadastrado ainda
+          </h4>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto font-medium">
+            Este pedido ainda não possui ciclos técnicos ou orçamentos abertos.
+          </p>
+        </div>
       </div>
     )
   }
@@ -167,33 +199,106 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
 
   return (
     <div className="space-y-6">
-      {/* Navigation Header */}
-      <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs transition-colors">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-black bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-3.5 py-1.5 rounded-full uppercase tracking-wider shadow-xs shadow-indigo-500/20">
-            Ciclo {index + 1} de {ciclos.length}
-          </span>
-          <span className="font-black text-slate-900 dark:text-white text-base sm:text-lg">{cicloAtual.tipo_display}</span>
+      {/* Navigation Header & Cycle Switcher */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-xs space-y-4 transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-violet-500/20 dark:from-indigo-500/20 dark:to-violet-500/30 border border-indigo-200/70 dark:border-indigo-700/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-2xs">
+              <Layers className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-black bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-3 py-0.5 rounded-full uppercase tracking-wider shadow-xs shadow-indigo-500/20">
+                  {ciclos.length === 1 ? 'Ciclo Único' : `Ciclo ${index + 1} de ${ciclos.length}`}
+                </span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                  #{cicloAtual.id}
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-slate-700 dark:text-slate-300">
+                  <span className={`w-2 h-2 rounded-full ${getCicloStatusDot(cicloAtual.status)}`} />
+                  <span>{cicloAtual.status_display}</span>
+                </span>
+              </div>
+              <h3 className="font-black text-slate-900 dark:text-white text-lg sm:text-xl tracking-tight mt-0.5">
+                {cicloAtual.tipo_display}
+              </h3>
+            </div>
+          </div>
+
+          {/* Previous / Next Controls */}
+          {ciclos.length > 1 ? (
+            <div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end">
+              <button
+                disabled={index === 0}
+                onClick={() => setIndex((prev) => Math.max(prev - 1, 0))}
+                className="group flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-extrabold text-xs hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 dark:hover:bg-slate-700 dark:hover:text-white disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer shadow-2xs active:scale-95"
+                title="Ciclo Anterior"
+              >
+                <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+                <span>Anterior</span>
+              </button>
+
+              <div className="px-3 py-2 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs font-black text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                {index + 1} / {ciclos.length}
+              </div>
+
+              <button
+                disabled={index === ciclos.length - 1}
+                onClick={() => setIndex((prev) => Math.min(prev + 1, ciclos.length - 1))}
+                className="group flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-xs shadow-md shadow-indigo-500/25 disabled:opacity-30 disabled:pointer-events-none disabled:shadow-none transition cursor-pointer active:scale-95"
+                title="Próximo Ciclo"
+              >
+                <span>Próximo</span>
+                <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
+                1 de 1 Ciclo Disponível
+              </span>
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            disabled={index === 0}
-            onClick={() => setIndex((prev) => Math.max(prev - 1, 0))}
-            className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
-            title="Ciclo Anterior"
-          >
-            <ChevronLeft className="w-5 h-5 text-slate-800 dark:text-slate-300" />
-          </button>
-          <button
-            disabled={index === ciclos.length - 1}
-            onClick={() => setIndex((prev) => Math.min(prev + 1, ciclos.length - 1))}
-            className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
-            title="Próximo Ciclo"
-          >
-            <ChevronRight className="w-5 h-5 text-slate-800 dark:text-slate-300" />
-          </button>
-        </div>
+        {/* Interactive Cycle Tabs (When multiple cycles exist) */}
+        {ciclos.length > 1 && (
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80">
+            <div className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2.5 flex items-center justify-between">
+              <span>Navegar Entre Ciclos:</span>
+              <span className="text-slate-600 dark:text-slate-400 font-semibold lowercase">clique para alternar</span>
+            </div>
+            <div className="flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-none">
+              {ciclos.map((c, i) => {
+                const isActive = i === index
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setIndex(i)}
+                    className={`shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/30 ring-2 ring-indigo-400/50 font-black scale-[1.02]'
+                        : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-slate-600 hover:scale-[1.01]'
+                    }`}
+                  >
+                    <span
+                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+                      }`}
+                    >
+                      {i + 1}
+                    </span>
+                    <span>{c.tipo_display}</span>
+                    <span className={`w-2 h-2 rounded-full ${getCicloStatusDot(c.status)}`} />
+                    <span className={`text-[11px] font-semibold ${isActive ? 'text-indigo-100' : 'text-slate-600 dark:text-slate-400'}`}>
+                      {Number(c.horas_estimadas).toFixed(1)}h
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Ciclo Detail Card */}
@@ -204,20 +309,20 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             <p className="text-slate-900 dark:text-slate-100 font-medium text-sm leading-relaxed">{cicloAtual.contexto || 'Sem contexto detalhado.'}</p>
           </div>
 
-          <div className="flex items-center gap-6 bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 self-start lg:self-auto">
-            <div className="text-left sm:text-right">
-              <div className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase">Estimadas</div>
+          <div className="flex items-center gap-4 sm:gap-6 bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 self-start lg:self-auto">
+            <div className="text-center flex flex-col items-center justify-center min-w-[70px]">
+              <div className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-wider">Estimadas</div>
               <div className="text-lg font-black text-slate-900 dark:text-slate-100">{Number(cicloAtual.horas_estimadas).toFixed(1)}h</div>
             </div>
-            <div className="w-px h-8 bg-slate-300 dark:bg-slate-700" />
-            <div className="text-left sm:text-right">
-              <div className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase">Realizadas</div>
+            <div className="w-px h-8 bg-slate-300 dark:bg-slate-700 shrink-0" />
+            <div className="text-center flex flex-col items-center justify-center min-w-[70px]">
+              <div className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-wider">Realizadas</div>
               <div className="text-lg font-black text-indigo-700 dark:text-indigo-400">{Number(cicloAtual.horas_realizadas).toFixed(1)}h</div>
             </div>
-            <div className="w-px h-8 bg-slate-300 dark:bg-slate-700" />
-            <div className="text-left sm:text-right">
-              <div className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase">Status</div>
-              <span className="inline-block mt-0.5 text-[11px] font-black px-3 py-1 rounded-full uppercase bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
+            <div className="w-px h-8 bg-slate-300 dark:bg-slate-700 shrink-0" />
+            <div className="text-center flex flex-col items-center justify-center min-w-[70px]">
+              <div className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-wider">Status</div>
+              <span className="inline-flex items-center justify-center mt-0.5 text-[11px] font-black px-3 py-0.5 rounded-full uppercase bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
                 {cicloAtual.status_display}
               </span>
             </div>
