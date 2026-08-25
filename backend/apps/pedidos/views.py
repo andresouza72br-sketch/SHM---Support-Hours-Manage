@@ -55,9 +55,15 @@ class PedidoViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = super().get_queryset()
-        contrato_id = self.request.query_params.get("contrato")
-        if contrato_id:
-            qs = qs.filter(contrato_id=contrato_id)
+        contrato_params = self.request.query_params.getlist("contrato")
+        if contrato_params:
+            ids = []
+            for item in contrato_params:
+                for x in str(item).split(","):
+                    if x.strip().isdigit():
+                        ids.append(int(x.strip()))
+            if ids:
+                qs = qs.filter(contrato_id__in=ids)
         if user.is_empresa:
             return qs.annotate(
                 status_order=STATUS_ORDER,

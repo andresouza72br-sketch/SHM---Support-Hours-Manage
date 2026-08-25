@@ -24,6 +24,16 @@ const PRIORITY_WEIGHT: Record<string, number> = {
 }
 
 type FilterTab = 'todos' | 'em_execucao' | 'triagem' | 'aguardando_cliente' | 'concluidos'
+type DateFilter = 'today' | '24h' | '7d' | '30d' | '60d' | 'todos'
+
+const DATE_FILTER_OPTIONS: { id: DateFilter; label: string }[] = [
+  { id: 'today', label: 'Today' },
+  { id: '24h', label: '24h' },
+  { id: '7d', label: '7D' },
+  { id: '30d', label: '30D' },
+  { id: '60d', label: '60D' },
+  { id: 'todos', label: 'Todos' },
+]
 
 function getStatusBadge(status: string, statusDisplay: string) {
   switch (status) {
@@ -110,16 +120,48 @@ function getPriorityBadge(prioridade?: string, prioridadeDisplay?: string) {
 export function AdminDashboardPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const contratoSelecionado = searchParams.get('contrato') ? Number(searchParams.get('contrato')) : null
-  const [filterTab, setFilterTab] = useState<FilterTab>('todos')
+  const contratoParam = searchParams.get('contrato')
+  
+  const contratosSelecionados: number[] = useMemo(() => {
+    if (!contratoParam) return []
+    return contratoParam
+      .split(',')
+      .map((id) => Number(id.trim()))
+      .filter((id) => !isNaN(id) && id > 0)
+  }, [contratoParam])
 
-  const handleSelectContrato = (id: number | null) => {
+  const [filterTab, setFilterTab] = useState<FilterTab>('todos')
+  const [dateFilter, setDateFilter] = useState<DateFilter>('todos')
+
+  const handleToggleContrato = (id: number, isMulti: boolean = false) => {
     const newParams = new URLSearchParams(searchParams)
-    if (id) {
-      newParams.set('contrato', String(id))
+    let next: number[] = []
+
+    if (isMulti) {
+      if (contratosSelecionados.includes(id)) {
+        next = contratosSelecionados.filter((cId) => cId !== id)
+      } else {
+        next = [...contratosSelecionados, id]
+      }
+    } else {
+      if (contratosSelecionados.length === 1 && contratosSelecionados[0] === id) {
+        next = []
+      } else {
+        next = [id]
+      }
+    }
+
+    if (next.length > 0) {
+      newParams.set('contrato', next.join(','))
     } else {
       newParams.delete('contrato')
     }
+    setSearchParams(newParams)
+  }
+
+  const handleClearContratos = () => {
+    const newParams = new URLSearchParams(searchParams)
+    newParams.delete('contrato')
     setSearchParams(newParams)
   }
 
@@ -130,31 +172,66 @@ export function AdminDashboardPage() {
   })
 
   const contratos: Contrato[] = Array.isArray(rawContratos) ? rawContratos : []
-  const contratoAtivo = contratos.find((c) => c.id === contratoSelecionado)
+  const contratosAtivos = useMemo(() => {
+    return contratos.filter((c) => contratosSelecionados.includes(c.id))
+  }, [contratos, contratosSelecionados])
+  const contratoAtivoUnico = contratosAtivos.length === 1 ? contratosAtivos[0] : null
+
+  const queryContratoParam = contratosSelecionados.length > 0 ? contratosSelecionados.join(',') : undefined
 
   const { data: rawPedidos = [] } = useQuery({
-    queryKey: ['admin_pedidos', contratoSelecionado],
-    queryFn: () => clientService.pedidos.list(contratoSelecionado ? { contrato: contratoSelecionado } : undefined),
+    queryKey: ['admin_pedidos', queryContratoParam],
+    queryFn: () => clientService.pedidos.list(queryContratoParam ? { contrato: queryContratoParam } : undefined),
     refetchInterval: 5000,
   })
 
   const pedidos: Pedido[] = Array.isArray(rawPedidos) ? rawPedidos : []
 
-  // Contadores por estágio operacional
+  // Filtro por data/período de criação
+  const pedidosFiltradosPorData = useMemo(() => {
+    if (dateFilter === 'todos') return pedidos
+
+    const now = new Date()
+    const nowMs = now.getTime()
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+
+    return pedidos.filter((p) => {
+      if (!p.criado_em) return false
+      const criadoMs = new Date(p.criado_em).getTime()
+      if (isNaN(criadoMs)) return true
+
+      switch (dateFilter) {
+        case 'today':
+          return criadoMs >= startOfToday
+        case '24h':
+          return criadoMs >= nowMs - 24 * 60 * 60 * 1000
+        case '7d':
+          return criadoMs >= nowMs - 7 * 24 * 60 * 60 * 1000
+        case '30d':
+          return criadoMs >= nowMs - 30 * 24 * 60 * 60 * 1000
+        case '60d':
+          return criadoMs >= nowMs - 60 * 24 * 60 * 60 * 1000
+        default:
+          return true
+      }
+    })
+  }, [pedidos, dateFilter])
+
+  // Contadores por estágio operacional baseados nos chamados do período selecionado
   const counts = useMemo(() => {
     return {
-      todos: pedidos.length,
-      em_execucao: pedidos.filter((p) => p.status === 'em_execucao').length,
-      triagem: pedidos.filter((p) => p.status === 'aberto' || p.status === 'em_orcamento').length,
-      aguardando_cliente: pedidos.filter((p) => p.status === 'aguardando_aprovacao' || p.status === 'aguardando_aceite').length,
-      concluidos: pedidos.filter((p) => p.status === 'concluido' || p.status === 'cancelado').length,
+      todos: pedidosFiltradosPorData.length,
+      em_execucao: pedidosFiltradosPorData.filter((p) => p.status === 'em_execucao').length,
+      triagem: pedidosFiltradosPorData.filter((p) => p.status === 'aberto' || p.status === 'em_orcamento').length,
+      aguardando_cliente: pedidosFiltradosPorData.filter((p) => p.status === 'aguardando_aprovacao' || p.status === 'aguardando_aceite').length,
+      concluidos: pedidosFiltradosPorData.filter((p) => p.status === 'concluido' || p.status === 'cancelado').length,
     }
-  }, [pedidos])
+  }, [pedidosFiltradosPorData])
 
   // Ordenação Inteligente: Execução -> Aberto -> Orçamento -> Aguardando Cliente -> Concluídos -> Cancelados
   // Secundária: Prioridade (Urgente > Alta > Média > Baixa) -> Data
   const pedidosOrdenados = useMemo(() => {
-    const sorted = [...pedidos].sort((a, b) => {
+    const sorted = [...pedidosFiltradosPorData].sort((a, b) => {
       const weightA = STATUS_WEIGHT[a.status] || 99
       const weightB = STATUS_WEIGHT[b.status] || 99
       if (weightA !== weightB) return weightA - weightB
@@ -171,18 +248,24 @@ export function AdminDashboardPage() {
     if (filterTab === 'aguardando_cliente') return sorted.filter((p) => p.status === 'aguardando_aprovacao' || p.status === 'aguardando_aceite')
     if (filterTab === 'concluidos') return sorted.filter((p) => p.status === 'concluido' || p.status === 'cancelado')
     return sorted
-  }, [pedidos, filterTab])
+  }, [pedidosFiltradosPorData, filterTab])
 
   return (
     <AppLayout
       showSidebar={false}
-      contratoSelecionado={contratoSelecionado}
-      onSelectContrato={handleSelectContrato}
+      contratoSelecionado={contratosSelecionados.length === 1 ? contratosSelecionados[0] : null}
+      onSelectContrato={(id) => {
+        if (id) {
+          handleToggleContrato(id, false)
+        } else {
+          handleClearContratos()
+        }
+      }}
     >
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Painel Operacional da Empresa</h1>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Painel Operacional</h1>
             <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1">Gestão de contratos de suporte, triagem em ciclos, orçamentação e execução técnica</p>
           </div>
         </div>
@@ -195,24 +278,35 @@ export function AdminDashboardPage() {
               <span className="text-xs font-black text-slate-900 dark:text-slate-200 uppercase tracking-wider">
                 Contratos de Suporte & Manutenção ({contratos.length})
               </span>
+              <span className="hidden lg:inline text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                (Ctrl + clique para selecionar múltiplos)
+              </span>
               {contratos.length > 6 && (
                 <span className="hidden sm:inline text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 font-bold px-2 py-0.5 rounded-full border border-slate-300 dark:border-slate-700">
                   Role para ver todos ({contratos.length})
                 </span>
               )}
             </div>
-            {contratoSelecionado && (
+            {contratosSelecionados.length > 0 && (
               <button
-                onClick={() => handleSelectContrato(null)}
+                onClick={handleClearContratos}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-indigo-100 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 border border-indigo-300 dark:border-indigo-800 transition cursor-pointer shadow-2xs group"
-                title="Clique para limpar o filtro de contrato"
+                title="Clique para limpar o filtro de contrato (Dica: use Ctrl+Clique para múltiplos)"
               >
                 <span>
                   Filtrado por:{' '}
-                  <strong className="font-mono text-indigo-950 dark:text-indigo-200 font-bold">
-                    {contratoAtivo?.numero || `#${contratoSelecionado}`}
-                  </strong>
-                  {contratoAtivo?.cliente_nome ? ` — ${contratoAtivo.cliente_nome}` : ''}
+                  {contratosSelecionados.length === 1 ? (
+                    <>
+                      <strong className="font-mono text-indigo-950 dark:text-indigo-200 font-bold">
+                        {contratoAtivoUnico?.numero || `#${contratosSelecionados[0]}`}
+                      </strong>
+                      {contratoAtivoUnico?.cliente_nome ? ` — ${contratoAtivoUnico.cliente_nome}` : ''}
+                    </>
+                  ) : (
+                    <strong className="text-indigo-950 dark:text-indigo-200 font-bold">
+                      {contratosSelecionados.length} contratos
+                    </strong>
+                  )}
                 </span>
                 <X className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-900 dark:group-hover:text-indigo-200 transition shrink-0" />
               </button>
@@ -222,7 +316,7 @@ export function AdminDashboardPage() {
           <div className="max-h-[470px] overflow-y-auto pr-1.5 p-1 rounded-3xl">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {contratos.map((c) => {
-                const isSelected = contratoSelecionado === c.id
+                const isSelected = contratosSelecionados.includes(c.id)
                 const totalHoras = Number(c.horas_contratadas) || 1
                 const saldo = Number(c.saldo) || 0
                 const consumido = Number(c.horas_consumidas) || 0
@@ -231,8 +325,13 @@ export function AdminDashboardPage() {
                 return (
                   <div
                     key={c.id}
-                    onClick={() => handleSelectContrato(isSelected ? null : c.id)}
-                    className={`p-5 rounded-3xl border transition-all duration-200 cursor-pointer relative ${
+                    onClick={(e) => handleToggleContrato(c.id, e.ctrlKey || e.metaKey || e.shiftKey)}
+                    title={
+                      isSelected
+                        ? 'Contrato selecionado. Clique para desmarcar (ou Ctrl+clique para seleção múltipla)'
+                        : 'Clique para filtrar a fila (ou Ctrl+clique para selecionar múltiplos)'
+                    }
+                    className={`p-5 rounded-3xl border transition-all duration-200 cursor-pointer relative select-none ${
                       isSelected
                         ? 'border-2 border-indigo-600 dark:border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 shadow-md ring-2 ring-indigo-500/30'
                         : 'border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 shadow-xs hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-sm'
@@ -315,23 +414,31 @@ export function AdminDashboardPage() {
                 </div>
                 <div>
                   <h2 className="font-black text-sm text-slate-900 dark:text-white leading-tight">Fila Operacional de Pedidos</h2>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Ordem por prioridade de atendimento: Em Execução → Novos/Triagem → Aguardando Cliente → Concluídos</p>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Ordem por prioridade de atendimento: Em Execução → Abertos → Aguardando Cliente → Concluídos</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                {contratoSelecionado && (
+                {contratosSelecionados.length > 0 && (
                   <button
-                    onClick={() => handleSelectContrato(null)}
+                    onClick={handleClearContratos}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-indigo-100 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 border border-indigo-300 dark:border-indigo-800 transition cursor-pointer shadow-2xs group"
                     title="Clique para limpar o filtro de contrato"
                   >
                     <span>
                       Filtrado por:{' '}
-                      <strong className="font-mono text-indigo-950 dark:text-indigo-200 font-bold">
-                        {contratoAtivo?.numero || `#${contratoSelecionado}`}
-                      </strong>
-                      {contratoAtivo?.cliente_nome ? ` — ${contratoAtivo.cliente_nome}` : ''}
+                      {contratosSelecionados.length === 1 ? (
+                        <>
+                          <strong className="font-mono text-indigo-950 dark:text-indigo-200 font-bold">
+                            {contratoAtivoUnico?.numero || `#${contratosSelecionados[0]}`}
+                          </strong>
+                          {contratoAtivoUnico?.cliente_nome ? ` — ${contratoAtivoUnico.cliente_nome}` : ''}
+                        </>
+                      ) : (
+                        <strong className="text-indigo-950 dark:text-indigo-200 font-bold">
+                          {contratosSelecionados.length} contratos
+                        </strong>
+                      )}
                     </span>
                     <X className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-900 dark:group-hover:text-indigo-200 transition shrink-0" />
                   </button>
@@ -342,81 +449,107 @@ export function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Abas Rápidas de Filtro Operacional */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              <button
-                onClick={() => setFilterTab('todos')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition duration-150 flex items-center gap-1.5 cursor-pointer ${
-                  filterTab === 'todos'
-                    ? 'bg-slate-900 dark:bg-indigo-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 shadow-2xs'
-                }`}
-              >
-                <span>Todos</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${filterTab === 'todos' ? 'bg-slate-800 dark:bg-indigo-700 text-slate-200 dark:text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'}`}>
-                  {counts.todos}
-                </span>
-              </button>
+            {/* Abas Rápidas de Filtro Operacional & Segmented Time Filter */}
+            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 pt-1">
+              {/* Filtro por Estágio Operacional */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  onClick={() => setFilterTab('todos')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition duration-150 flex items-center gap-1.5 cursor-pointer ${
+                    filterTab === 'todos'
+                      ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-500/20'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 shadow-2xs'
+                  }`}
+                >
+                  <span>Todos</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${filterTab === 'todos' ? 'bg-indigo-700 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
+                    {counts.todos}
+                  </span>
+                </button>
 
-              <button
-                onClick={() => setFilterTab('em_execucao')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition duration-150 flex items-center gap-1.5 cursor-pointer ${
-                  filterTab === 'em_execucao'
-                    ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-500/20'
-                    : 'bg-white dark:bg-slate-800 text-indigo-800 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700 border border-indigo-300 dark:border-slate-700 shadow-2xs'
-                }`}
-              >
-                <Play className="w-3 h-3 fill-current" />
-                <span>Em Execução</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${filterTab === 'em_execucao' ? 'bg-indigo-700 text-indigo-100' : 'bg-indigo-100 dark:bg-slate-700 text-indigo-900 dark:text-indigo-300'}`}>
-                  {counts.em_execucao}
-                </span>
-              </button>
+                <button
+                  onClick={() => setFilterTab('em_execucao')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition duration-150 flex items-center gap-1.5 cursor-pointer ${
+                    filterTab === 'em_execucao'
+                      ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-500/20'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 shadow-2xs'
+                  }`}
+                >
+                  <Play className="w-3 h-3 fill-current" />
+                  <span>Em Execução</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${filterTab === 'em_execucao' ? 'bg-indigo-700 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
+                    {counts.em_execucao}
+                  </span>
+                </button>
 
-              <button
-                onClick={() => setFilterTab('triagem')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition duration-150 flex items-center gap-1.5 cursor-pointer ${
-                  filterTab === 'triagem'
-                    ? 'bg-violet-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-violet-800 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-slate-700 border border-violet-300 dark:border-slate-700 shadow-2xs'
-                }`}
-              >
-                <Inbox className="w-3 h-3" />
-                <span>Novos & Triagem</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${filterTab === 'triagem' ? 'bg-violet-700 text-violet-100' : 'bg-violet-100 dark:bg-slate-700 text-violet-900 dark:text-violet-300'}`}>
-                  {counts.triagem}
-                </span>
-              </button>
+                <button
+                  onClick={() => setFilterTab('triagem')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition duration-150 flex items-center gap-1.5 cursor-pointer ${
+                    filterTab === 'triagem'
+                      ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-500/20'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 shadow-2xs'
+                  }`}
+                >
+                  <Inbox className="w-3 h-3" />
+                  <span>Abertos</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${filterTab === 'triagem' ? 'bg-indigo-700 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
+                    {counts.triagem}
+                  </span>
+                </button>
 
-              <button
-                onClick={() => setFilterTab('aguardando_cliente')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition duration-150 flex items-center gap-1.5 cursor-pointer ${
-                  filterTab === 'aguardando_cliente'
-                    ? 'bg-sky-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-sky-800 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-slate-700 border border-sky-300 dark:border-slate-700 shadow-2xs'
-                }`}
-              >
-                <Clock className="w-3 h-3" />
-                <span>Aguardando Cliente</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${filterTab === 'aguardando_cliente' ? 'bg-sky-700 text-sky-100' : 'bg-sky-100 dark:bg-slate-700 text-sky-900 dark:text-sky-300'}`}>
-                  {counts.aguardando_cliente}
-                </span>
-              </button>
+                <button
+                  onClick={() => setFilterTab('aguardando_cliente')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition duration-150 flex items-center gap-1.5 cursor-pointer ${
+                    filterTab === 'aguardando_cliente'
+                      ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-500/20'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 shadow-2xs'
+                  }`}
+                >
+                  <Clock className="w-3 h-3" />
+                  <span>Aguardando Cliente</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${filterTab === 'aguardando_cliente' ? 'bg-indigo-700 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
+                    {counts.aguardando_cliente}
+                  </span>
+                </button>
 
-              <button
-                onClick={() => setFilterTab('concluidos')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition duration-150 flex items-center gap-1.5 cursor-pointer ${
-                  filterTab === 'concluidos'
-                    ? 'bg-emerald-700 text-white shadow-xs'
-                    : 'bg-white dark:bg-slate-800 text-emerald-800 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-slate-700 border border-emerald-300 dark:border-slate-700 shadow-2xs'
-                }`}
-              >
-                <CheckCheck className="w-3 h-3" />
-                <span>Concluídos / Histórico</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${filterTab === 'concluidos' ? 'bg-emerald-800 text-emerald-100' : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300'}`}>
-                  {counts.concluidos}
-                </span>
-              </button>
+                <button
+                  onClick={() => setFilterTab('concluidos')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition duration-150 flex items-center gap-1.5 cursor-pointer ${
+                    filterTab === 'concluidos'
+                      ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-500/20'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 shadow-2xs'
+                  }`}
+                >
+                  <CheckCheck className="w-3 h-3" />
+                  <span>Concluídos</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${filterTab === 'concluidos' ? 'bg-indigo-700 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
+                    {counts.concluidos}
+                  </span>
+                </button>
+              </div>
+
+              {/* Filtro Segmentado por Período (Today, 24h, 7D, 30D, 60D, Todos) */}
+              <div className="flex items-center self-start xl:self-auto shrink-0">
+                <div className="inline-flex items-center p-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-300 dark:border-slate-700 shadow-2xs gap-0.5">
+                  {DATE_FILTER_OPTIONS.map((opt) => {
+                    const isSelected = dateFilter === opt.id
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setDateFilter(opt.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-black transition duration-150 cursor-pointer select-none ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-500/20'
+                            : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/60'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -490,9 +623,13 @@ export function AdminDashboardPage() {
 
             {pedidosOrdenados.length === 0 && (
               <div className="p-12 text-center text-slate-500 dark:text-slate-400 text-xs italic font-medium">
-                {contratoSelecionado
-                  ? `Nenhum chamado encontrado nesta categoria para o contrato ${contratoAtivo ? `${contratoAtivo.numero} (${contratoAtivo.cliente_nome})` : `#${contratoSelecionado}`}.`
-                  : 'Nenhum chamado encontrado para o filtro selecionado.'}
+                {contratosSelecionados.length > 0
+                  ? `Nenhum chamado encontrado nesta categoria para ${
+                      contratosSelecionados.length === 1
+                        ? `o contrato ${contratoAtivoUnico ? `${contratoAtivoUnico.numero} (${contratoAtivoUnico.cliente_nome})` : `#${contratosSelecionados[0]}`}`
+                        : `os ${contratosSelecionados.length} contratos selecionados`
+                    }${dateFilter !== 'todos' ? ` no período selecionado (${dateFilter.toUpperCase()})` : ''}.`
+                  : `Nenhum chamado encontrado para os filtros selecionados${dateFilter !== 'todos' ? ` no período (${dateFilter.toUpperCase()})` : ''}.`}
               </div>
             )}
           </div>

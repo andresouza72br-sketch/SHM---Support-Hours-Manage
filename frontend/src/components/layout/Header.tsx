@@ -76,11 +76,13 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
     }
   }, [showNotifs, startAutoCloseTimer, clearAutoCloseTimer])
 
+  const contratoQuery = searchParams.get('contrato')
+  const isMultipleContratosInQuery = contratoQuery ? contratoQuery.includes(',') : false
   const activeContratoId =
     contratoSelecionado !== undefined
       ? contratoSelecionado
-      : searchParams.get('contrato')
-      ? Number(searchParams.get('contrato'))
+      : (!isMultipleContratosInQuery && contratoQuery && !isNaN(Number(contratoQuery)))
+      ? Number(contratoQuery)
       : null
 
   const handleContractChange = (newId: number | null) => {
@@ -192,7 +194,11 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
                 onChange={(e) => handleContractChange(e.target.value ? Number(e.target.value) : null)}
                 className="text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xs cursor-pointer w-auto min-w-[260px] sm:min-w-[300px] max-w-[460px]"
               >
-                <option value="">Todos os Contratos ({listaContratos.length})</option>
+                <option value="">
+                  {isMultipleContratosInQuery
+                    ? `Filtro Múltiplo Ativo (${contratoQuery ? contratoQuery.split(',').length : 0} contratos)`
+                    : `Todos os Contratos (${listaContratos.length})`}
+                </option>
                 {listaContratos.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.numero} {c.cliente_nome ? `— ${c.cliente_nome}` : ''} ({Number(c.saldo).toFixed(1)}h)
