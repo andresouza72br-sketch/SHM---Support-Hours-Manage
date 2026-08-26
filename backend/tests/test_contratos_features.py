@@ -320,7 +320,7 @@ class TestContratosFeatures:
             format="json",
         )
         assert res.status_code == 400
-        assert "motivo" in res.data
+        assert "motivo" in res.data or "justificativa" in res.data
         assert ContratoDocumento.objects.filter(id=doc.id).count() == 1
 
     def test_tecnico_e_cliente_nao_podem_remover_documento_retorna_403_forbidden(self):

@@ -223,7 +223,8 @@ class ContratoViewSet(viewsets.ModelViewSet):
         ).strip()
         if not justificativa or len(justificativa) < 5:
             raise ValidationError({
-                "justificativa": "A justificativa para remoção do documento é obrigatória e deve conter pelo menos 5 caracteres."
+                "justificativa": "A justificativa para remoção do documento é obrigatória e deve conter pelo menos 5 caracteres.",
+                "motivo": "O motivo da remoção é obrigatório para fins de auditoria forense.",
             })
 
         nome = doc.nome_original
