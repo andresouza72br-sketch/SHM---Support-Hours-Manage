@@ -1,10 +1,20 @@
 from decimal import Decimal
 from datetime import date, timedelta
+from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from apps.accounts.models import User, UserRole
 from apps.clientes.models import Cliente, TipoCliente, StatusCliente
-from apps.contratos.models import Contrato, StatusContrato, TipoContrato, AceiteLink
+from apps.contratos.models import (
+    Contrato,
+    StatusContrato,
+    TipoContrato,
+    AceiteLink,
+    ContratoDocumento,
+    ContratoAuditLog,
+    TipoEventoContratoAudit,
+    TipoDocumentoContrato,
+)
 from apps.pedidos.models import Pedido, StatusPedido, PrioridadePedido
 from apps.ciclos.models import Ciclo, TipoCiclo, StatusCiclo
 from apps.tarefas.models import Tarefa, StatusTarefa
@@ -164,9 +174,52 @@ class Command(BaseCommand):
                 "status": StatusContrato.ATIVO,
                 "descricao_servicos": "Suporte N2/N3 especializado em ERP e Banco de Dados.",
                 "valor_mensal": Decimal("4500.00"),
+                "dia_faturamento": 10,
+                "gestor_nome": "Roberto Silva",
+                "gestor_email": "roberto@acme.com",
+                "gestor_telefone": "(11) 98765-4321",
+                "emails_notificacao": [
+                    {"email": "roberto@acme.com", "nome": "Roberto Silva (Gerente)", "ativo": True},
+                    {"email": "ana@acme.com", "nome": "Ana Paula (Analista)", "ativo": True},
+                    {"email": "financeiro@acme.com", "nome": "Financeiro Acme", "ativo": True},
+                ],
                 "criado_por": admin_user,
             }
         )
+
+        # Seed sample documents for contrato_acme
+        if not contrato_acme.documentos.exists():
+            doc1 = ContratoDocumento.objects.create(
+                contrato=contrato_acme,
+                nome_original="Proposta_Comercial_SHM_Acme_2026.pdf",
+                tipo_documento=TipoDocumentoContrato.PROPOSTA,
+                tamanho_bytes=245800,
+                enviado_por=admin_user,
+            )
+            doc1.arquivo.save("Proposta_Comercial_SHM_Acme_2026.pdf", ContentFile(b"%PDF-1.4 Mock PDF Proposta Comercial"), save=True)
+
+            doc2 = ContratoDocumento.objects.create(
+                contrato=contrato_acme,
+                nome_original="Contrato_Prestacao_Servicos_Assinado_CT20260001.pdf",
+                tipo_documento=TipoDocumentoContrato.CONTRATO_ASSINADO,
+                tamanho_bytes=512000,
+                enviado_por=admin_user,
+            )
+            doc2.arquivo.save("Contrato_Prestacao_Servicos_Assinado_CT20260001.pdf", ContentFile(b"%PDF-1.4 Mock PDF Contrato Assinado"), save=True)
+
+            ContratoAuditLog.objects.create(
+                contrato=contrato_acme,
+                tipo_evento=TipoEventoContratoAudit.CRIACAO,
+                descricao=f"Contrato {contrato_acme.numero} cadastrado por Carlos Diretor com franquia de 100.0h.",
+                usuario=admin_user,
+            )
+            ContratoAuditLog.objects.create(
+                contrato=contrato_acme,
+                tipo_evento=TipoEventoContratoAudit.UPLOAD_DOCUMENTO,
+                descricao="Upload do documento 'Proposta_Comercial_SHM_Acme_2026.pdf' (Proposta Comercial).",
+                documento_nome="Proposta_Comercial_SHM_Acme_2026.pdf",
+                usuario=admin_user,
+            )
 
         contrato_tech, _ = Contrato.objects.get_or_create(
             numero="CT-2026-0002",
@@ -180,6 +233,14 @@ class Command(BaseCommand):
                 "status": StatusContrato.ATIVO,
                 "descricao_servicos": "Suporte mensal sob demanda.",
                 "valor_mensal": Decimal("2500.00"),
+                "dia_faturamento": 5,
+                "gestor_nome": "Mariana Souza",
+                "gestor_email": "suporte@techsolutions.com",
+                "gestor_telefone": "(21) 99887-6655",
+                "emails_notificacao": [
+                    {"email": "suporte@techsolutions.com", "nome": "Mariana Souza", "ativo": True},
+                    {"email": "contato@techsolutions.com", "nome": "Diretoria Tech", "ativo": False},
+                ],
                 "criado_por": admin_user,
             }
         )
@@ -197,9 +258,27 @@ class Command(BaseCommand):
                 "status": StatusContrato.ATIVO,
                 "descricao_servicos": "Contrato de Manutenção e Suporte SHM — Empresa mkt-dnb (Pacote de 100 Horas)",
                 "valor_mensal": Decimal("5000.00"),
+                "dia_faturamento": 15,
+                "gestor_nome": "Marcelo Ribeiro",
+                "gestor_email": "workspace.icb@gmail.com",
+                "gestor_telefone": "(11) 98888-7766",
+                "emails_notificacao": [
+                    {"email": "workspace.icb@gmail.com", "nome": "Marcelo Ribeiro (Gerente)", "ativo": True},
+                    {"email": "fernanda.analista@mkt-dnb.com", "nome": "Fernanda Costa", "ativo": True},
+                ],
                 "criado_por": admin_user,
             }
         )
+
+        if not contrato_mktdnb.documentos.exists():
+            doc_mkt = ContratoDocumento.objects.create(
+                contrato=contrato_mktdnb,
+                nome_original="Proposta_Tecnica_MKTDNB_100h.pdf",
+                tipo_documento=TipoDocumentoContrato.PROPOSTA,
+                tamanho_bytes=320000,
+                enviado_por=admin_user,
+            )
+            doc_mkt.arquivo.save("Proposta_Tecnica_MKTDNB_100h.pdf", ContentFile(b"%PDF-1.4 Mock PDF Proposta MKT DNB"), save=True)
 
         contrato_acme2, _ = Contrato.objects.get_or_create(
             numero="CT-2026-0004",

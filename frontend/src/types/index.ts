@@ -19,6 +19,22 @@ export interface User {
   is_cliente?: boolean
 }
 
+export interface EmailNotificacao {
+  id?: number
+  email: string
+  nome?: string
+  ativo: boolean
+  status?: 'pendente' | 'confirmado' | 'recusado' | 'expirado'
+  status_display?: string
+  token?: string
+  convidado_por_nome?: string
+  convidado_em?: string
+  expira_em?: string
+  confirmado_em?: string
+  is_expirado?: boolean
+  dias_restantes?: number
+}
+
 export interface Cliente {
   id: number
   tipo: 'PF' | 'PJ'
@@ -30,7 +46,41 @@ export interface Cliente {
   cpf?: string
   email_contato: string
   telefone?: string
+  pessoa_contato?: string
+  logo?: string | null
+  logo_url?: string | null
+  emails_notificacao_padrao?: EmailNotificacao[]
   status: 'ativo' | 'inativo'
+}
+
+export type TipoDocumentoContrato = 'proposta' | 'contrato_assinado' | 'aditivo' | 'distrato' | 'outro'
+
+export interface ContratoDocumento {
+  id: number
+  nome_original: string
+  tipo_documento: TipoDocumentoContrato
+  tipo_documento_display: string
+  tamanho_bytes: number
+  tamanho_formatado: string
+  url: string
+  enviado_por?: number | null
+  enviado_por_nome?: string | null
+  criado_em: string
+}
+
+export interface ContratoAuditLog {
+  id: number
+  contrato: number
+  tipo_evento: string
+  tipo_evento_display: string
+  descricao: string
+  justificativa?: string | null
+  documento_nome?: string | null
+  usuario?: number | null
+  usuario_nome?: string | null
+  usuario_role?: string | null
+  ip_origem?: string | null
+  timestamp: string
 }
 
 export interface ContratoPDF {
@@ -43,22 +93,42 @@ export interface ContratoPDF {
 export interface Contrato {
   id: number
   numero: string
-  tipo: 'novo' | 'aditivo'
+  tipo: 'novo' | 'aditivo' | 'renovacao'
+  tipo_display?: string
+  contrato_referencia?: number | null
   cliente: number
   cliente_nome: string
+  cliente_logo?: string | null
   data_inicio: string
   data_termino?: string | null
   horas_contratadas: string | number
   saldo: string | number
   horas_consumidas: string | number
-  status: 'pendente_aceite' | 'ativo' | 'suspenso' | 'expirado'
+  status: 'pendente_aceite' | 'ativo' | 'concluido' | 'cancelado' | 'suspenso' | 'expirado'
   status_display: string
   em_carencia: boolean
   saldo_devedor: string | number
   saldo_remanescente: string | number
   descricao_servicos?: string
   valor_mensal?: string | number
-  pdfs: ContratoPDF[]
+  dia_faturamento?: number | null
+  gestor_nome?: string | null
+  gestor_email?: string | null
+  gestor_telefone?: string | null
+  emails_notificacao?: EmailNotificacao[]
+  justificativa_cancelamento?: string | null
+  cancelado_por_nome?: string | null
+  cancelado_em?: string | null
+  concluido_por_nome?: string | null
+  concluido_em?: string | null
+  criado_por_nome?: string | null
+  total_documentos?: number
+  documentos?: ContratoDocumento[]
+  destinatarios?: EmailNotificacao[]
+  pdfs?: ContratoPDF[]
+  aceite_token?: string | null
+  aceite_expira_em?: string | null
+  aceite_usado?: boolean
 }
 
 export interface Tarefa {

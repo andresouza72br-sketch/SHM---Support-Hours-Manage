@@ -1,19 +1,103 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, ArrowUp } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  ArrowLeft,
+  ArrowUp,
+  Upload,
+  Download,
+  Mail,
+  ShieldCheck,
+  AlertOctagon,
+  FileCheck,
+  Printer,
+  Loader2,
+  Clock,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
+import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { TimelineAuditoriaContrato } from '../components/contratos/TimelineAuditoriaContrato'
+import { DocumentosContratoModal } from '../components/contratos/DocumentosContratoModal'
+import { GerenteClienteEmailsModal } from '../components/contratos/GerenteClienteEmailsModal'
+import type { ContratoDocumento, EmailNotificacao } from '../types'
 
 export function ExtratoContratoPage() {
   const { id } = useParams<{ id: string }>()
+  const { user, isEmpresa } = useAuth()
+  const toast = useToast()
+  const queryClient = useQueryClient()
+  const logoInputRef = useRef<HTMLInputElement>(null)
+
   const [showScrollTopBtn, setShowScrollTopBtn] = useState(false)
+  const [isDocsModalOpen, setIsDocsModalOpen] = useState(false)
+  const [isEmailsModalOpen, setIsEmailsModalOpen] = useState(false)
+  const [downloadingDocId, setDownloadingDocId] = useState<number | null>(null)
+
+  const isEmpresaAdmin = user?.role === 'EMPRESA_ADMIN' || user?.is_superuser || user?.is_staff
+  const isClienteGerente = user?.role === 'CLIENTE_GERENTE'
 
   const { data, isLoading } = useQuery({
     queryKey: ['extrato', id],
     queryFn: () => clientService.contratos.extrato(Number(id)),
     enabled: Boolean(id),
+    refetchInterval: 6000,
   })
+
+  // Upload Logo Mutation
+  const uploadLogoMutation = useMutation({
+    mutationFn: ({ clienteId, file }: { clienteId: number; file: File }) => {
+      const formData = new FormData()
+      formData.append('logo', file)
+      return clientService.clientes.atualizarPerfil(clienteId, formData)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['extrato', id] })
+      queryClient.invalidateQueries({ queryKey: ['contratos'] })
+      toast.success('Logo da empresa atualizada com sucesso!', 'Logo Salva')
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar a logo da empresa.', 'Erro')
+    },
+  })
+
+  const handleDownloadDoc = async (doc: ContratoDocumento) => {
+    if (!data?.contrato?.id) return
+    try {
+      setDownloadingDocId(doc.id)
+      toast.info(`Iniciando download de "${doc.nome_original}"... (Auditoria registrada)`, 'Download')
+      await clientService.contratos.downloadDocumento(data.contrato.id, doc.id, doc.nome_original)
+      queryClient.invalidateQueries({ queryKey: ['extrato', id] })
+    } catch (err) {
+      toast.error('Erro ao baixar documento.', 'Erro')
+    } finally {
+      setDownloadingDocId(null)
+    }
+  }
+
+  const handleImprimirExtrato = async () => {
+    if (!data?.contrato?.id) {
+      window.print()
+      return
+    }
+    try {
+      await clientService.contratos.auditarRelatorio(data.contrato.id)
+      queryClient.invalidateQueries({ queryKey: ['extrato', id] })
+    } catch (err) {
+      console.error('Erro ao registrar auditoria de relatório:', err)
+    } finally {
+      window.print()
+    }
+  }
+
+  const handleLogoSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !data?.contrato?.cliente) return
+    uploadLogoMutation.mutate({ clienteId: data.contrato.cliente, file })
+  }
 
   useEffect(() => {
     const checkAtBottom = () => {
@@ -62,50 +146,167 @@ export function ExtratoContratoPage() {
   if (isLoading) {
     return (
       <AppLayout showSidebar={false}>
-        <div className="p-12 text-center text-slate-400 font-semibold">Carregando extrato...</div>
+        <div className="p-12 text-center text-slate-400 font-semibold">Carregando extrato do contrato...</div>
       </AppLayout>
     )
   }
 
-  if (!data) {
+  if (!data || !data.contrato) {
     return (
       <AppLayout showSidebar={false}>
-        <div className="p-12 text-center text-rose-500 font-bold">Extrato não disponível.</div>
+        <div className="p-12 text-center text-rose-500 font-bold">Extrato não disponível ou acesso negado.</div>
       </AppLayout>
     )
   }
 
-  const { contrato, historico_ciclos = [] } = data
+  const { contrato, historico_ciclos = [], auditoria = [] } = data
   const total = Number(contrato.horas_contratadas) || 1
   const saldo = Number(contrato.saldo) || 0
   const consumido = Number(contrato.horas_consumidas) || 0
   const percentConsumido = Math.min(Math.round((consumido / total) * 100), 100)
+  const documentos: ContratoDocumento[] = Array.isArray(contrato.documentos) ? contrato.documentos : []
+  const emailsNotificacao: EmailNotificacao[] =
+    Array.isArray(contrato.destinatarios) && contrato.destinatarios.length > 0
+      ? contrato.destinatarios
+      : Array.isArray(contrato.emails_notificacao)
+      ? contrato.emails_notificacao
+      : []
+  const isCancelado = contrato.status === 'cancelado'
+
+  // Gerente do cliente cadastrado neste contrato (email deve coincidir com gestor_email)
+  const isClienteGerenteDoContrato =
+    isClienteGerente &&
+    !!user?.email &&
+    !!contrato.gestor_email &&
+    user.email.toLowerCase() === contrato.gestor_email.toLowerCase()
+
+  // Pode acessar recursos restritos: empresa OU gerente cadastrado no contrato
+  const podeAcessarRecursosRestritos = isEmpresa || isClienteGerenteDoContrato
+
+  const podeGerenciarLogo = isEmpresaAdmin || (isClienteGerente && user?.cliente === contrato.cliente)
 
   return (
     <AppLayout showSidebar={false}>
       <div className="max-w-5xl mx-auto space-y-6">
-        <div>
-          <Link to="/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 mb-3 group">
+        {/* Top Back & Print Header */}
+        <div className="flex items-center justify-between">
+          <Link
+            to={isEmpresa ? "/admin/contratos" : "/dashboard"}
+            className="inline-flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 group"
+          >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition" />
-            <span>Voltar ao Painel</span>
+            <span>{isEmpresa ? 'Voltar para Gestão de Contratos' : 'Voltar ao Painel Principal'}</span>
           </Link>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+
+          {podeAcessarRecursosRestritos && (
+          <button
+            onClick={handleImprimirExtrato}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-300 dark:border-slate-700 transition cursor-pointer"
+            title="Imprimir ou salvar PDF (Auditoria registrada automaticamente)"
+          >
+            <Printer className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span>Imprimir Extrato / PDF</span>
+          </button>
+          )}
+        </div>
+
+        {/* Corporate Contract Banner with Client Logo */}
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="flex items-start sm:items-center gap-4">
+            {/* Logo do Cliente / Upload */}
+            <div className="relative group shrink-0">
+              {contrato.cliente_logo ? (
+                <img
+                  src={contrato.cliente_logo}
+                  alt={contrato.cliente_nome}
+                  className="w-16 h-16 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center font-black text-xl shadow-xs">
+                  {contrato.cliente_nome ? contrato.cliente_nome[0].toUpperCase() : 'C'}
+                </div>
+              )}
+
+              {podeGerenciarLogo && (
+                <>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoSelected}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    title="Atualizar logo da empresa"
+                    className="absolute -bottom-1 -right-1 p-1.5 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-md hover:scale-110 transition cursor-pointer"
+                  >
+                    {uploadLogoMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                  </button>
+                </>
+              )}
+            </div>
+
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-200 px-2.5 py-1 rounded-md border border-slate-300 dark:border-slate-700">
                   {contrato.numero}
                 </span>
                 <span className="text-xs font-bold text-slate-400">•</span>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-300">{contrato.cliente_nome}</span>
+                <span className="text-xs font-black text-slate-900 dark:text-slate-100">{contrato.cliente_nome}</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">Extrato do Contrato</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
+                Extrato Oficial do Contrato
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Vigência: {new Date(contrato.data_inicio).toLocaleDateString('pt-BR')}
+                {contrato.data_termino ? ` até ${new Date(contrato.data_termino).toLocaleDateString('pt-BR')}` : ''}
+              </p>
             </div>
-            <span className="text-xs font-black px-3 py-1.5 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/60 rounded-full uppercase tracking-wider self-start sm:self-auto">
+          </div>
+
+          <div className="flex flex-col items-start sm:items-end gap-2 self-stretch sm:self-auto">
+            <span
+              className={`text-xs font-black px-3.5 py-1.5 rounded-full uppercase tracking-wider border shadow-2xs ${
+                contrato.status === 'ativo'
+                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800/60'
+                  : contrato.status === 'cancelado'
+                  ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800/60'
+                  : contrato.status === 'concluido'
+                  ? 'bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-800/60'
+                  : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800/60'
+              }`}
+            >
               {contrato.status_display}
             </span>
+
+            {contrato.em_carencia && (
+              <span className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 px-2 py-0.5 rounded-md font-bold border border-amber-300 dark:border-amber-800/60">
+                Carência de 30 dias ativa
+              </span>
+            )}
           </div>
         </div>
 
+        {/* Cancellation Alert Banner */}
+        {isCancelado && contrato.justificativa_cancelamento && (
+          <div className="p-5 rounded-3xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 shadow-2xs space-y-1 text-rose-900 dark:text-rose-200">
+            <div className="flex items-center gap-2">
+              <AlertOctagon className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+              <h3 className="font-black text-sm">Contrato Cancelado</h3>
+            </div>
+            <p className="text-xs italic pl-7 leading-relaxed">
+              "{contrato.justificativa_cancelamento}"
+            </p>
+            <div className="text-[10px] text-rose-700 dark:text-rose-400/90 pl-7 pt-1 font-medium">
+              Cancelado {contrato.cancelado_em ? `em ${new Date(contrato.cancelado_em).toLocaleDateString('pt-BR')}` : ''}
+              {contrato.cancelado_por_nome ? ` por ${contrato.cancelado_por_nome}` : ''}
+            </div>
+          </div>
+        )}
+
+        {/* Balance Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-1 transition-colors">
             <div className="text-[11px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-wider">Horas Contratadas</div>
@@ -140,13 +341,161 @@ export function ExtratoContratoPage() {
           </div>
         </div>
 
+        {/* Section: Documentos Anexos (Limite 5) & Notificações */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Documentos */}
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileCheck className="w-4 h-4 text-indigo-600" />
+                <h3 className="font-black text-sm text-slate-900 dark:text-white">
+                  Documentos & Propostas ({documentos.length}/5)
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsDocsModalOpen(true)}
+                className="text-xs font-black text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+              >
+                {isEmpresaAdmin ? '+ Gerenciar / Subir' : 'Ver Todos'}
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {documentos.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="min-w-0">
+                    <span className="font-bold text-slate-900 dark:text-slate-100 truncate block">
+                      {doc.nome_original}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium">
+                      {doc.tipo_documento_display} • {doc.tamanho_formatado}
+                    </span>
+                  </div>
+
+                  {podeAcessarRecursosRestritos && (
+                  <button
+                    disabled={downloadingDocId === doc.id}
+                    onClick={() => handleDownloadDoc(doc)}
+                    className="p-2 rounded-xl text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 transition cursor-pointer shadow-2xs shrink-0"
+                    title="Baixar cópia (Auditado)"
+                  >
+                    {downloadingDocId === doc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  </button>
+                  )}
+                </div>
+              ))}
+
+              {documentos.length === 0 && (
+                <div className="p-6 text-center text-slate-500 text-xs italic bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                  Nenhum documento anexado a este contrato.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Notificações / E-mails */}
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-violet-600" />
+                <h3 className="font-black text-sm text-slate-900 dark:text-white">
+                  E-mails em Cópia / Notificações
+                </h3>
+              </div>
+              {podeAcessarRecursosRestritos && (
+              <button
+                onClick={() => setIsEmailsModalOpen(true)}
+                className="text-xs font-black text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+              >
+                Gerenciar Lista
+              </button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              {emailsNotificacao.map((em: EmailNotificacao, i: number) => {
+                const status = em.status || 'pendente'
+                const isConfirmado = status === 'confirmado'
+                const isExpirado = status === 'expirado' || em.is_expirado
+                const isRecusado = status === 'recusado'
+                const isPendente = status === 'pendente' && !isExpirado
+
+                return (
+                  <div
+                    key={i}
+                    className={`p-3 rounded-2xl border flex items-center justify-between gap-3 text-xs ${
+                      em.ativo
+                        ? 'bg-indigo-50/50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800/60'
+                        : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/60 opacity-60'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <span className="font-bold text-slate-900 dark:text-slate-100 truncate block">{em.email}</span>
+                      {em.nome && <span className="text-[10px] text-slate-500">{em.nome}</span>}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {isConfirmado && (
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full uppercase bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1">
+                          <CheckCircle2 className="w-2.5 h-2.5" />
+                          <span>Confirmado</span>
+                        </span>
+                      )}
+
+                      {isPendente && (
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full uppercase bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 flex items-center gap-1">
+                          <Clock className="w-2.5 h-2.5" />
+                          <span>Pendente ({em.dias_restantes ?? 15}d)</span>
+                        </span>
+                      )}
+
+                      {isExpirado && (
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full uppercase bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 flex items-center gap-1">
+                          <XCircle className="w-2.5 h-2.5" />
+                          <span>Expirado</span>
+                        </span>
+                      )}
+
+                      {isRecusado && (
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full uppercase bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                          Recusado
+                        </span>
+                      )}
+
+                      <span
+                        className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${
+                          em.ativo ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200' : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {em.ativo ? 'Ativo' : 'Pausado'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+
+              {emailsNotificacao.length === 0 && (
+                <div className="p-6 text-center text-slate-500 text-xs italic bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                  Nenhum e-mail de notificação cadastrado.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Section: Histórico de Débitos por Ciclos */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs transition-colors">
           <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div>
               <h3 className="font-black text-sm text-slate-900 dark:text-white">Histórico de Débitos por Ciclos Aceitos</h3>
               <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-0.5">Registro oficial e auditável de consumo de horas técnicas</p>
             </div>
-            <span className="text-xs font-black text-slate-700 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">{historico_ciclos.length} eventos</span>
+            <span className="text-xs font-black text-slate-700 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+              {historico_ciclos.length} eventos
+            </span>
           </div>
 
           <div className="overflow-x-auto">
@@ -183,9 +532,36 @@ export function ExtratoContratoPage() {
             </table>
           </div>
         </div>
+
+        {/* Section: Timeline de Auditoria Forense do Contrato */}
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                <h3 className="font-black text-sm text-slate-900 dark:text-white">Trilha de Auditoria Forense do Contrato</h3>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Histórico imutável de cadastros, uploads, downloads, impressões, preferências de e-mail e cancelamentos
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {auditoria.length > 3 && (
+                <span className="text-[11px] text-slate-400 font-semibold hidden sm:inline">
+                  (exibindo 3 com rolagem)
+                </span>
+              )}
+              <span className="text-xs font-mono font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
+                {auditoria.length} {auditoria.length === 1 ? 'registro' : 'registros'} no total
+              </span>
+            </div>
+          </div>
+
+          <TimelineAuditoriaContrato logs={auditoria} />
+        </div>
       </div>
 
-      {/* Botão Flutuante Topo Relatório (aparece ao atingir o fim da página) */}
+      {/* Floating Scroll-to-Top Button */}
       <button
         type="button"
         onClick={handleScrollToTop}
@@ -200,6 +576,19 @@ export function ExtratoContratoPage() {
         <span className="hidden sm:inline">Topo Relatório</span>
         <ArrowUp className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
       </button>
+
+      {/* Modais */}
+      <DocumentosContratoModal
+        isOpen={isDocsModalOpen}
+        onClose={() => setIsDocsModalOpen(false)}
+        contrato={contrato}
+      />
+
+      <GerenteClienteEmailsModal
+        isOpen={isEmailsModalOpen}
+        onClose={() => setIsEmailsModalOpen(false)}
+        contrato={contrato}
+      />
     </AppLayout>
   )
 }

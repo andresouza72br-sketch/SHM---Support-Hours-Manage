@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
-import { Bell, LogOut, Clock, CheckCheck, LayoutDashboard, Layers, Loader2 } from 'lucide-react'
+import { Bell, LogOut, LayoutDashboard, Layers, Loader2, FileText, CheckCheck } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 import type { Contrato, Notification } from '../../types'
 import { ThemeToggle } from '../ui/ThemeToggle'
-
 import { useToast } from '../../contexts/ToastContext'
 
 interface HeaderProps {
@@ -46,7 +45,6 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
       return
     }
 
-    // Inicia contagem regressiva de 5 segundos quando o menu abre
     startAutoCloseTimer()
 
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
@@ -77,31 +75,49 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
   }, [showNotifs, startAutoCloseTimer, clearAutoCloseTimer])
 
   const contratoQuery = searchParams.get('contrato')
-  const isMultipleContratosInQuery = contratoQuery ? contratoQuery.includes(',') : false
+  const isMultipleContratosInQuery = Boolean(contratoQuery && contratoQuery.includes(','))
+
+  // ID do contrato ativo (preferência: props > query param)
   const activeContratoId =
     contratoSelecionado !== undefined
       ? contratoSelecionado
-      : (!isMultipleContratosInQuery && contratoQuery && !isNaN(Number(contratoQuery)))
+      : contratoQuery && !isMultipleContratosInQuery
       ? Number(contratoQuery)
       : null
 
-  const handleContractChange = (newId: number | null) => {
+  // Sincroniza query parameter quando activeContratoId muda via prop externa
+  useEffect(() => {
+    if (isMultipleContratosInQuery) return
+    const currentQuery = searchParams.get('contrato')
+    if (activeContratoId && currentQuery !== String(activeContratoId)) {
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.set('contrato', String(activeContratoId))
+      setSearchParams(nextParams, { replace: true })
+    } else if (activeContratoId === null && currentQuery) {
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.delete('contrato')
+      setSearchParams(nextParams, { replace: true })
+    }
+  }, [activeContratoId, isMultipleContratosInQuery, searchParams, setSearchParams])
+
+  const handleContractChange = (val: number | null) => {
     if (onSelectContrato) {
-      onSelectContrato(newId)
+      onSelectContrato(val)
     }
-    const newParams = new URLSearchParams(searchParams)
-    if (newId) {
-      newParams.set('contrato', String(newId))
+    const nextParams = new URLSearchParams(searchParams)
+    if (val) {
+      nextParams.set('contrato', String(val))
     } else {
-      newParams.delete('contrato')
+      nextParams.delete('contrato')
     }
-    setSearchParams(newParams)
+    setSearchParams(nextParams, { replace: true })
   }
 
+  // Notificações
   const { data: rawNotifs } = useQuery({
     queryKey: ['notificacoes'],
     queryFn: clientService.notificacoes.list,
-    refetchInterval: 5000,
+    refetchInterval: 10000,
   })
 
   const notificacoes: Notification[] = Array.isArray(rawNotifs) ? rawNotifs : []
@@ -130,24 +146,28 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
   const userInitials = (user?.first_name ? user.first_name[0] : user?.username?.[0] || 'U').toUpperCase()
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand & Navigation */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          <Link
-            to={isEmpresa ? (activeContratoId ? `/admin/dashboard?contrato=${activeContratoId}` : "/admin/dashboard") : (activeContratoId ? `/dashboard?contrato=${activeContratoId}` : "/dashboard")}
-            className="flex items-center gap-2.5 font-black text-xl text-slate-900 dark:text-white tracking-tight group shrink-0"
-          >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition">
-              <Clock className="w-5 h-5" />
+    <header className="w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shadow-2xs">
+      <div className="w-full px-3 sm:px-5 lg:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4 min-w-0">
+        {/* Logo & Main Switcher */}
+        <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink min-w-0">
+          <Link to="/dashboard" className="flex items-center gap-2 group shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center font-black text-white text-lg shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-200">
+              S
             </div>
-            <span className="font-extrabold text-slate-900 dark:text-white">SHM</span>
+            <div className="hidden sm:block">
+              <span className="font-black text-slate-900 dark:text-white text-base tracking-tight leading-none block">
+                SHM
+              </span>
+              <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 tracking-wider uppercase leading-none mt-0.5 block">
+                Suporte Sob Medida
+              </span>
+            </div>
           </Link>
 
-          {/* Live Session & Version Indicator */}
+          {/* Release Badge */}
           <div
-            title="Versão ao vivo: Main Release 2.1 (A2 & A3 Magic Link com Auditoria Forense)"
-            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold shadow-2xs cursor-default"
+            title="Versão Release Oficial 2.1 ativa em produção"
+            className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold shadow-2xs cursor-default shrink-0"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -156,47 +176,88 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
             <span>Main Release 2.1</span>
           </div>
 
-          {/* Empresa Navigation Switcher */}
-          {isEmpresa && (
+          {/* Navigation Switcher */}
+          {isEmpresa ? (
             <nav className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-300 dark:border-slate-700 shadow-2xs shrink-0">
               <Link
-                to={activeContratoId ? `/dashboard?contrato=${activeContratoId}` : "/dashboard"}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-extrabold transition duration-150 ${
-                  !location.pathname.startsWith('/admin')
+                to={activeContratoId ? `/dashboard?contrato=${activeContratoId}` : '/dashboard'}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-extrabold transition duration-150 ${
+                  location.pathname === '/dashboard'
                     ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-xs border border-slate-200/80 dark:border-transparent'
                     : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-700/50'
                 }`}
+                title="Visão Kanban"
               >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Visão Kanban</span>
+                <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden md:inline">Visão Kanban</span>
               </Link>
               <Link
-                to={activeContratoId ? `/admin/dashboard?contrato=${activeContratoId}` : "/admin/dashboard"}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-extrabold transition duration-150 ${
-                  location.pathname.startsWith('/admin')
+                to={activeContratoId ? `/admin/dashboard?contrato=${activeContratoId}` : '/admin/dashboard'}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-extrabold transition duration-150 ${
+                  location.pathname === '/admin/dashboard'
                     ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-xs border border-slate-200/80 dark:border-transparent'
                     : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-700/50'
                 }`}
+                title="Painel Operacional"
               >
-                <Layers className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Painel Operacional</span>
+                <Layers className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden md:inline">Painel Operacional</span>
+              </Link>
+              <Link
+                to="/admin/contratos"
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-extrabold transition duration-150 ${
+                  location.pathname === '/admin/contratos'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-xs border border-slate-200/80 dark:border-transparent'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-700/50'
+                }`}
+                title="Contratos"
+              >
+                <FileText className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden md:inline">Contratos</span>
+              </Link>
+            </nav>
+          ) : (
+            <nav className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-300 dark:border-slate-700 shadow-2xs shrink-0">
+              <Link
+                to={activeContratoId ? `/dashboard?contrato=${activeContratoId}` : '/dashboard'}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-extrabold transition duration-150 ${
+                  location.pathname === '/dashboard'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-xs border border-slate-200/80 dark:border-transparent'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-700/50'
+                }`}
+                title="Painel"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden md:inline">Painel</span>
+              </Link>
+              <Link
+                to="/contratos"
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-extrabold transition duration-150 ${
+                  location.pathname === '/contratos'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-xs border border-slate-200/80 dark:border-transparent'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-700/50'
+                }`}
+                title="Contratos"
+              >
+                <FileText className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden md:inline">Contratos</span>
               </Link>
             </nav>
           )}
 
           {listaContratos.length > 0 && (
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-300 dark:border-slate-700 shadow-2xs">
-              <span className="hidden md:inline text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider shrink-0">
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2 sm:px-2.5 py-1 rounded-xl border border-slate-300 dark:border-slate-700 shadow-2xs shrink min-w-0 max-w-[200px] sm:max-w-[280px] md:max-w-[360px] lg:max-w-[480px]">
+              <span className="hidden lg:inline text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider shrink-0">
                 Contrato:
               </span>
               <select
                 value={activeContratoId || ''}
                 onChange={(e) => handleContractChange(e.target.value ? Number(e.target.value) : null)}
-                className="text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xs cursor-pointer w-auto min-w-[260px] sm:min-w-[300px] max-w-[460px]"
+                className="text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2 sm:px-2.5 py-1.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xs cursor-pointer w-full truncate"
               >
                 <option value="">
                   {isMultipleContratosInQuery
-                    ? `Filtro Múltiplo Ativo (${contratoQuery ? contratoQuery.split(',').length : 0} contratos)`
+                    ? `Filtro Múltiplo (${contratoQuery ? contratoQuery.split(',').length : 0})`
                     : `Todos os Contratos (${listaContratos.length})`}
                 </option>
                 {listaContratos.map((c) => (
@@ -210,7 +271,7 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
         </div>
 
         {/* Right Action Icons & Profile */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Light Mode / Dark Mode Switch */}
           <div className="flex items-center">
             <ThemeToggle size="sm" />
@@ -322,11 +383,11 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
                   {userInitials}
                 </div>
               )}
-              <div className="hidden sm:flex flex-col text-left">
-                <span className="text-xs font-black text-slate-900 dark:text-slate-100 leading-tight">
+              <div className="hidden md:flex flex-col text-left max-w-[130px]">
+                <span className="text-xs font-black text-slate-900 dark:text-slate-100 leading-tight truncate">
                   {user?.first_name || user?.username}
                 </span>
-                <span className="text-[10px] text-slate-600 dark:text-slate-400 font-bold leading-tight">
+                <span className="text-[10px] text-slate-600 dark:text-slate-400 font-bold leading-tight truncate">
                   {user?.role_display?.split('—')[0] || user?.role}
                 </span>
               </div>
