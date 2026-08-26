@@ -12,9 +12,12 @@ import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { AnalisePedidoPage } from './pages/AnalisePedidoPage'
 import { ExecucaoCicloPage } from './pages/ExecucaoCicloPage'
 import { ContratosPage } from './pages/ContratosPage'
+import { ClientesPage } from './pages/ClientesPage'
 import { MagicLinkPage } from './pages/MagicLinkPage'
 import { ConfirmarNotificacaoPage } from './pages/ConfirmarNotificacaoPage'
 import { AceiteContratoPage } from './pages/AceiteContratoPage'
+import { AceiteClientePage } from './pages/AceiteClientePage'
+
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -44,14 +47,19 @@ export default function App() {
               <Route path="/pedidos/:id" element={<ProtectedRoute><DetalhePedidoPage /></ProtectedRoute>} />
               <Route path="/contratos" element={<ProtectedRoute><ContratosPage /></ProtectedRoute>} />
               <Route path="/contratos/:id/extrato" element={<ProtectedRoute><ExtratoContratoPage /></ProtectedRoute>} />
+              <Route path="/clientes" element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
               <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
               <Route path="/admin/contratos" element={<ProtectedRoute><ContratosPage /></ProtectedRoute>} />
+              <Route path="/admin/clientes" element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
               <Route path="/admin/pedidos/:id/analise" element={<ProtectedRoute><AnalisePedidoPage /></ProtectedRoute>} />
               <Route path="/admin/ciclos/:id/execucao" element={<ProtectedRoute><ExecucaoCicloPage /></ProtectedRoute>} />
               <Route path="/aceite-contrato/:token" element={<AceiteContratoPage />} />
               <Route path="/publico/contrato/:token" element={<AceiteContratoPage />} />
+              <Route path="/aceite-cliente/:token" element={<AceiteClientePage />} />
+              <Route path="/publico/cliente/:token" element={<AceiteClientePage />} />
               <Route path="/confirmar-notificacao/:token" element={<ConfirmarNotificacaoPage />} />
               <Route path="/publico/notificacao/:token" element={<ConfirmarNotificacaoPage />} />
+
               <Route path="/magic-link/:token" element={<MagicLinkPage />} />
               <Route path="/publico/ciclo/:token" element={<MagicLinkPage />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />

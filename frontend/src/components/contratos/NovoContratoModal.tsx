@@ -883,7 +883,7 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
                   else if (activeTab === 'notificacoes') setActiveTab('financeiro')
                   else if (activeTab === 'financeiro') setActiveTab('geral')
                 }}
-                className="px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition cursor-pointer flex items-center gap-1.5"
               >
                 Voltar
               </button>
@@ -897,7 +897,7 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
                   else if (activeTab === 'financeiro') setActiveTab('notificacoes')
                   else if (activeTab === 'notificacoes') setActiveTab('documentos')
                 }}
-                className="px-4 py-2.5 bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs shadow-indigo-500/20 transition cursor-pointer flex items-center gap-1.5"
               >
                 Avançar
               </button>

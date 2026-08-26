@@ -35,22 +35,76 @@ export interface EmailNotificacao {
   dias_restantes?: number
 }
 
+export type StatusCliente = 'pendente_aprovacao' | 'ativo' | 'suspenso' | 'inativo'
+
 export interface Cliente {
   id: number
   tipo: 'PF' | 'PJ'
+  tipo_display?: string
   razao_social?: string
   nome_fantasia?: string
   nome_completo?: string
   display_name: string
   cnpj?: string
   cpf?: string
+  rg?: string
+  data_nascimento?: string | null
+  inscricao_estadual?: string | null
+  inscricao_municipal?: string | null
+  ramo_atividade?: string | null
   email_contato: string
-  telefone?: string
-  pessoa_contato?: string
+  telefone?: string | null
+  celular_whatsapp?: string | null
+  pessoa_contato?: string | null
+  cargo_contato?: string | null
+  site_url?: string | null
+  cep?: string | null
+  logradouro?: string | null
+  numero?: string | null
+  complemento?: string | null
+  bairro?: string | null
+  cidade?: string | null
+  estado?: string | null
+  pais?: string | null
   logo?: string | null
   logo_url?: string | null
+  cor_primaria_hex?: string | null
   emails_notificacao_padrao?: EmailNotificacao[]
-  status: 'ativo' | 'inativo'
+  status: StatusCliente
+  status_display?: string
+  email_verificado?: boolean
+  email_verificado_em?: string | null
+  aprovado_em?: string | null
+  aprovado_por_nome?: string | null
+  aprovado_por_email?: string | null
+  motivo_bloqueio?: string | null
+  observacoes_internas?: string | null
+  total_contratos?: number
+  contratos_ativos?: number
+  total_usuarios?: number
+  saldo_total_horas?: number
+  aceite_token?: string | null
+  aceite_expira_em?: string | null
+  aceite_usado?: boolean
+  criado_em?: string
+  atualizado_em?: string
+}
+
+export interface ClienteUser {
+  id: number
+  username: string
+  email: string
+  first_name: string
+  last_name: string
+  avatar_url?: string | null
+  role: UserRole
+  role_display: string
+  telefone?: string | null
+  cliente?: number | null
+  is_active: boolean
+  can_approve_cycles?: boolean
+  date_joined?: string
+  last_login?: string | null
 }
 
 export type TipoDocumentoContrato = 'proposta' | 'contrato_assinado' | 'aditivo' | 'distrato' | 'outro'
