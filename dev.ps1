@@ -46,6 +46,7 @@ switch ($Action) {
         if ($port5173) {
             $pid5173 = $port5173[0].OwningProcess
             Write-Host " [ONLINE]  Frontend Vite   -> http://localhost:5173 (PID: $pid5173)" -ForegroundColor Green
+            Write-Host "           Tailscale IP    -> http://100.126.72.23:5173" -ForegroundColor Cyan
         } else {
             Write-Host " [OFFLINE] Frontend Vite   -> Porta 5173 livre" -ForegroundColor Red
         }
