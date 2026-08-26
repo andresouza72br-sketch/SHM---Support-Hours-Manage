@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Pedido, Contrato, Ciclo, Tarefa, Comentario, Notification } from '../types'
+import type { Pedido, Contrato, Ciclo, Tarefa, Comentario, Notification, Cliente, ClienteUser } from '../types'
 
 export const api = axios.create({
   baseURL: '/api/v1',
@@ -150,14 +150,78 @@ export const clientService = {
     extrato: (id: number) => api.get(`/contratos/${id}/extrato/`).then((r) => r.data),
   },
   clientes: {
-    list: () => api.get<any>('/clientes/').then((r) => normalizeArray<any>(r.data)),
-    get: (id: number) => api.get<any>(`/clientes/${id}/`).then((r) => r.data),
+    list: (params?: Record<string, any>) => api.get<any>('/clientes/', { params }).then((r) => normalizeArray<Cliente>(r.data)),
+    get: (id: number) => api.get<Cliente>(`/clientes/${id}/`).then((r) => r.data),
+    create: (data: Partial<Cliente> | FormData) =>
+      api
+        .post<Cliente>('/clientes/', data, {
+          headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+        })
+        .then((r) => r.data),
+    update: (id: number, data: Partial<Cliente> | FormData) =>
+      api
+        .patch<Cliente>(`/clientes/${id}/`, data, {
+          headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+        })
+        .then((r) => r.data),
+    delete: (id: number, justificativa?: string) =>
+      api
+        .delete<{ detail: string; cliente_nome?: string; justificativa?: string }>(`/clientes/${id}/`, {
+          data: { justificativa },
+        })
+        .then((r) => r.data),
+    excluir: (id: number, justificativa: string) =>
+      api
+        .post<{ detail: string; cliente_nome?: string; justificativa?: string }>(`/clientes/${id}/excluir/`, {
+          justificativa,
+        })
+        .then((r) => r.data),
     atualizarPerfil: (id: number, data: FormData | Record<string, any>) =>
       api
         .post<any>(`/clientes/${id}/atualizar_perfil/`, data, {
           headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
         })
         .then((r) => r.data),
+    obterAceite: (token: string) =>
+      api.get<any>(`/clientes/aprovacao/${token}/`).then((r) => r.data),
+    concederAceite: (token: string) =>
+      api.post<any>(`/clientes/aprovacao/${token}/`).then((r) => r.data),
+    reenviarAprovacao: (id: number) =>
+      api
+        .post<{ detail: string; token: string; expira_em: string; email_enviado: boolean }>(
+          `/clientes/${id}/reenviar_aprovacao/`
+        )
+        .then((r) => r.data),
+
+    usuarios: {
+      list: (clienteId: number) =>
+        api.get<any>(`/clientes/${clienteId}/usuarios/`).then((r) => normalizeArray<ClienteUser>(r.data)),
+      create: (clienteId: number, data: { email: string; first_name: string; last_name?: string; role: string; telefone?: string }) =>
+        api
+          .post<{ detail: string; user: ClienteUser; token?: string; email_enviado: boolean }>(
+            `/clientes/${clienteId}/usuarios/`,
+            data
+          )
+          .then((r) => r.data),
+      update: (clienteId: number, userId: number, data: Partial<ClienteUser>) =>
+        api
+          .patch<{ detail: string; user: ClienteUser }>(`/clientes/${clienteId}/usuarios/${userId}/`, data)
+          .then((r) => r.data),
+      delete: (clienteId: number, userId: number) =>
+        api.delete<{ detail: string }>(`/clientes/${clienteId}/usuarios/${userId}/`).then((r) => r.data),
+      reenviarConvite: (clienteId: number, userId: number) =>
+        api
+          .post<{ detail: string; token?: string; email_enviado: boolean }>(
+            `/clientes/${clienteId}/usuarios/${userId}/reenviar_convite/`
+          )
+          .then((r) => r.data),
+      alternarStatus: (clienteId: number, userId: number) =>
+        api
+          .post<{ detail: string; is_active: boolean; user: ClienteUser }>(
+            `/clientes/${clienteId}/usuarios/${userId}/alternar_status/`
+          )
+          .then((r) => r.data),
+    },
   },
   pedidos: {
     list: (params?: Record<string, any>) => api.get<any>('/pedidos/', { params }).then((r) => normalizeArray<Pedido>(r.data)),
