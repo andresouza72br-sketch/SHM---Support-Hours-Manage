@@ -93,8 +93,13 @@ export const clientService = {
         })
         .then((r) => r.data)
     },
-    deleteDocumento: (id: number, docId: number) =>
-      api.delete<{ detail: string }>(`/contratos/${id}/documentos/${docId}/`).then((r) => r.data),
+    deleteDocumento: (id: number, docId: number, motivo: string) =>
+      api
+        .delete<{ detail: string }>(`/contratos/${id}/documentos/${docId}/`, {
+          data: { motivo },
+          params: { motivo },
+        })
+        .then((r) => r.data),
     verificarDocumento: (contratoId: number, docId: number) =>
       api
         .get<{

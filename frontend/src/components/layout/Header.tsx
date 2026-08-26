@@ -113,6 +113,24 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
     setSearchParams(nextParams, { replace: true })
   }
 
+  // Status do Sistema (Versão e Release dinâmicos)
+  const { data: systemStatus } = useQuery({
+    queryKey: ['system-status'],
+    queryFn: () => clientService.system.status(),
+    staleTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
+  })
+
+  const releaseBadgeLabel = systemStatus?.release
+    ? systemStatus.release.split('—')[0].trim()
+    : systemStatus?.version
+    ? `Main Release ${systemStatus.version}`
+    : 'Main Release 2.2'
+
+  const releaseBadgeTooltip = systemStatus
+    ? `Versão Oficial ${systemStatus.version} (${systemStatus.release || systemStatus.service})`
+    : 'Versão Release Oficial 2.2 ativa em produção'
+
   // Notificações
   const { data: rawNotifs } = useQuery({
     queryKey: ['notificacoes'],
@@ -164,16 +182,16 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
             </div>
           </Link>
 
-          {/* Release Badge */}
+          {/* Release Badge (Dinâmico) */}
           <div
-            title="Versão Release Oficial 2.1 ativa em produção"
+            title={releaseBadgeTooltip}
             className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold shadow-2xs cursor-default shrink-0"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600 dark:bg-emerald-500"></span>
             </span>
-            <span>Main Release 2.1</span>
+            <span>{releaseBadgeLabel}</span>
           </div>
 
           {/* Navigation Switcher */}

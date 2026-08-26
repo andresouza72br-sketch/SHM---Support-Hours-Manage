@@ -250,6 +250,117 @@ class TestContratosFeatures:
         assert audit is not None
         assert audit.documento_hash == hash_esperado
 
+    def test_gerente_empresa_remove_documento_com_motivo_e_registra_auditoria_forense(self):
+        import hashlib
+        contrato = Contrato.objects.create(
+            numero="CT-2026-DEL-DOC",
+            cliente=self.cliente,
+            data_inicio=timezone.localdate(),
+            horas_contratadas=Decimal("50.00"),
+            saldo=Decimal("50.00"),
+            status=StatusContrato.ATIVO,
+            criado_por=self.admin,
+        )
+        conteudo = b"Documento Para Ser Excluido com Auditoria"
+        hash_esperado = hashlib.sha256(conteudo).hexdigest()
+        doc = ContratoDocumento.objects.create(
+            contrato=contrato,
+            nome_original="Minuta_Antiga.pdf",
+            tipo_documento=TipoDocumentoContrato.PROPOSTA,
+            tamanho_bytes=len(conteudo),
+            hash_sha256=hash_esperado,
+            algoritmo_hash="SHA-256",
+            enviado_por=self.admin,
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        motivo_teste = "Substituição por minuta revisada e assinada"
+        res = self.client.delete(
+            f"/api/v1/contratos/{contrato.id}/documentos/{doc.id}/",
+            {"motivo": motivo_teste},
+            format="json",
+        )
+        assert res.status_code == 200
+        assert ContratoDocumento.objects.filter(id=doc.id).count() == 0
+
+        audit = ContratoAuditLog.objects.filter(
+            contrato=contrato,
+            tipo_evento=TipoEventoContratoAudit.EXCLUSAO_DOCUMENTO,
+            documento_nome="Minuta_Antiga.pdf",
+        ).first()
+        assert audit is not None
+        assert audit.documento_hash == hash_esperado
+        assert audit.justificativa == motivo_teste
+        assert motivo_teste in audit.descricao
+        assert audit.usuario == self.admin
+
+    def test_remocao_documento_sem_motivo_retorna_400_bad_request(self):
+        contrato = Contrato.objects.create(
+            numero="CT-2026-DEL-NOMOTIVO",
+            cliente=self.cliente,
+            data_inicio=timezone.localdate(),
+            horas_contratadas=Decimal("50.00"),
+            saldo=Decimal("50.00"),
+            status=StatusContrato.ATIVO,
+            criado_por=self.admin,
+        )
+        doc = ContratoDocumento.objects.create(
+            contrato=contrato,
+            nome_original="Doc_Teste.pdf",
+            tipo_documento=TipoDocumentoContrato.OUTRO,
+            tamanho_bytes=100,
+            hash_sha256="abc123",
+            enviado_por=self.admin,
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.delete(
+            f"/api/v1/contratos/{contrato.id}/documentos/{doc.id}/",
+            {"motivo": "   "},
+            format="json",
+        )
+        assert res.status_code == 400
+        assert "motivo" in res.data
+        assert ContratoDocumento.objects.filter(id=doc.id).count() == 1
+
+    def test_tecnico_e_cliente_nao_podem_remover_documento_retorna_403_forbidden(self):
+        contrato = Contrato.objects.create(
+            numero="CT-2026-DEL-FORBIDDEN",
+            cliente=self.cliente,
+            data_inicio=timezone.localdate(),
+            horas_contratadas=Decimal("50.00"),
+            saldo=Decimal("50.00"),
+            status=StatusContrato.ATIVO,
+            criado_por=self.admin,
+        )
+        doc = ContratoDocumento.objects.create(
+            contrato=contrato,
+            nome_original="Doc_Importante.pdf",
+            tipo_documento=TipoDocumentoContrato.CONTRATO_ASSINADO,
+            tamanho_bytes=100,
+            hash_sha256="def456",
+            enviado_por=self.admin,
+        )
+
+        # 1. Técnico da Empresa
+        self.client.force_authenticate(user=self.tecnico)
+        res_tec = self.client.delete(
+            f"/api/v1/contratos/{contrato.id}/documentos/{doc.id}/",
+            {"motivo": "Tentativa indevida por técnico"},
+            format="json",
+        )
+        assert res_tec.status_code == 403
+
+        # 2. Gerente do Cliente
+        self.client.force_authenticate(user=self.gerente_cliente)
+        res_cli = self.client.delete(
+            f"/api/v1/contratos/{contrato.id}/documentos/{doc.id}/",
+            {"motivo": "Tentativa por cliente"},
+            format="json",
+        )
+        assert res_cli.status_code == 403
+        assert ContratoDocumento.objects.filter(id=doc.id).count() == 1
+
     def test_verificar_integridade_documento_com_sucesso(self):
         import hashlib
         contrato = Contrato.objects.create(

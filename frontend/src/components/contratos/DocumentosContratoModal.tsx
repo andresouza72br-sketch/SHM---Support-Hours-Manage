@@ -21,6 +21,7 @@ import { clientService } from '../../api/client'
 import { useToast } from '../../contexts/ToastContext'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Contrato, ContratoDocumento, TipoDocumentoContrato } from '../../types'
+import { ConfirmarRemoverDocumentoModal } from './ConfirmarRemoverDocumentoModal'
 
 interface DocumentosContratoModalProps {
   contrato: Contrato | null
@@ -37,7 +38,7 @@ const TIPO_DOC_LABELS: Record<TipoDocumentoContrato, string> = {
 }
 
 export function DocumentosContratoModal({ contrato, isOpen, onClose }: DocumentosContratoModalProps) {
-  const { user, isEmpresa } = useAuth()
+  const { user, isEmpresa, isEmpresaGerente } = useAuth()
   const toast = useToast()
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -48,6 +49,7 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
   const [verificationResults, setVerificationResults] = useState<Record<number, any>>({})
   const [copiedHashId, setCopiedHashId] = useState<number | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [documentoParaRemover, setDocumentoParaRemover] = useState<ContratoDocumento | null>(null)
 
   // Gerente do cliente cadastrado neste contrato
   const isClienteGerenteDoContrato =
@@ -71,20 +73,6 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
     onError: (err: any) => {
       const msg = err.response?.data?.detail || err.response?.data?.arquivo || 'Erro ao realizar upload do documento.'
       toast.error(Array.isArray(msg) ? msg[0] : msg, 'Erro no Upload')
-    },
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: ({ contratoId, docId }: { contratoId: number; docId: number }) =>
-      clientService.contratos.deleteDocumento(contratoId, docId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contratos'] })
-      queryClient.invalidateQueries({ queryKey: ['extrato'] })
-      toast.success('Documento removido do contrato.', 'Exclusão')
-    },
-    onError: (err: any) => {
-      const msg = err.response?.data?.detail || 'Erro ao remover documento.'
-      toast.error(msg, 'Erro')
     },
   })
 
@@ -395,17 +383,12 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
                     </button>
                     )}
 
-                    {isEmpresa && (
+                    {isEmpresaGerente && (
                       <button
                         type="button"
-                        disabled={deleteMutation.isPending}
-                        onClick={() => {
-                          if (window.confirm(`Tem certeza que deseja excluir o documento "${doc.nome_original}"?`)) {
-                            deleteMutation.mutate({ contratoId: contrato.id, docId: doc.id })
-                          }
-                        }}
+                        onClick={() => setDocumentoParaRemover(doc)}
                         className="p-2 rounded-xl text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
-                        title="Remover documento do contrato"
+                        title="Remover documento do contrato (Ação restrita ao Gerente da Empresa)"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -443,6 +426,14 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
           </button>
         </div>
       </div>
+
+      {/* Modal de Confirmação de Exclusão com Justificativa e Auditoria Forense */}
+      <ConfirmarRemoverDocumentoModal
+        contrato={contrato}
+        documento={documentoParaRemover}
+        isOpen={Boolean(documentoParaRemover)}
+        onClose={() => setDocumentoParaRemover(null)}
+      />
     </div>
   )
 }

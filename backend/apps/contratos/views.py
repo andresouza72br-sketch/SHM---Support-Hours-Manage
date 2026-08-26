@@ -21,6 +21,7 @@ from apps.contratos.serializers import (
     ContratoAuditLogSerializer,
 )
 from apps.contratos.services import ContratoService
+from apps.accounts.models import UserRole
 from apps.core.permissions import IsEmpresaAdmin, IsEmpresaUser, IsClienteGerente
 from apps.core.utils import get_client_ip, get_client_user_agent, calcular_hash_sha256
 
@@ -203,12 +204,29 @@ class ContratoViewSet(viewsets.ModelViewSet):
         serializer = ContratoDocumentoSerializer(doc, context={"request": request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["delete"], permission_classes=[IsEmpresaAdmin], url_path="documentos/(?P<doc_id>[^/.]+)")
+    @action(detail=True, methods=["delete", "post"], permission_classes=[IsEmpresaAdmin], url_path="documentos/(?P<doc_id>[^/.]+)")
     def deletar_documento(self, request, pk=None, doc_id=None):
+        if not (getattr(request.user, "role", None) == UserRole.EMPRESA_ADMIN or getattr(request.user, "is_superuser", False)):
+            raise PermissionDenied("Somente o Gerente da Empresa possui permissão para remover documentos anexos aos contratos.")
+
         contrato = self.get_object()
         doc = ContratoDocumento.objects.filter(contrato=contrato, id=doc_id).first()
         if not doc:
             raise Http404("Documento não encontrado neste contrato.")
+
+        motivo = (
+            request.data.get("motivo")
+            or request.data.get("justificativa")
+            or request.query_params.get("motivo")
+            or request.query_params.get("justificativa")
+            or ""
+        ).strip()
+
+        if not motivo:
+            raise ValidationError({"motivo": "O motivo da remoção é obrigatório para fins de auditoria forense."})
+
+        if len(motivo) < 5:
+            raise ValidationError({"motivo": "O motivo da remoção deve conter no mínimo 5 caracteres."})
 
         nome = doc.nome_original
         tipo_disp = doc.get_tipo_documento_display()
@@ -220,7 +238,8 @@ class ContratoViewSet(viewsets.ModelViewSet):
         ContratoAuditLog.objects.create(
             contrato=contrato,
             tipo_evento=TipoEventoContratoAudit.EXCLUSAO_DOCUMENTO,
-            descricao=f"Documento '{nome}' ({tipo_disp}) excluído por {request.user.get_full_name() or request.user.username}.",
+            descricao=f"Documento '{nome}' ({tipo_disp}) excluído por {request.user.get_full_name() or request.user.username}. Motivo: {motivo}",
+            justificativa=motivo,
             documento_nome=nome,
             documento_hash=doc_hash,
             usuario=request.user,
@@ -228,7 +247,12 @@ class ContratoViewSet(viewsets.ModelViewSet):
             user_agent=ua,
         )
 
-        return Response({"detail": f"Documento '{nome}' excluído com sucesso."})
+        return Response({
+            "detail": f"Documento '{nome}' excluído com sucesso.",
+            "documento_nome": nome,
+            "hash_sha256": doc_hash,
+            "motivo": motivo,
+        })
 
     @action(detail=True, methods=["get"], url_path="documentos/(?P<doc_id>[^/.]+)/download")
     def download_documento(self, request, pk=None, doc_id=None):
