@@ -62,6 +62,8 @@ export interface ContratoDocumento {
   tipo_documento_display: string
   tamanho_bytes: number
   tamanho_formatado: string
+  hash_sha256?: string
+  algoritmo_hash?: string
   url: string
   enviado_por?: number | null
   enviado_por_nome?: string | null
@@ -76,6 +78,7 @@ export interface ContratoAuditLog {
   descricao: string
   justificativa?: string | null
   documento_nome?: string | null
+  documento_hash?: string | null
   usuario?: number | null
   usuario_nome?: string | null
   usuario_role?: string | null

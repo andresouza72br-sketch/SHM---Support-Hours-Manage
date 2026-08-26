@@ -11,6 +11,10 @@ import {
   FilePlus2,
   ShieldCheck,
   HardDrive,
+  Fingerprint,
+  Copy,
+  Check,
+  AlertTriangle,
 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
@@ -40,6 +44,9 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
 
   const [selectedTipo, setSelectedTipo] = useState<TipoDocumentoContrato>('proposta')
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
+  const [verifyingId, setVerifyingId] = useState<number | null>(null)
+  const [verificationResults, setVerificationResults] = useState<Record<number, any>>({})
+  const [copiedHashId, setCopiedHashId] = useState<number | null>(null)
   const [isDragging, setIsDragging] = useState(false)
 
   // Gerente do cliente cadastrado neste contrato
@@ -99,6 +106,37 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
       toast.error('Erro ao baixar o arquivo. Tente novamente.', 'Download')
     } finally {
       setDownloadingId(null)
+    }
+  }
+
+  const handleCopiarHash = (hash: string, docId: number) => {
+    if (!hash) return
+    navigator.clipboard.writeText(hash)
+    setCopiedHashId(docId)
+    toast.success('Hash SHA-256 copiado para a área de transferência!', 'Copiado')
+    setTimeout(() => {
+      setCopiedHashId((prev) => (prev === docId ? null : prev))
+    }, 2500)
+  }
+
+  const handleVerificarIntegridade = async (doc: ContratoDocumento) => {
+    if (!contrato) return
+    try {
+      setVerifyingId(doc.id)
+      const res = await clientService.contratos.verificarDocumento(contrato.id, doc.id)
+      setVerificationResults((prev) => ({
+        ...prev,
+        [doc.id]: res,
+      }))
+      if (res.integro) {
+        toast.success(`Documento "${doc.nome_original}" 100% íntegro e autêntico!`, 'Integridade Verificada')
+      } else {
+        toast.error(`Atenção: Arquivo "${doc.nome_original}" divergiu do hash original registrado!`, 'Violação de Integridade')
+      }
+    } catch (err: any) {
+      toast.error('Erro ao verificar integridade do documento no servidor.', 'Erro')
+    } finally {
+      setVerifyingId(null)
     }
   }
 
@@ -284,6 +322,62 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
                           </>
                         )}
                       </div>
+
+                      {/* Hash SHA-256 e Verificação de Integridade */}
+                      {doc.hash_sha256 && (
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 text-[10px] font-mono text-slate-700 dark:text-slate-300 shadow-2xs">
+                            <Fingerprint className="w-3 h-3 text-indigo-500 shrink-0" />
+                            <span className="font-semibold text-slate-500 dark:text-slate-400">SHA-256:</span>
+                            <span className="font-bold tracking-tight text-slate-800 dark:text-slate-200" title={`Hash Completo: ${doc.hash_sha256}`}>
+                              {doc.hash_sha256.substring(0, 8)}...{doc.hash_sha256.substring(doc.hash_sha256.length - 8)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleCopiarHash(doc.hash_sha256!, doc.id)
+                              }}
+                              className="ml-0.5 p-0.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition cursor-pointer"
+                              title="Copiar Hash SHA-256 completo"
+                            >
+                              {copiedHashId === doc.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                          </div>
+
+                          {verificationResults[doc.id] ? (
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold border shadow-2xs ${
+                                verificationResults[doc.id].integro
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                                  : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                              }`}
+                              title={verificationResults[doc.id].mensagem}
+                            >
+                              {verificationResults[doc.id].integro ? <ShieldCheck className="w-3 h-3 text-emerald-600" /> : <AlertTriangle className="w-3 h-3 text-rose-600" />}
+                              <span>{verificationResults[doc.id].integro ? 'Íntegro & Autêntico' : 'Violação Detectada!'}</span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={verifyingId === doc.id}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleVerificarIntegridade(doc)
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/40 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 transition cursor-pointer shadow-2xs disabled:opacity-50"
+                              title="Verificar integridade do arquivo em disco contra o hash registrado"
+                            >
+                              {verifyingId === doc.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin text-indigo-600" />
+                              ) : (
+                                <ShieldCheck className="w-3 h-3 text-indigo-500" />
+                              )}
+                              <span>{verifyingId === doc.id ? 'Validando...' : 'Verificar'}</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 

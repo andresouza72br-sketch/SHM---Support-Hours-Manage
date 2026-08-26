@@ -373,6 +373,11 @@ export function ExtratoContratoPage() {
                     <span className="text-[10px] text-slate-500 font-medium">
                       {doc.tipo_documento_display} • {doc.tamanho_formatado}
                     </span>
+                    {doc.hash_sha256 && (
+                      <span className="block text-[9px] font-mono text-slate-500 dark:text-slate-400 mt-0.5 truncate" title={`SHA-256: ${doc.hash_sha256}`}>
+                        SHA-256: {doc.hash_sha256.substring(0, 8)}...{doc.hash_sha256.substring(doc.hash_sha256.length - 8)}
+                      </span>
+                    )}
                   </div>
 
                   {podeAcessarRecursosRestritos && (

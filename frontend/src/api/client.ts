@@ -95,6 +95,20 @@ export const clientService = {
     },
     deleteDocumento: (id: number, docId: number) =>
       api.delete<{ detail: string }>(`/contratos/${id}/documentos/${docId}/`).then((r) => r.data),
+    verificarDocumento: (contratoId: number, docId: number) =>
+      api
+        .get<{
+          doc_id: number
+          nome_original: string
+          integro: boolean
+          hash_registrado: string
+          hash_calculado: string
+          algoritmo: string
+          tamanho_bytes: number
+          mensagem: string
+          verificado_em: string
+        }>(`/contratos/${contratoId}/documentos/${docId}/verificar/`)
+        .then((r) => r.data),
     downloadDocumento: async (id: number, docId: number, nomeOriginal: string) => {
       const response = await api.get(`/contratos/${id}/documentos/${docId}/download/`, {
         responseType: 'blob',

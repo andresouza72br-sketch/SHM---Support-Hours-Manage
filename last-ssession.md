@@ -69,6 +69,21 @@
 ---
 
 ### 6. Cobertura de Testes
-- **Backend**: 23 testes automatizados (`pytest backend`), 100% aprovados.
+- **Backend**: 37 testes automatizados (`pytest backend`), 100% aprovados.
 - **Frontend**: Build TypeScript / Vite 100% aprovado.
+
+---
+
+### 7. Integridade Criptográfica de Documentos (SHA-256)
+- **Cálculo em Streaming**:
+  - Implementação do utilitário `calcular_hash_sha256(arquivo)` processando arquivos em chunks de 64KB sem sobrecarga de memória RAM.
+- **Persistência & Migração**:
+  - `ContratoDocumento`: campos `hash_sha256` (CharField 64, indexado) e `algoritmo_hash` ("SHA-256").
+  - `ContratoAuditLog`: campo `documento_hash` gravando a impressão digital nos eventos de `UPLOAD_DOCUMENTO`, `DOWNLOAD_DOCUMENTO` e `EXCLUSAO_DOCUMENTO`.
+  - Migração `0005_contratoauditlog_documento_hash_and_more.py` aplicada e documentos legados retroativamente populados.
+- **Endpoint de Verificação em Tempo Real**:
+  - `GET /api/v1/contratos/{id}/documentos/{doc_id}/verificar/` recalcula o hash do arquivo físico no disco/storage e compara com o registro original.
+- **Interface Frontend**:
+  - `DocumentosContratoModal.tsx`: Badge visual do hash com botão de cópia de um clique e botão "Verificar Integridade" com validação em tempo real.
+  - Exibição de fingerprints nas telas de Extrato de Contrato e Aceite Inicial de Contrato.
 

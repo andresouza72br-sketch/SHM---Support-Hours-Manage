@@ -312,8 +312,20 @@ export function AceiteContratoPage() {
                       >
                         <div className="flex items-center gap-2 truncate">
                           <FileText className="w-4 h-4 text-indigo-600 shrink-0" />
-                          <span className="truncate">{doc.nome_original}</span>
-                          <span className="text-[10px] text-slate-400 font-normal">({doc.tipo_documento_display})</span>
+                          <div className="truncate">
+                            <span className="truncate block">{doc.nome_original}</span>
+                            <div className="text-[10px] text-slate-400 font-normal flex items-center gap-1.5">
+                              <span>{doc.tipo_documento_display}</span>
+                              {doc.hash_sha256 && (
+                                <>
+                                  <span>•</span>
+                                  <span className="font-mono text-[9px] text-slate-500" title={`SHA-256: ${doc.hash_sha256}`}>
+                                    SHA-256: {doc.hash_sha256.substring(0, 8)}...{doc.hash_sha256.substring(doc.hash_sha256.length - 8)}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         </div>
                         <Download className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       </a>
