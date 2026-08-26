@@ -17,7 +17,7 @@ switch ($Action) {
         & "$PSScriptRoot\start-dev.ps1" -Visible:$Visible
     }
     "restart" {
-        Write-Host "Reiniciando ambiente SHM 2.1..." -ForegroundColor Cyan
+        Write-Host "Reiniciando ambiente SHM 2.2..." -ForegroundColor Cyan
         & "$PSScriptRoot\stop-dev.ps1"
         Start-Sleep -Seconds 1
         & "$PSScriptRoot\start-dev.ps1" -Visible:$Visible
@@ -27,7 +27,7 @@ switch ($Action) {
         $port5173 = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue
 
         Write-Host "===================================================" -ForegroundColor Cyan
-        Write-Host "           Status dos Servicos SHM 2.1             " -ForegroundColor Cyan
+        Write-Host "           Status dos Servicos SHM 2.2             " -ForegroundColor Cyan
         Write-Host "===================================================" -ForegroundColor Cyan
         
         if ($port8000) {
