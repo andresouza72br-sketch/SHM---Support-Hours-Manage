@@ -143,6 +143,8 @@ class ContratoDocumento(TimeStampedModel):
         default=TipoDocumentoContrato.OUTRO,
     )
     tamanho_bytes = models.BigIntegerField("tamanho em bytes", default=0)
+    hash_sha256 = models.CharField("hash SHA-256", max_length=64, blank=True, default="", db_index=True)
+    algoritmo_hash = models.CharField("algoritmo de hash", max_length=20, default="SHA-256")
     enviado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -175,6 +177,7 @@ class ContratoAuditLog(models.Model):
     descricao = models.TextField("descrição do evento")
     justificativa = models.TextField("justificativa / motivo", blank=True, null=True)
     documento_nome = models.CharField("nome do documento", max_length=255, blank=True, null=True)
+    documento_hash = models.CharField("hash SHA-256 do documento", max_length=64, blank=True, null=True)
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

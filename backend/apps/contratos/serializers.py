@@ -31,12 +31,14 @@ class ContratoDocumentoSerializer(serializers.ModelSerializer):
             "tipo_documento_display",
             "tamanho_bytes",
             "tamanho_formatado",
+            "hash_sha256",
+            "algoritmo_hash",
             "url",
             "enviado_por",
             "enviado_por_nome",
             "criado_em",
         ]
-        read_only_fields = ["id", "tamanho_bytes", "enviado_por", "criado_em"]
+        read_only_fields = ["id", "tamanho_bytes", "hash_sha256", "algoritmo_hash", "enviado_por", "criado_em"]
 
     def get_url(self, obj):
         if obj.arquivo and hasattr(obj.arquivo, "url"):
@@ -74,6 +76,7 @@ class ContratoAuditLogSerializer(serializers.ModelSerializer):
             "descricao",
             "justificativa",
             "documento_nome",
+            "documento_hash",
             "usuario",
             "usuario_nome",
             "usuario_role",

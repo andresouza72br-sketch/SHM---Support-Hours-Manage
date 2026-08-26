@@ -211,6 +211,105 @@ class TestContratosFeatures:
         ).first()
         assert audit is not None
         assert audit.documento_nome == "Proposta_Alpha_2026.pdf"
+        assert audit.documento_hash == doc.hash_sha256
+
+    def test_upload_documento_calcula_hash_sha256_e_registra_auditoria(self):
+        import hashlib
+        contrato = Contrato.objects.create(
+            numero="CT-2026-HASH-TEST",
+            cliente=self.cliente,
+            data_inicio=timezone.localdate(),
+            horas_contratadas=Decimal("50.00"),
+            saldo=Decimal("50.00"),
+            status=StatusContrato.ATIVO,
+            criado_por=self.admin,
+        )
+        self.client.force_authenticate(user=self.admin)
+        conteudo = b"Conteudo Criptografico de Teste do Contrato Alpha 2026"
+        hash_esperado = hashlib.sha256(conteudo).hexdigest()
+
+        arquivo = SimpleUploadedFile("Contrato_Alpha_2026.pdf", conteudo, content_type="application/pdf")
+        res = self.client.post(
+            f"/api/v1/contratos/{contrato.id}/upload_documento/",
+            {"arquivo": arquivo, "tipo_documento": "contrato_assinado"},
+            format="multipart",
+        )
+        assert res.status_code == 201
+        assert res.data["hash_sha256"] == hash_esperado
+        assert res.data["algoritmo_hash"] == "SHA-256"
+
+        doc = ContratoDocumento.objects.get(id=res.data["id"])
+        assert doc.hash_sha256 == hash_esperado
+        assert doc.algoritmo_hash == "SHA-256"
+
+        audit = ContratoAuditLog.objects.filter(
+            contrato=contrato,
+            tipo_evento=TipoEventoContratoAudit.UPLOAD_DOCUMENTO,
+            documento_nome="Contrato_Alpha_2026.pdf",
+        ).first()
+        assert audit is not None
+        assert audit.documento_hash == hash_esperado
+
+    def test_verificar_integridade_documento_com_sucesso(self):
+        import hashlib
+        contrato = Contrato.objects.create(
+            numero="CT-2026-VERIF-OK",
+            cliente=self.cliente,
+            data_inicio=timezone.localdate(),
+            horas_contratadas=Decimal("50.00"),
+            saldo=Decimal("50.00"),
+            status=StatusContrato.ATIVO,
+            criado_por=self.admin,
+        )
+        conteudo = b"Minuta Imutavel do Contrato SHM 2026"
+        hash_esperado = hashlib.sha256(conteudo).hexdigest()
+
+        doc = ContratoDocumento.objects.create(
+            contrato=contrato,
+            nome_original="Minuta.pdf",
+            tipo_documento=TipoDocumentoContrato.PROPOSTA,
+            tamanho_bytes=len(conteudo),
+            hash_sha256=hash_esperado,
+            algoritmo_hash="SHA-256",
+            enviado_por=self.admin,
+        )
+        doc.arquivo.save("Minuta.pdf", SimpleUploadedFile("Minuta.pdf", conteudo))
+
+        self.client.force_authenticate(user=self.gerente_cliente)
+        res = self.client.get(f"/api/v1/contratos/{contrato.id}/documentos/{doc.id}/verificar/")
+        assert res.status_code == 200
+        assert res.data["integro"] is True
+        assert res.data["hash_registrado"] == hash_esperado
+        assert res.data["hash_calculado"] == hash_esperado
+        assert res.data["algoritmo"] == "SHA-256"
+
+    def test_verificar_integridade_detecta_divergencia(self):
+        contrato = Contrato.objects.create(
+            numero="CT-2026-VERIF-TAMPER",
+            cliente=self.cliente,
+            data_inicio=timezone.localdate(),
+            horas_contratadas=Decimal("50.00"),
+            saldo=Decimal("50.00"),
+            status=StatusContrato.ATIVO,
+            criado_por=self.admin,
+        )
+        conteudo_original = b"Conteudo Original Legitimo"
+        doc = ContratoDocumento.objects.create(
+            contrato=contrato,
+            nome_original="Termo.pdf",
+            tipo_documento=TipoDocumentoContrato.PROPOSTA,
+            tamanho_bytes=len(conteudo_original),
+            hash_sha256="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            algoritmo_hash="SHA-256",
+            enviado_por=self.admin,
+        )
+        doc.arquivo.save("Termo.pdf", SimpleUploadedFile("Termo.pdf", b"Conteudo Modificado Diferente"))
+
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.get(f"/api/v1/contratos/{contrato.id}/documentos/{doc.id}/verificar/")
+        assert res.status_code == 200
+        assert res.data["integro"] is False
+        assert res.data["hash_registrado"] != res.data["hash_calculado"]
 
     def test_gerente_cliente_atualiza_lista_emails_notificacao(self):
         contrato = Contrato.objects.create(

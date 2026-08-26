@@ -22,7 +22,7 @@ from apps.contratos.serializers import (
 )
 from apps.contratos.services import ContratoService
 from apps.core.permissions import IsEmpresaAdmin, IsEmpresaUser, IsClienteGerente
-from apps.core.utils import get_client_ip, get_client_user_agent
+from apps.core.utils import get_client_ip, get_client_user_agent, calcular_hash_sha256
 
 def _is_gerente_do_contrato(user, contrato) -> bool:
     """
@@ -174,6 +174,7 @@ class ContratoViewSet(viewsets.ModelViewSet):
             tipo_doc = TipoDocumentoContrato.OUTRO
 
         nome_original = getattr(arquivo, "name", "documento")
+        hash_sha256 = calcular_hash_sha256(arquivo)
 
         doc = ContratoDocumento.objects.create(
             contrato=contrato,
@@ -181,6 +182,8 @@ class ContratoViewSet(viewsets.ModelViewSet):
             nome_original=nome_original,
             tipo_documento=tipo_doc,
             tamanho_bytes=arquivo.size,
+            hash_sha256=hash_sha256,
+            algoritmo_hash="SHA-256",
             enviado_por=request.user,
         )
 
@@ -191,6 +194,7 @@ class ContratoViewSet(viewsets.ModelViewSet):
             tipo_evento=TipoEventoContratoAudit.UPLOAD_DOCUMENTO,
             descricao=f"Upload do documento '{nome_original}' ({doc.get_tipo_documento_display()}) realizado por {request.user.get_full_name() or request.user.username}.",
             documento_nome=nome_original,
+            documento_hash=hash_sha256,
             usuario=request.user,
             ip_origem=ip,
             user_agent=ua,
@@ -208,6 +212,7 @@ class ContratoViewSet(viewsets.ModelViewSet):
 
         nome = doc.nome_original
         tipo_disp = doc.get_tipo_documento_display()
+        doc_hash = doc.hash_sha256
         doc.delete()
 
         ip = get_client_ip(request)
@@ -217,6 +222,7 @@ class ContratoViewSet(viewsets.ModelViewSet):
             tipo_evento=TipoEventoContratoAudit.EXCLUSAO_DOCUMENTO,
             descricao=f"Documento '{nome}' ({tipo_disp}) excluído por {request.user.get_full_name() or request.user.username}.",
             documento_nome=nome,
+            documento_hash=doc_hash,
             usuario=request.user,
             ip_origem=ip,
             user_agent=ua,
@@ -250,6 +256,7 @@ class ContratoViewSet(viewsets.ModelViewSet):
             tipo_evento=TipoEventoContratoAudit.DOWNLOAD_DOCUMENTO,
             descricao=f"Download do documento '{doc.nome_original}' ({doc.get_tipo_documento_display()}) efetuado por {usuario_str} ({role_str}).",
             documento_nome=doc.nome_original,
+            documento_hash=doc.hash_sha256,
             usuario=request.user,
             ip_origem=ip,
             user_agent=ua,
@@ -259,6 +266,65 @@ class ContratoViewSet(viewsets.ModelViewSet):
             return FileResponse(doc.arquivo.open("rb"), as_attachment=True, filename=doc.nome_original)
         except Exception:
             return Response({"url": request.build_absolute_uri(doc.arquivo.url)})
+
+    @action(detail=True, methods=["get", "post"], url_path="documentos/(?P<doc_id>[^/.]+)/verificar")
+    def verificar_documento(self, request, pk=None, doc_id=None):
+        contrato = self.get_object()
+
+        # Permissão: Empresa OU Gerente cadastrado no contrato
+        if not request.user.is_empresa:
+            if not _is_gerente_do_contrato(request.user, contrato):
+                raise PermissionDenied(
+                    "Somente a Empresa ou o Gerente responsável cadastrado neste contrato podem verificar a integridade de documentos."
+                )
+
+        doc = ContratoDocumento.objects.filter(contrato=contrato, id=doc_id).first()
+        if not doc:
+            raise Http404("Documento não encontrado.")
+
+        if not doc.arquivo:
+            return Response({
+                "doc_id": doc.id,
+                "nome_original": doc.nome_original,
+                "integro": False,
+                "hash_registrado": doc.hash_sha256,
+                "hash_calculado": "",
+                "algoritmo": doc.algoritmo_hash or "SHA-256",
+                "mensagem": "Arquivo físico não encontrado no storage.",
+                "verificado_em": timezone.now().isoformat(),
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            hash_calculado = calcular_hash_sha256(doc.arquivo)
+        except Exception as e:
+            return Response({
+                "doc_id": doc.id,
+                "nome_original": doc.nome_original,
+                "integro": False,
+                "hash_registrado": doc.hash_sha256,
+                "hash_calculado": "",
+                "algoritmo": doc.algoritmo_hash or "SHA-256",
+                "mensagem": f"Erro ao acessar arquivo no storage: {str(e)}",
+                "verificado_em": timezone.now().isoformat(),
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        if not doc.hash_sha256:
+            doc.hash_sha256 = hash_calculado
+            doc.save(update_fields=["hash_sha256"])
+
+        integro = bool(hash_calculado and hash_calculado == doc.hash_sha256)
+
+        return Response({
+            "doc_id": doc.id,
+            "nome_original": doc.nome_original,
+            "integro": integro,
+            "hash_registrado": doc.hash_sha256,
+            "hash_calculado": hash_calculado,
+            "algoritmo": doc.algoritmo_hash or "SHA-256",
+            "tamanho_bytes": doc.tamanho_bytes,
+            "mensagem": "Arquivo 100% íntegro e autêntico em conformidade com o hash criptográfico." if integro else "Atenção: O arquivo físico no storage não corresponde ao hash criptográfico original registrado!",
+            "verificado_em": timezone.now().isoformat(),
+        })
 
     @action(detail=True, methods=["patch", "post"], url_path="atualizar_emails")
     def atualizar_emails(self, request, pk=None):
