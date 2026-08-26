@@ -59,7 +59,7 @@ function CicloItem({ c, apresentarOrcamentoMutation, navigate }: { c: Ciclo, apr
               <option value="treinamento">Treinamento</option>
             </select>
             <textarea
-              value={editContexto}
+              value={editContexto || ''}
               onChange={(e) => setEditContexto(e.target.value)}
               className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-900 dark:text-slate-100"
               rows={2}

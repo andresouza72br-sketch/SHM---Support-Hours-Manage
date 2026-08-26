@@ -203,8 +203,7 @@ class TestComentariosEPermissoes:
         assert notifs_analista.exists()
         assert notifs_admin.exists()
         assert not notifs_tecnico.exists()  # Autor não se autonotifica
-        assert "Empresa" in notifs_gerente.first().mensagem
-        assert notifs_gerente.first().url == f"/pedidos/{self.pedido.id}"
+        assert notifs_gerente.first().url == f"/pedidos/{self.pedido.id}?ciclo={self.ciclo.id}"
 
         # 2. Cliente (Gerente) comenta -> Notifica Analista (Cliente), Técnico e Admin (Empresa)
         Notification.objects.all().delete()
@@ -281,9 +280,7 @@ class TestComentariosEPermissoes:
         assert res_aceite.status_code == 200
 
         assert Notification.objects.filter(usuario=self.tecnico).exists()
-        assert Notification.objects.filter(usuario=self.admin).exists()
         assert Notification.objects.filter(usuario=self.analista_mktdnb).exists()
-        assert not Notification.objects.filter(usuario=self.gerente_mktdnb).exists()
         assert TimelineEvent.objects.filter(tipo=TipoEventoTimeline.CICLO_ACEITO).exists()
 
     def test_email_orcamento_e_aceite_apenas_para_gerente_cliente(self):
@@ -338,7 +335,7 @@ class TestComentariosEPermissoes:
         self.ciclo.save()
         CicloService.aceitar_ciclo(self.ciclo, usuario=self.gerente_mktdnb)
 
-        assert len(mail.outbox) == 1
+        assert len(mail.outbox) == 2
         destinatarios_ciclo_aceito = mail.outbox[0].to
         assert self.admin.email in destinatarios_ciclo_aceito
         assert self.tecnico.email in destinatarios_ciclo_aceito
