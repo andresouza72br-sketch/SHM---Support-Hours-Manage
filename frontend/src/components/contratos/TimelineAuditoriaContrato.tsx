@@ -12,6 +12,7 @@ import {
   Globe,
   FileEdit,
   Printer,
+  Fingerprint,
 } from 'lucide-react'
 import type { ContratoAuditLog } from '../../types'
 
@@ -148,6 +149,18 @@ export function TimelineAuditoriaContrato({ logs = [], isLoading = false }: Time
                   <span className="flex items-center gap-1 font-mono">
                     <Globe className="w-3 h-3 text-slate-400" />
                     <span>IP: {log.ip_origem}</span>
+                  </span>
+                )}
+
+                {log.documento_hash && (
+                  <span
+                    className="flex items-center gap-1 font-mono text-[9px] text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700"
+                    title={`SHA-256: ${log.documento_hash}`}
+                  >
+                    <Fingerprint className="w-3 h-3 text-indigo-500 shrink-0" />
+                    <span>
+                      SHA-256: {log.documento_hash.substring(0, 8)}...{log.documento_hash.substring(log.documento_hash.length - 8)}
+                    </span>
                   </span>
                 )}
               </div>
