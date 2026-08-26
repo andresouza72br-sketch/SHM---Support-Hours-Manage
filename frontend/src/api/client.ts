@@ -65,9 +65,94 @@ export const clientService = {
     me: () => api.get('/auth/me/').then((r) => r.data),
   },
   contratos: {
-    list: () => api.get<any>('/contratos/').then((r) => normalizeArray<Contrato>(r.data)),
+    list: (params?: Record<string, any>) => api.get<any>('/contratos/', { params }).then((r) => normalizeArray<Contrato>(r.data)),
     get: (id: number) => api.get<Contrato>(`/contratos/${id}/`).then((r) => r.data),
+    create: (data: Partial<Contrato> | FormData) =>
+      api
+        .post<Contrato>('/contratos/', data, {
+          headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+        })
+        .then((r) => r.data),
+    update: (id: number, data: Partial<Contrato> | FormData) =>
+      api
+        .patch<Contrato>(`/contratos/${id}/`, data, {
+          headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+        })
+        .then((r) => r.data),
+    cancelar: (id: number, justificativa: string) =>
+      api.post<{ detail: string; contrato: Contrato }>(`/contratos/${id}/cancelar/`, { justificativa }).then((r) => r.data),
+    concluir: (id: number) =>
+      api.post<{ detail: string; contrato: Contrato }>(`/contratos/${id}/concluir/`).then((r) => r.data),
+    uploadDocumento: (id: number, file: File, tipoDocumento: string) => {
+      const formData = new FormData()
+      formData.append('arquivo', file)
+      formData.append('tipo_documento', tipoDocumento)
+      return api
+        .post<any>(`/contratos/${id}/upload_documento/`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then((r) => r.data)
+    },
+    deleteDocumento: (id: number, docId: number) =>
+      api.delete<{ detail: string }>(`/contratos/${id}/documentos/${docId}/`).then((r) => r.data),
+    verificarDocumento: (contratoId: number, docId: number) =>
+      api
+        .get<{
+          doc_id: number
+          nome_original: string
+          integro: boolean
+          hash_registrado: string
+          hash_calculado: string
+          algoritmo: string
+          tamanho_bytes: number
+          mensagem: string
+          verificado_em: string
+        }>(`/contratos/${contratoId}/documentos/${docId}/verificar/`)
+        .then((r) => r.data),
+    downloadDocumento: async (id: number, docId: number, nomeOriginal: string) => {
+      const response = await api.get(`/contratos/${id}/documentos/${docId}/download/`, {
+        responseType: 'blob',
+      })
+      const blob = new Blob([response.data])
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.setAttribute('download', nomeOriginal)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(downloadUrl)
+    },
+    atualizarEmails: (id: number, emails: any[]) =>
+      api.post<any>(`/contratos/${id}/atualizar_emails/`, { emails_notificacao: emails }).then((r) => r.data),
+    reenviarConviteEmail: (id: number, data: { email?: string; destinatario_id?: number }) =>
+      api.post<{ detail: string; destinatario: any }>(`/contratos/${id}/reenviar_convite_email/`, data).then((r) => r.data),
+    obterConviteEmail: (token: string) =>
+      api.get<any>(`/contratos/confirmar_email/${token}/`).then((r) => r.data),
+    confirmarEmail: (token: string) =>
+      api.post<any>(`/contratos/confirmar_email/${token}/`).then((r) => r.data),
+    recusarEmail: (token: string) =>
+      api.post<any>(`/contratos/recusar_email/${token}/`).then((r) => r.data),
+    obterAceite: (token: string) =>
+      api.get<any>(`/contratos/aceite/${token}/`).then((r) => r.data),
+    concederAceite: (token: string) =>
+      api.post<any>(`/contratos/aceite/${token}/`).then((r) => r.data),
+    reenviarAceite: (id: number) =>
+      api.post<{ detail: string; token: string; expira_em: string }>(`/contratos/${id}/reenviar_aceite/`).then((r) => r.data),
+    auditarRelatorio: (id: number) =>
+      api.post<{ detail: string; log_id: number; timestamp: string }>(`/contratos/${id}/auditar_relatorio/`).then((r) => r.data),
+    auditoria: (id: number) => api.get<any>(`/contratos/${id}/auditoria/`).then((r) => normalizeArray<any>(r.data)),
     extrato: (id: number) => api.get(`/contratos/${id}/extrato/`).then((r) => r.data),
+  },
+  clientes: {
+    list: () => api.get<any>('/clientes/').then((r) => normalizeArray<any>(r.data)),
+    get: (id: number) => api.get<any>(`/clientes/${id}/`).then((r) => r.data),
+    atualizarPerfil: (id: number, data: FormData | Record<string, any>) =>
+      api
+        .post<any>(`/clientes/${id}/atualizar_perfil/`, data, {
+          headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+        })
+        .then((r) => r.data),
   },
   pedidos: {
     list: (params?: Record<string, any>) => api.get<any>('/pedidos/', { params }).then((r) => normalizeArray<Pedido>(r.data)),

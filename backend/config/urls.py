@@ -10,10 +10,10 @@ from django.utils import timezone
 def status_view(request):
     return JsonResponse({
         "status": "ok",
-        "service": "SHM 2.1",
-        "version": "2.1.0",
-        "release": "Main Release 2.1",
-        "sessao": "Main Release 2.1 — A2 & A3 Magic Link (Governança, Single-Use, Expiração 7d, Auditoria Forense)",
+        "service": "SHM 2.2",
+        "version": "2.2.0",
+        "release": "Main Release 2.2 — Feature Gestão de Contratos",
+        "sessao": "Main Release 2.2 — Gestão de Contratos (Documentos com Hash SHA-256, Integridade Criptográfica, Auditoria Forense, A2/A3 Magic Link)",
         "regras_envio": "E-mails de aprovação/aceite restritos exclusivamente ao CLIENTE_GERENTE",
         "avisos_empresa": "Gerente e Técnicos avisados na aprovação do orçamento e concessão do aceite",
         "timestamp": timezone.now().isoformat(),

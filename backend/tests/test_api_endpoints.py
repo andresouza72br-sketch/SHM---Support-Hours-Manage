@@ -382,3 +382,13 @@ class TestApiEndpoints:
         assert timeline_event is not None
         assert timeline_event.ip_origem == ip_teste
         assert timeline_event.user_agent == ua_teste
+
+    def test_status_endpoint_retorna_versao_2_2_0(self):
+        client = APIClient()
+        res = client.get("/api/v1/status/")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "ok"
+        assert data["service"] == "SHM 2.2"
+        assert data["version"] == "2.2.0"
+        assert "Main Release 2.2" in data["release"]

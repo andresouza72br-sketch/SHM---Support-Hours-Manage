@@ -1,4 +1,4 @@
-﻿from django.db import models
+from django.db import models
 from django.core.exceptions import ValidationError
 from apps.core.models import TimeStampedModel
 
@@ -29,6 +29,8 @@ class Cliente(TimeStampedModel):
     bairro = models.CharField("bairro", max_length=100, blank=True, null=True)
     cidade = models.CharField("cidade", max_length=100, blank=True, null=True)
     estado = models.CharField("UF", max_length=2, blank=True, null=True)
+    logo = models.ImageField("logo da empresa", upload_to="clientes/logos/", null=True, blank=True)
+    emails_notificacao_padrao = models.JSONField("e-mails padrão de notificação", default=list, blank=True)
     status = models.CharField("status", max_length=10, choices=StatusCliente.choices, default=StatusCliente.ATIVO, db_index=True)
 
     class Meta:
@@ -41,6 +43,16 @@ class Cliente(TimeStampedModel):
         if self.tipo == TipoCliente.PJ:
             return self.nome_fantasia or self.razao_social or f"PJ #{self.id}"
         return self.nome_completo or f"PF #{self.id}"
+
+    @property
+    def display_name(self) -> str:
+        return str(self)
+
+    @property
+    def logo_url(self) -> str | None:
+        if self.logo and hasattr(self.logo, "url"):
+            return self.logo.url
+        return None
 
     def clean(self):
         if self.tipo == TipoCliente.PJ:

@@ -3,7 +3,7 @@ param(
 )
 
 Write-Host "===================================================" -ForegroundColor Cyan
-Write-Host "  Iniciando SHM 2.1 (Backend Django + Frontend Vite)" -ForegroundColor Cyan
+Write-Host "  Iniciando SHM 2.2 (Backend Django + Frontend Vite)" -ForegroundColor Cyan
 Write-Host "===================================================" -ForegroundColor Cyan
 
 # 1. Limpeza preventiva
@@ -33,15 +33,23 @@ if ($Visible) {
     if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
 
     Write-Host "[2/3] Iniciando Backend Django na porta 8000 (Segundo plano)..." -ForegroundColor Cyan
-    $backendProc = Start-Process -FilePath $pyExe -ArgumentList "backend\manage.py runserver 0.0.0.0:8000" -WorkingDirectory $PSScriptRoot -RedirectStandardOutput $backendLog -RedirectStandardError $backendErrLog -WindowStyle Hidden -PassThru
+    $bCmd = "cmd.exe /c `"`"$pyExe`" backend\manage.py runserver 0.0.0.0:8000 > `"$backendLog`" 2> `"$backendErrLog`"`""
+    $bResult = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
+        CommandLine = $bCmd
+        CurrentDirectory = $PSScriptRoot
+    }
 
     Write-Host "[3/3] Iniciando Frontend React na porta 5173 (Segundo plano)..." -ForegroundColor Cyan
-    $frontendProc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c npm run dev" -WorkingDirectory $frontendDir -RedirectStandardOutput $frontendLog -RedirectStandardError $frontendErrLog -WindowStyle Hidden -PassThru
+    $fCmd = "cmd.exe /c `"npm run dev > `"$frontendLog`" 2> `"$frontendErrLog`"`""
+    $fResult = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
+        CommandLine = $fCmd
+        CurrentDirectory = $frontendDir
+    }
 
     $pidsFile = Join-Path $PSScriptRoot ".logs\pids.json"
     @{
-        BackendPid = $backendProc.Id
-        FrontendPid = $frontendProc.Id
+        BackendPid = $bResult.ProcessId
+        FrontendPid = $fResult.ProcessId
     } | ConvertTo-Json | Set-Content -Path $pidsFile -Encoding UTF8
 }
 
@@ -53,9 +61,9 @@ $port5173 = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction Sile
 
 Write-Host ""
 if ($Visible) {
-    Write-Host "Ambiente SHM 2.1 iniciado em janelas dedicadas!" -ForegroundColor Green
+    Write-Host "Ambiente SHM 2.2 iniciado em janelas dedicadas!" -ForegroundColor Green
 } else {
-    Write-Host "Ambiente SHM 2.1 iniciado em SEGUNDO PLANO (sem janelas extras)!" -ForegroundColor Green
+    Write-Host "Ambiente SHM 2.2 iniciado em SEGUNDO PLANO (sem janelas extras)!" -ForegroundColor Green
 }
 
 if ($port8000) {
@@ -66,6 +74,7 @@ if ($port8000) {
 
 if ($port5173) {
     Write-Host "  -> Frontend:    http://localhost:5173 (ONLINE - PID $($port5173[0].OwningProcess))" -ForegroundColor Green
+    Write-Host "  -> Tailscale:   http://100.126.72.23:5173" -ForegroundColor Cyan
 } else {
     Write-Host "  -> Frontend:    Inicializando... (execute '.\dev.ps1 status' para checar)" -ForegroundColor Yellow
 }

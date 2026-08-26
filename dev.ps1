@@ -17,7 +17,7 @@ switch ($Action) {
         & "$PSScriptRoot\start-dev.ps1" -Visible:$Visible
     }
     "restart" {
-        Write-Host "Reiniciando ambiente SHM 2.1..." -ForegroundColor Cyan
+        Write-Host "Reiniciando ambiente SHM 2.2..." -ForegroundColor Cyan
         & "$PSScriptRoot\stop-dev.ps1"
         Start-Sleep -Seconds 1
         & "$PSScriptRoot\start-dev.ps1" -Visible:$Visible
@@ -27,7 +27,7 @@ switch ($Action) {
         $port5173 = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue
 
         Write-Host "===================================================" -ForegroundColor Cyan
-        Write-Host "           Status dos Servicos SHM 2.1             " -ForegroundColor Cyan
+        Write-Host "           Status dos Servicos SHM 2.2             " -ForegroundColor Cyan
         Write-Host "===================================================" -ForegroundColor Cyan
         
         if ($port8000) {
@@ -46,6 +46,7 @@ switch ($Action) {
         if ($port5173) {
             $pid5173 = $port5173[0].OwningProcess
             Write-Host " [ONLINE]  Frontend Vite   -> http://localhost:5173 (PID: $pid5173)" -ForegroundColor Green
+            Write-Host "           Tailscale IP    -> http://100.126.72.23:5173" -ForegroundColor Cyan
         } else {
             Write-Host " [OFFLINE] Frontend Vite   -> Porta 5173 livre" -ForegroundColor Red
         }
