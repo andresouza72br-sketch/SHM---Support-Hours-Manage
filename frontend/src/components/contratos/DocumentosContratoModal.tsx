@@ -16,12 +16,12 @@ import {
   Check,
   AlertTriangle,
 } from 'lucide-react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 import { useToast } from '../../contexts/ToastContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { RemoverDocumentoContratoModal } from './RemoverDocumentoContratoModal'
 import type { Contrato, ContratoDocumento, TipoDocumentoContrato } from '../../types'
-import { ConfirmarRemoverDocumentoModal } from './ConfirmarRemoverDocumentoModal'
 
 interface DocumentosContratoModalProps {
   contrato: Contrato | null
@@ -49,14 +49,24 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
   const [verificationResults, setVerificationResults] = useState<Record<number, any>>({})
   const [copiedHashId, setCopiedHashId] = useState<number | null>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [documentoParaRemover, setDocumentoParaRemover] = useState<ContratoDocumento | null>(null)
+  const [docParaRemover, setDocParaRemover] = useState<ContratoDocumento | null>(null)
+
+  // Consulta reativa em tempo real para sincronização instantânea dos documentos
+  const { data: contratoDetalhe, refetch: refetchContrato, isFetching: isRefreshingDocs } = useQuery({
+    queryKey: ['contrato-detalhe', contrato?.id],
+    queryFn: () => clientService.contratos.get(contrato!.id),
+    enabled: isOpen && !!contrato?.id,
+    initialData: contrato || undefined,
+  })
+
+  const contratoAtivo = contratoDetalhe || contrato
 
   // Gerente do cliente cadastrado neste contrato
   const isClienteGerenteDoContrato =
     user?.role === 'CLIENTE_GERENTE' &&
     !!user?.email &&
-    !!contrato?.gestor_email &&
-    user.email.toLowerCase() === contrato.gestor_email.toLowerCase()
+    !!contratoAtivo?.gestor_email &&
+    user.email.toLowerCase() === contratoAtivo.gestor_email.toLowerCase()
 
   // Pode fazer download: empresa OU gerente cadastrado no contrato
   const podeDownload = isEmpresa || isClienteGerenteDoContrato
@@ -64,9 +74,11 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
   const uploadMutation = useMutation({
     mutationFn: ({ id, file, tipo }: { id: number; file: File; tipo: string }) =>
       clientService.contratos.uploadDocumento(id, file, tipo),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['contratos'] })
-      queryClient.invalidateQueries({ queryKey: ['extrato'] })
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ['contratos'] })
+      await queryClient.invalidateQueries({ queryKey: ['extrato'] })
+      await queryClient.invalidateQueries({ queryKey: ['contrato-detalhe', contrato?.id] })
+      await refetchContrato()
       toast.success(`Documento "${data.nome_original}" anexado com sucesso!`, 'Upload Concluído')
       if (fileInputRef.current) fileInputRef.current.value = ''
     },
@@ -76,9 +88,9 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
     },
   })
 
-  if (!isOpen || !contrato) return null
+  if (!isOpen || !contratoAtivo) return null
 
-  const documentos: ContratoDocumento[] = Array.isArray(contrato.documentos) ? contrato.documentos : []
+  const documentos: ContratoDocumento[] = Array.isArray(contratoAtivo.documentos) ? contratoAtivo.documentos : []
   const totalDocs = documentos.length
   const limiteMax = 5
   const podeSubirMais = totalDocs < limiteMax && isEmpresa
@@ -87,7 +99,7 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
     try {
       setDownloadingId(doc.id)
       toast.info(`Iniciando download de "${doc.nome_original}"... (Auditoria registrada)`, 'Download')
-      await clientService.contratos.downloadDocumento(contrato.id, doc.id, doc.nome_original)
+      await clientService.contratos.downloadDocumento(contratoAtivo.id, doc.id, doc.nome_original)
       queryClient.invalidateQueries({ queryKey: ['extrato'] })
       queryClient.invalidateQueries({ queryKey: ['contratos'] })
     } catch (err: any) {
@@ -108,10 +120,10 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
   }
 
   const handleVerificarIntegridade = async (doc: ContratoDocumento) => {
-    if (!contrato) return
+    if (!contratoAtivo) return
     try {
       setVerifyingId(doc.id)
-      const res = await clientService.contratos.verificarDocumento(contrato.id, doc.id)
+      const res = await clientService.contratos.verificarDocumento(contratoAtivo.id, doc.id)
       setVerificationResults((prev) => ({
         ...prev,
         [doc.id]: res,
@@ -134,7 +146,7 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
       return
     }
     uploadMutation.mutate({
-      id: contrato.id,
+      id: contratoAtivo.id,
       file,
       tipo: selectedTipo,
     })
@@ -173,17 +185,18 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-black text-slate-900 dark:text-white">Documentos do Contrato</h2>
                 <span
-                  className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                  className={`text-[10px] font-black px-2 py-0.5 rounded-full border flex items-center gap-1 ${
                     totalDocs >= limiteMax
                       ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-800/60'
                       : 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800/60'
                   }`}
                 >
-                  {totalDocs} de {limiteMax} arquivos
+                  {isRefreshingDocs && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
+                  <span>{totalDocs} de {limiteMax} arquivos</span>
                 </span>
               </div>
               <p className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 mt-0.5">
-                {contrato.numero} — {contrato.cliente_nome}
+                {contratoAtivo.numero} — {contratoAtivo.cliente_nome}
               </p>
             </div>
           </div>
@@ -386,9 +399,9 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
                     {isEmpresaGerente && (
                       <button
                         type="button"
-                        onClick={() => setDocumentoParaRemover(doc)}
+                        onClick={() => setDocParaRemover(doc)}
                         className="p-2 rounded-xl text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
-                        title="Remover documento do contrato (Ação restrita ao Gerente da Empresa)"
+                        title="Remover documento (Ação restrita ao Gerente da Empresa — Requer justificativa e registra auditoria forense)"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -427,12 +440,15 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
         </div>
       </div>
 
-      {/* Modal de Confirmação de Exclusão com Justificativa e Auditoria Forense */}
-      <ConfirmarRemoverDocumentoModal
-        contrato={contrato}
-        documento={documentoParaRemover}
-        isOpen={Boolean(documentoParaRemover)}
-        onClose={() => setDocumentoParaRemover(null)}
+      {/* Modal Padronizado de Confirmação com Justificativa e Auditoria Forense */}
+      <RemoverDocumentoContratoModal
+        isOpen={!!docParaRemover}
+        onClose={() => setDocParaRemover(null)}
+        contrato={contratoAtivo}
+        documento={docParaRemover}
+        onSuccess={() => {
+          refetchContrato()
+        }}
       />
     </div>
   )

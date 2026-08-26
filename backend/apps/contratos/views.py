@@ -214,32 +214,41 @@ class ContratoViewSet(viewsets.ModelViewSet):
         if not doc:
             raise Http404("Documento não encontrado neste contrato.")
 
-        motivo = (
-            request.data.get("motivo")
-            or request.data.get("justificativa")
-            or request.query_params.get("motivo")
+        justificativa = (
+            request.data.get("justificativa")
+            or request.data.get("motivo")
             or request.query_params.get("justificativa")
+            or request.query_params.get("motivo")
             or ""
         ).strip()
-
-        if not motivo:
-            raise ValidationError({"motivo": "O motivo da remoção é obrigatório para fins de auditoria forense."})
-
-        if len(motivo) < 5:
-            raise ValidationError({"motivo": "O motivo da remoção deve conter no mínimo 5 caracteres."})
+        if not justificativa or len(justificativa) < 5:
+            raise ValidationError({
+                "justificativa": "A justificativa para remoção do documento é obrigatória e deve conter pelo menos 5 caracteres."
+            })
 
         nome = doc.nome_original
         tipo_disp = doc.get_tipo_documento_display()
         doc_hash = doc.hash_sha256
+
+        # Excluir arquivo físico se existir e remover registro do banco
+        if doc.arquivo:
+            try:
+                doc.arquivo.delete(save=False)
+            except Exception:
+                pass
         doc.delete()
 
+        # REGISTRO FORENSE DE EXCLUSÃO
         ip = get_client_ip(request)
         ua = get_client_user_agent(request)
+        usuario_str = request.user.get_full_name() or request.user.username
+        role_str = request.user.get_role_display()
+
         ContratoAuditLog.objects.create(
             contrato=contrato,
             tipo_evento=TipoEventoContratoAudit.EXCLUSAO_DOCUMENTO,
-            descricao=f"Documento '{nome}' ({tipo_disp}) excluído por {request.user.get_full_name() or request.user.username}. Motivo: {motivo}",
-            justificativa=motivo,
+            descricao=f"Documento '{nome}' ({tipo_disp}) excluído por {usuario_str} ({role_str}). Motivo: {justificativa}",
+            justificativa=justificativa,
             documento_nome=nome,
             documento_hash=doc_hash,
             usuario=request.user,
@@ -248,10 +257,12 @@ class ContratoViewSet(viewsets.ModelViewSet):
         )
 
         return Response({
-            "detail": f"Documento '{nome}' excluído com sucesso.",
+            "detail": f"Documento '{nome}' removido com sucesso e auditado no log forense.",
             "documento_nome": nome,
+            "documento_hash": doc_hash,
             "hash_sha256": doc_hash,
-            "motivo": motivo,
+            "justificativa": justificativa,
+            "motivo": justificativa,
         })
 
     @action(detail=True, methods=["get"], url_path="documentos/(?P<doc_id>[^/.]+)/download")

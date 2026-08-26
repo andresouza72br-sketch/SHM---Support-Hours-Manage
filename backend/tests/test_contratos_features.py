@@ -422,6 +422,107 @@ class TestContratosFeatures:
         assert res.data["integro"] is False
         assert res.data["hash_registrado"] != res.data["hash_calculado"]
 
+    def test_gerente_empresa_remove_documento_com_justificativa_e_auditoria_forense(self):
+        import hashlib
+        contrato = Contrato.objects.create(
+            numero="CT-2026-DEL-DOC",
+            cliente=self.cliente,
+            data_inicio=timezone.localdate(),
+            horas_contratadas=Decimal("50.00"),
+            saldo=Decimal("50.00"),
+            status=StatusContrato.ATIVO,
+            criado_por=self.admin,
+        )
+        conteudo = b"Documento Para Ser Excluido com Justificativa"
+        doc_hash = hashlib.sha256(conteudo).hexdigest()
+        doc = ContratoDocumento.objects.create(
+            contrato=contrato,
+            nome_original="Minuta_Antiga.pdf",
+            tipo_documento=TipoDocumentoContrato.PROPOSTA,
+            tamanho_bytes=len(conteudo),
+            hash_sha256=doc_hash,
+            algoritmo_hash="SHA-256",
+            enviado_por=self.admin,
+        )
+        doc.arquivo.save("Minuta_Antiga.pdf", SimpleUploadedFile("Minuta_Antiga.pdf", conteudo))
+
+        # Apenas EMPRESA_ADMIN pode remover
+        self.client.force_authenticate(user=self.admin)
+        justificativa = "Substituído por aditivo com nova redação contratual aprovada."
+        res = self.client.post(
+            f"/api/v1/contratos/{contrato.id}/documentos/{doc.id}/",
+            {"justificativa": justificativa},
+            format="json",
+            REMOTE_ADDR="192.168.1.150",
+            HTTP_USER_AGENT="Mozilla/5.0 TestAudit",
+        )
+        assert res.status_code == 200
+        assert not ContratoDocumento.objects.filter(id=doc.id).exists()
+
+        # Validação forense
+        audit = ContratoAuditLog.objects.filter(
+            contrato=contrato,
+            tipo_evento=TipoEventoContratoAudit.EXCLUSAO_DOCUMENTO,
+            documento_nome="Minuta_Antiga.pdf",
+        ).first()
+        assert audit is not None
+        assert audit.usuario == self.admin
+        assert audit.justificativa == justificativa
+        assert audit.documento_hash == doc_hash
+        assert audit.ip_origem == "192.168.1.150"
+
+    def test_remocao_documento_sem_justificativa_retorna_400(self):
+        contrato = Contrato.objects.create(
+            numero="CT-2026-DEL-NO-JUST",
+            cliente=self.cliente,
+            data_inicio=timezone.localdate(),
+            horas_contratadas=Decimal("50.00"),
+            saldo=Decimal("50.00"),
+            status=StatusContrato.ATIVO,
+            criado_por=self.admin,
+        )
+        doc = ContratoDocumento.objects.create(
+            contrato=contrato,
+            nome_original="Arquivo.pdf",
+            tipo_documento=TipoDocumentoContrato.OUTRO,
+            tamanho_bytes=100,
+            enviado_por=self.admin,
+        )
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.post(
+            f"/api/v1/contratos/{contrato.id}/documentos/{doc.id}/",
+            {"justificativa": " "},
+            format="json",
+        )
+        assert res.status_code == 400
+        assert "justificativa" in res.data
+
+    def test_cliente_gerente_nao_pode_remover_documento_retorna_403(self):
+        contrato = Contrato.objects.create(
+            numero="CT-2026-DEL-FORBIDDEN",
+            cliente=self.cliente,
+            data_inicio=timezone.localdate(),
+            horas_contratadas=Decimal("50.00"),
+            saldo=Decimal("50.00"),
+            status=StatusContrato.ATIVO,
+            criado_por=self.admin,
+        )
+        doc = ContratoDocumento.objects.create(
+            contrato=contrato,
+            nome_original="Proposta.pdf",
+            tipo_documento=TipoDocumentoContrato.PROPOSTA,
+            tamanho_bytes=200,
+            enviado_por=self.admin,
+        )
+        # Cliente Gerente tenta remover
+        self.client.force_authenticate(user=self.gerente_cliente)
+        res = self.client.post(
+            f"/api/v1/contratos/{contrato.id}/documentos/{doc.id}/",
+            {"justificativa": "Tentativa de remoção pelo cliente"},
+            format="json",
+        )
+        assert res.status_code == 403
+
     def test_gerente_cliente_atualiza_lista_emails_notificacao(self):
         contrato = Contrato.objects.create(
             numero="CT-2026-EMAILS",
