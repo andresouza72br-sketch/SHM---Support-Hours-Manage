@@ -27,18 +27,18 @@ from apps.core.utils import get_client_ip, get_client_user_agent
 def _is_gerente_do_contrato(user, contrato) -> bool:
     """
     Retorna True se o usuário autenticado é o gerente responsável cadastrado
-    no contrato (role CLIENTE_GERENTE + email == gestor_email do contrato),
+    no contrato (role CLIENTE_GERENTE + email == gestor_email do contrato,
+    ou caso gestor_email não esteja especificado, qualquer CLIENTE_GERENTE vinculado ao cliente),
     pertencendo ao mesmo cliente vinculado.
     Superusuários e staff sempre passam.
     """
-    if user.is_superuser or user.is_staff:
+    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
         return True
-    return (
-        user.role == "CLIENTE_GERENTE"
-        and user.cliente_id == contrato.cliente_id
-        and contrato.gestor_email
-        and user.email.lower() == contrato.gestor_email.lower()
-    )
+    if getattr(user, "role", None) != "CLIENTE_GERENTE" or getattr(user, "cliente_id", None) != contrato.cliente_id:
+        return False
+    if not contrato.gestor_email:
+        return True
+    return bool(user.email and user.email.strip().lower() == contrato.gestor_email.strip().lower())
 
 
 class ContratoViewSet(viewsets.ModelViewSet):
