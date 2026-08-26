@@ -93,8 +93,13 @@ export const clientService = {
         })
         .then((r) => r.data)
     },
-    deleteDocumento: (id: number, docId: number) =>
-      api.delete<{ detail: string }>(`/contratos/${id}/documentos/${docId}/`).then((r) => r.data),
+    deleteDocumento: (id: number, docId: number, justificativa: string) =>
+      api
+        .post<{ detail: string; documento_nome?: string; documento_hash?: string; justificativa?: string }>(
+          `/contratos/${id}/documentos/${docId}/`,
+          { justificativa }
+        )
+        .then((r) => r.data),
     verificarDocumento: (contratoId: number, docId: number) =>
       api
         .get<{

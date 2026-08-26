@@ -549,19 +549,19 @@ export function ContratosPage() {
       <CancelarContratoModal
         isOpen={Boolean(cancelarModalContrato)}
         onClose={() => setCancelarModalContrato(null)}
-        contrato={cancelarModalContrato}
+        contrato={contratos.find((c) => c.id === cancelarModalContrato?.id) || cancelarModalContrato}
       />
 
       <DocumentosContratoModal
         isOpen={Boolean(documentosModalContrato)}
         onClose={() => setDocumentosModalContrato(null)}
-        contrato={documentosModalContrato}
+        contrato={contratos.find((c) => c.id === documentosModalContrato?.id) || documentosModalContrato}
       />
 
       <GerenteClienteEmailsModal
         isOpen={Boolean(emailsModalContrato)}
         onClose={() => setEmailsModalContrato(null)}
-        contrato={emailsModalContrato}
+        contrato={contratos.find((c) => c.id === emailsModalContrato?.id) || emailsModalContrato}
       />
     </AppLayout>
   )
