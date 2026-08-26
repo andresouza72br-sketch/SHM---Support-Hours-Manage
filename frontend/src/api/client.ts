@@ -234,6 +234,8 @@ export const clientService = {
     get: (id: number) => api.get<Ciclo>(`/ciclos/${id}/`).then((r) => r.data),
     create: (data: { pedido: number; tipo: string; contexto: string; operador: number; horas_estimadas?: number }) =>
       api.post<Ciclo>('/ciclos/', data).then((r) => r.data),
+    update: (id: number, data: Partial<Ciclo>) =>
+      api.patch<Ciclo>(`/ciclos/${id}/`, data).then((r) => r.data),
     apresentarOrcamento: (id: number, horas_estimadas: number) =>
       api.post<Ciclo>(`/ciclos/${id}/apresentar_orcamento/`, { horas_estimadas }).then((r) => r.data),
     aprovar: (id: number) => api.post<Ciclo>(`/ciclos/${id}/aprovar/`).then((r) => r.data),
@@ -244,6 +246,8 @@ export const clientService = {
     aceitar: (id: number) => api.post<Ciclo>(`/ciclos/${id}/aceitar/`).then((r) => r.data),
     recusar: (id: number, justificativa: string) =>
       api.post<Ciclo>(`/ciclos/${id}/recusar/`, { justificativa }).then((r) => r.data),
+    avaliar: (id: number, data: { nota: number; comentario?: string }) =>
+      api.post<any>(`/ciclos/${id}/avaliar/`, data).then((r) => r.data),
     getMagicLink: (token: string) => api.get(`/ciclos/publico/${token}/`).then((r) => r.data),
     postMagicLink: (token: string, data: { acao: string; justificativa?: string }) =>
       api.post(`/ciclos/publico/${token}/`, data).then((r) => r.data),
@@ -255,9 +259,13 @@ export const clientService = {
   },
   comunicacao: {
     list: (cicloId: number) => api.get<any>(`/comunicacao/comentarios/?ciclo=${cicloId}`).then((r) => normalizeArray<Comentario>(r.data)),
-    create: (data: { ciclo: number; texto: string }) => api.post<Comentario>('/comunicacao/comentarios/', data).then((r) => r.data),
+    create: (data: { ciclo: number; texto: string; parent?: string }) => api.post<Comentario>('/comunicacao/comentarios/', data).then((r) => r.data),
     update: (id: string, data: { texto: string }) => api.patch<Comentario>(`/comunicacao/comentarios/${id}/`, data).then((r) => r.data),
     delete: (id: string) => api.delete(`/comunicacao/comentarios/${id}/`).then((r) => r.data),
+    reagir: (id: string, tipo: string = 'like') =>
+      api.post<{ acao: string; tipo: string; reacoes_count: number; user_reacted: boolean }>(
+        `/comunicacao/comentarios/${id}/reagir/`, { tipo }
+      ).then((r) => r.data),
     converterEmTarefa: (id: string, data: { descricao: string; horas_estimadas: number }) =>
       api.post(`/comunicacao/comentarios/${id}/converter_em_tarefa/`, data).then((r) => r.data),
   },

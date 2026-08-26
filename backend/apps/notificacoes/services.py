@@ -100,7 +100,7 @@ class NotificacaoService:
         # Resumo do texto do comentário (máximo 120 caracteres)
         texto_limpo = (comentario.texto or "").strip()
         texto_resumo = (texto_limpo[:117] + "...") if len(texto_limpo) > 120 else texto_limpo
-        url_destino = f"/pedidos/{pedido.id}"
+        url_destino = f"/pedidos/{pedido.id}?ciclo={ciclo.id}"
 
         destinatarios_set = set()
 
@@ -265,6 +265,16 @@ class NotificacaoService:
             timeline_tipo = TipoEventoTimeline.ACEITE_RECUSADO
             timeline_desc = f"Aceite recusado por {autor_nome} ({origem}) no Contrato {contrato_num}. Justificativa: {justificativa}"
 
+        elif tipo_evento == "ciclo_avaliado":
+            titulo = f"Atendimento Avaliado: {pedido.protocolo} — {tipo_nome}"
+            url_destino = f"/pedidos/{pedido.id}"
+            mensagem = (
+                f"{autor_nome} ({origem}) avaliou o atendimento do Pedido {pedido.protocolo} ({tipo_nome}).\n\n"
+                f"{justificativa}"
+            )
+            timeline_tipo = None
+            timeline_desc = None
+
         # 1. Timeline Event com Auditoria Forense
         if timeline_tipo and timeline_desc:
             try:
@@ -306,12 +316,13 @@ class NotificacaoService:
             destinatarios_set.discard(autor)
 
         if destinatarios_set and titulo:
+            url_notificacao_app = f"/pedidos/{pedido.id}?ciclo={ciclo.id}"
             notificacoes = [
                 Notification(
                     usuario=dest,
                     titulo=titulo,
                     mensagem=mensagem,
-                    url=url_destino,
+                    url=url_notificacao_app,
                     lida=False,
                 )
                 for dest in destinatarios_set
@@ -348,7 +359,7 @@ class NotificacaoService:
             else:
                 cta_btn = "Visualizar no Portal SHM"
 
-            if destinatarios_email:
+            if destinatarios_email and tipo_evento != "ciclo_avaliado":
                 NotificacaoService._enviar_email(
                     destinatarios=destinatarios_email,
                     assunto=titulo,
@@ -356,6 +367,41 @@ class NotificacaoService:
                     url_destino=url_destino,
                     cta_texto=cta_btn,
                 )
+
+    @staticmethod
+    def enviar_email_avaliacao(ciclo, destinatario, magic_link):
+        """
+        Envia o e-mail de pesquisa de satisfação para o cliente que deu o aceite.
+        """
+        pedido = ciclo.pedido
+        tipo_nome = ciclo.get_tipo_display() if hasattr(ciclo, "get_tipo_display") else ciclo.tipo
+        assunto = f"Pesquisa de Satisfação: Como foi o atendimento? (Pedido {pedido.protocolo})"
+        mensagem = (
+            f"Olá {destinatario.first_name or destinatario.username},\n\n"
+            f"Você concedeu o aceite para a execução técnica do Pedido {pedido.protocolo} ({tipo_nome}).\n"
+            f"Sua opinião é fundamental para mantermos a qualidade do nosso atendimento!\n\n"
+            f"Por favor, clique no botão abaixo para avaliar este ciclo (de 1 a 5 estrelas) e nos deixar um comentário."
+        )
+        url_destino = f"/magic-link/{magic_link.token}"
+        cta_texto = "Avaliar Atendimento (Link Seguro)"
+        
+        # Cria a notificação In-App
+        from apps.notificacoes.models import Notification
+        Notification.objects.create(
+            usuario=destinatario,
+            titulo=f"Avalie o Atendimento: Pedido {pedido.protocolo}",
+            mensagem=f"O ciclo de {tipo_nome} foi concluído. Clique aqui para avaliar o atendimento recebido e nos deixar um feedback.",
+            url=f"/pedidos/{pedido.id}?ciclo={ciclo.id}",
+            lida=False,
+        )
+
+        NotificacaoService._enviar_email(
+            destinatarios=[destinatario],
+            assunto=assunto,
+            mensagem_texto=mensagem,
+            url_destino=url_destino,
+            cta_texto=cta_texto,
+        )
 
     @staticmethod
     def _enviar_email(destinatarios, assunto: str, mensagem_texto: str, url_destino: str = None, cta_texto: str = None):

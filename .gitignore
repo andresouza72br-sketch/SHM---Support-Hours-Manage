@@ -69,3 +69,7 @@ frontend/dist/
 .~lock.*
 .~lock.*#
 ~$*
+
+# Reversa (análise e SDD gerados — não versionar)
+_reversa_sdd/
+.reversa/

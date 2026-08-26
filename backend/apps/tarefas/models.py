@@ -1,4 +1,4 @@
-﻿from decimal import Decimal
+from decimal import Decimal
 from django.db import models
 from django.conf import settings
 from apps.core.models import TimeStampedModel
@@ -38,9 +38,14 @@ class Tarefa(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Recalcula horas estimadas e realizadas do ciclo
-        total_estimadas = sum(t.horas_estimadas for t in self.ciclo.tarefas.exclude(status=StatusTarefa.CANCELADA))
+        # Recalcula horas realizadas do ciclo (as horas estimadas do ciclo são fixas e aprovadas)
         total_realizadas = sum(t.horas_realizadas for t in self.ciclo.tarefas.filter(status=StatusTarefa.REALIZADA))
-        self.ciclo.horas_estimadas = total_estimadas
         self.ciclo.horas_realizadas = total_realizadas
-        self.ciclo.save(update_fields=["horas_estimadas", "horas_realizadas", "atualizado_em"])
+        self.ciclo.save(update_fields=["horas_realizadas", "atualizado_em"])
+
+    def delete(self, *args, **kwargs):
+        ciclo = self.ciclo
+        super().delete(*args, **kwargs)
+        total_realizadas = sum(t.horas_realizadas for t in ciclo.tarefas.filter(status=StatusTarefa.REALIZADA))
+        ciclo.horas_realizadas = total_realizadas
+        ciclo.save(update_fields=["horas_realizadas", "atualizado_em"])

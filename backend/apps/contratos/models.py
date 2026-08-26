@@ -47,6 +47,7 @@ class TipoEventoContratoAudit(models.TextChoices):
     CONFIRMACAO_EMAIL = "confirmacao_email", "Confirmação de E-mail de Notificação"
     RECUSA_EMAIL = "recusa_email", "Recusa de E-mail de Notificação"
     DOWNLOAD_RELATORIO = "download_relatorio", "Download / Impressão de Relatório"
+    AVALIACAO_CICLO = "avaliacao_ciclo", "Avaliação de Ciclo"
 
 class Contrato(TimeStampedModel):
     numero = models.CharField("número do contrato", max_length=30, unique=True, db_index=True)

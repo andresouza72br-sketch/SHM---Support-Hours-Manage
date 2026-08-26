@@ -181,7 +181,7 @@ export function KanbanBoard({ pedidosPorStatus = {}, isLoading }: KanbanBoardPro
                             <span className="truncate">{ciclos.length} ciclo{ciclos.length > 1 ? 's' : ''}</span>
                           </span>
                           <span className="text-[10px] font-black text-indigo-800 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800/50 px-2 py-0.5 rounded-full shrink-0">
-                            {totalHorasRealizadas > 0 ? `${totalHorasRealizadas.toFixed(1)}h gastas` : `${totalHorasEstimadas.toFixed(1)}h est.`}
+                            {totalHorasRealizadas > 0 ? `${totalHorasRealizadas.toFixed(1)}h gastas` : `${totalHorasEstimadas.toFixed(1)}h Estimadas`}
                           </span>
                         </div>
                       )}
@@ -190,9 +190,11 @@ export function KanbanBoard({ pedidosPorStatus = {}, isLoading }: KanbanBoardPro
                 })}
 
                 {pedidos.length === 0 && !isLoading && (
-                  <div className="h-32 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 text-xs italic space-y-1 font-medium">
-                    <Inbox className="w-5 h-5 text-slate-400 dark:text-slate-600 stroke-[1.5]" />
-                    <span>Nenhum pedido</span>
+                  <div className="h-32 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 text-xs space-y-2 font-medium bg-slate-50/50 dark:bg-slate-800/20 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700/60 m-1">
+                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700/50 flex items-center justify-center">
+                      <Inbox className="w-4 h-4 text-slate-500 dark:text-slate-400 stroke-[2]" />
+                    </div>
+                    <span className="italic">Nenhum pedido nesta fase</span>
                   </div>
                 )}
               </div>

@@ -8,11 +8,13 @@ from apps.pedidos.services import PedidoService
 
 class CicloService:
     @staticmethod
-    def gerar_magic_link(ciclo: Ciclo, tipo_acao: str) -> CicloMagicLink:
+    def gerar_magic_link(ciclo: Ciclo, tipo_acao: str, expira_em=None) -> CicloMagicLink:
         """
-        Gera um token UUIDv4 criptográfico/seguro de uso único com expiração de 7 dias.
+        Gera um token UUIDv4 criptográfico/seguro de uso único com expiração de 7 dias ou customizada.
         """
-        expira_em = timezone.now() + timedelta(days=7)
+        if not expira_em:
+            expira_em = timezone.now() + timedelta(days=7)
+            
         magic_link = CicloMagicLink.objects.create(
             ciclo=ciclo,
             tipo_acao=tipo_acao,
@@ -205,6 +207,17 @@ class CicloService:
             )
 
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
+
+        contrato = ciclo.pedido.contrato
+        expiracao = None
+        if contrato.data_termino:
+            from datetime import datetime
+            expiracao = timezone.make_aware(datetime.combine(contrato.data_termino, datetime.max.time()))
+        else:
+            from datetime import timedelta
+            expiracao = timezone.now() + timedelta(days=90)
+        magic_link_avaliacao = CicloService.gerar_magic_link(ciclo, TipoAcaoMagicLink.AVALIACAO_CICLO, expira_em=expiracao)
+
         try:
             from apps.notificacoes.services import NotificacaoService
             NotificacaoService.notificar_evento_ciclo(
@@ -214,6 +227,25 @@ class CicloService:
                 ip_origem=ip_origem,
                 user_agent=user_agent,
             )
+            
+            destinatario_avaliacao = ciclo.aceito_por
+            if not destinatario_avaliacao and ciclo.pedido and ciclo.pedido.cliente:
+                from django.contrib.auth import get_user_model
+                from apps.accounts.models import UserRole
+                User = get_user_model()
+                destinatario_avaliacao = User.objects.filter(
+                    cliente=ciclo.pedido.cliente,
+                    role=UserRole.CLIENTE_GERENTE,
+                    is_active=True
+                ).first()
+                if not destinatario_avaliacao:
+                    destinatario_avaliacao = User.objects.filter(
+                        cliente=ciclo.pedido.cliente,
+                        is_active=True
+                    ).first()
+
+            if magic_link_avaliacao and destinatario_avaliacao:
+                NotificacaoService.enviar_email_avaliacao(ciclo, destinatario_avaliacao, magic_link_avaliacao)
         except Exception:
             pass
         return ciclo

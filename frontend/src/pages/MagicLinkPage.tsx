@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { Clock, CheckCircle2, AlertTriangle, ShieldCheck, ArrowRight, ExternalLink, Loader2 } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, ShieldCheck, ArrowRight, ExternalLink, Loader2, Star } from 'lucide-react'
 import { clientService } from '../api/client'
 import { useToast } from '../contexts/ToastContext'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
@@ -10,6 +10,8 @@ export function MagicLinkPage() {
   const { token } = useParams<{ token: string }>()
   const toast = useToast()
   const [sucesso, setSucesso] = useState<string | null>(null)
+  const [nota, setNota] = useState(0)
+  const [comentario, setComentario] = useState('')
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['magic_link', token],
@@ -19,8 +21,8 @@ export function MagicLinkPage() {
   })
 
   const actionMutation = useMutation({
-    mutationFn: ({ acao }: { acao: string }) =>
-      token ? clientService.ciclos.postMagicLink(token, { acao }) : Promise.reject(),
+    mutationFn: (payload: { acao: string; nota?: number; comentario?: string }) =>
+      token ? clientService.ciclos.postMagicLink(token, payload) : Promise.reject(),
     onSuccess: (res: any) => {
       setSucesso(res.detail)
       toast.success(res.detail || 'Operação processada com sucesso via Magic Link!', 'Segurança & Compliance')
@@ -34,12 +36,32 @@ export function MagicLinkPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 gap-3 text-sm font-semibold relative">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col items-center justify-center p-4 relative">
         <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50">
           <ThemeToggle />
         </div>
-        <Clock className="w-8 h-8 text-indigo-500 animate-pulse" />
-        <span>Validando token seguro e credenciais forenses...</span>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl max-w-sm w-full text-center space-y-5">
+          {/* Animated spinner */}
+          <div className="relative w-14 h-14 mx-auto">
+            <div className="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-indigo-900" />
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-600 dark:border-t-indigo-400 animate-spin" />
+            <div className="absolute inset-2 rounded-full bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="font-black text-slate-900 dark:text-white text-base">Verificando Link Seguro</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Autenticando token criptográfico e verificando validade de 7 dias...
+            </p>
+          </div>
+          {/* Step dots */}
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-indigo-600 animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-2 h-2 rounded-full bg-indigo-200 dark:bg-indigo-800 animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        </div>
       </div>
     )
   }
@@ -175,7 +197,7 @@ export function MagicLinkPage() {
           /* Estado 3: Ações Ativas Disponíveis */
           <div className="space-y-5">
             {/* A2: Aprovação de Orçamento */}
-            {(ciclo.status === 'aguardando_aprovacao' || tipo_acao === 'aprovacao_orcamento') && (
+            {(['aguardando_aprovacao', 'orcado'].includes(ciclo.status) || tipo_acao === 'aprovacao_orcamento') && (
               <div className="space-y-4">
                 <button
                   disabled={actionMutation.isPending}
@@ -257,6 +279,67 @@ export function MagicLinkPage() {
                     </Link>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* A4: Avaliação de Satisfação */}
+            {tipo_acao === 'avaliacao_ciclo' && (
+              <div className="space-y-5 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="space-y-3">
+                  <label className="block text-sm font-black text-slate-700 dark:text-slate-300 text-center">
+                    Que nota você dá para este atendimento?
+                  </label>
+                  <div className="flex items-center justify-center gap-2">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setNota(n)}
+                        className="p-1 transition-transform hover:scale-110 focus:outline-none"
+                      >
+                        <Star
+                          className={`w-9 h-9 transition-colors ${
+                            n <= nota
+                              ? 'fill-amber-400 text-amber-400 drop-shadow-sm'
+                              : 'fill-transparent text-slate-300 dark:text-slate-600'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-left">
+                  <label htmlFor="comentario" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Deixe um comentário (opcional)
+                  </label>
+                  <textarea
+                    id="comentario"
+                    value={comentario}
+                    onChange={(e) => setComentario(e.target.value)}
+                    placeholder="Conte um pouco sobre sua experiência..."
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
+                    rows={3}
+                  />
+                </div>
+
+                <button
+                  disabled={!nota || actionMutation.isPending}
+                  onClick={() => actionMutation.mutate({ acao: 'avaliar', nota, comentario })}
+                  className="w-full py-3.5 text-sm font-black text-amber-900 bg-amber-400 hover:bg-amber-500 rounded-xl shadow-lg shadow-amber-500/20 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {actionMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Enviando Avaliação...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Star className="w-5 h-5 fill-amber-900" />
+                      <span>Enviar Avaliação</span>
+                    </>
+                  )}
+                </button>
               </div>
             )}
           </div>

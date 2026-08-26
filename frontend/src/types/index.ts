@@ -200,12 +200,25 @@ export interface Tarefa {
   operador_nome?: string | null
 }
 
-export type TipoCiclo = 'corretiva' | 'evolutiva' | 'preventiva' | 'analise' | 'consultoria' | 'treinamento'
+export type TipoCiclo = 'corretiva' | 'evolutiva' | 'preventiva' | 'analise' | 'consultoria' | 'treinamento' | 'teste'
 export type StatusCiclo = 'orcado' | 'aguardando_aprovacao' | 'aprovado' | 'em_execucao' | 'aguardando_aceite' | 'aceito' | 'cancelado'
+
+export interface AvaliacaoCiclo {
+  id: number
+  ciclo: number
+  avaliador: number
+  avaliador_nome: string
+  avaliador_empresa?: string
+  nota: number
+  comentario?: string
+  criado_em: string
+}
 
 export interface Ciclo {
   id: number
   pedido: number
+  pedido_protocolo?: string
+  pedido_assunto?: string
   tipo: TipoCiclo
   tipo_display: string
   contexto?: string | null
@@ -220,6 +233,7 @@ export interface Ciclo {
   aceito_em?: string | null
   token_acesso: string
   tarefas: Tarefa[]
+  avaliacao?: AvaliacaoCiclo | null
 }
 
 export interface AnexoPedido {
@@ -257,6 +271,7 @@ export interface Pedido {
   contrato_numero: string
   contrato_saldo?: string | number
   criado_em: string
+  criado_por_nome?: string
   ciclos_resumo?: PedidoResumoCiclo[]
   ciclos?: Ciclo[]
   anexos?: AnexoPedido[]
@@ -266,6 +281,7 @@ export interface Comentario {
   id: string
   ciclo?: number | null
   tarefa?: number | null
+  parent?: string | null
   autor: number
   autor_nome: string
   autor_role: string
@@ -276,6 +292,9 @@ export interface Comentario {
   criado_em: string
   atualizado_em?: string
   anexos?: { id: string; nome_original: string; url: string }[]
+  respostas?: Comentario[]
+  reacoes_count?: number
+  user_reacted?: boolean
 }
 
 export interface TimelineEvent {

@@ -55,11 +55,15 @@ class PedidoDetailSerializer(serializers.ModelSerializer):
     prioridade_display = serializers.CharField(source="get_prioridade_display", read_only=True)
     anexos = AnexoPedidoSerializer(many=True, read_only=True)
     ciclos = serializers.SerializerMethodField()
+    criado_por_nome = serializers.SerializerMethodField()
 
     class Meta:
         model = Pedido
         fields = "__all__"
         read_only_fields = ["id", "protocolo", "status", "cliente", "criado_por", "criado_em", "atualizado_em"]
+
+    def get_criado_por_nome(self, obj):
+        return obj.criado_por.get_full_name() or obj.criado_por.username if obj.criado_por else "Usuário Desconhecido"
 
     def get_ciclos(self, obj):
         from apps.ciclos.serializers import CicloSerializer

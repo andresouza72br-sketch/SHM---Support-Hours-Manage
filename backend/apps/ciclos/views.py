@@ -22,6 +22,9 @@ class CicloViewSet(viewsets.ModelViewSet):
         from apps.pedidos.services import PedidoService
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
 
+        # Agora, a emissão do orçamento para o cliente (apresentar_orcamento)
+        # só ocorre mediante ação explícita (botão "Emitir Orçamento").
+
     @action(detail=True, methods=["post"], permission_classes=[IsEmpresaUser])
     def apresentar_orcamento(self, request, pk=None):
         ciclo = self.get_object()
@@ -74,6 +77,62 @@ class CicloViewSet(viewsets.ModelViewSet):
         ua = get_client_user_agent(request)
         ciclo = CicloService.recusar_aceite(ciclo, justificativa, usuario=request.user, ip_origem=ip, user_agent=ua)
         return Response(self.get_serializer(ciclo).data)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsClienteGerente])
+    def avaliar(self, request, pk=None):
+        """Cria ou atualiza a avaliação de satisfação do ciclo aceito (1–5 ⭐)."""
+        from apps.ciclos.models import AvaliacaoCiclo
+        from apps.ciclos.serializers import AvaliacaoCicloSerializer
+        ciclo = self.get_object()
+        if ciclo.status != StatusCiclo.ACEITO:
+            return Response(
+                {"detail": "Apenas ciclos aceitos podem ser avaliados."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        nota = request.data.get("nota")
+        if nota is None or not (1 <= int(nota) <= 5):
+            return Response(
+                {"detail": "Nota inválida. Informe um valor entre 1 e 5."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        avaliacao, created = AvaliacaoCiclo.objects.update_or_create(
+            ciclo=ciclo,
+            defaults={
+                "avaliador": request.user,
+                "nota": int(nota),
+                "comentario": request.data.get("comentario", ""),
+            },
+        )
+
+        from apps.contratos.models import ContratoAuditLog, TipoEventoContratoAudit
+        from apps.core.utils import get_client_ip, get_client_user_agent
+        from apps.notificacoes.services import NotificacaoService
+        
+        acao = "criada" if created else "atualizada"
+        ContratoAuditLog.objects.create(
+            contrato=ciclo.pedido.contrato,
+            tipo_evento=TipoEventoContratoAudit.AVALIACAO_CICLO,
+            descricao=f"Avaliação de satisfação {acao} para o Ciclo #{ciclo.id} do Pedido {ciclo.pedido.protocolo}.",
+            justificativa=f"Nota: {nota}/5. Comentário: '{avaliacao.comentario}'",
+            usuario=request.user,
+            ip_origem=get_client_ip(request),
+            user_agent=get_client_user_agent(request),
+        )
+
+        try:
+            NotificacaoService.notificar_evento_ciclo(
+                ciclo,
+                "ciclo_avaliado",
+                usuario_autor=request.user,
+                justificativa=f"Nota: {nota}/5.\n{avaliacao.comentario}",
+                ip_origem=get_client_ip(request),
+                user_agent=get_client_user_agent(request)
+            )
+        except Exception:
+            pass
+
+        return Response(AvaliacaoCicloSerializer(avaliacao).data, status=status.HTTP_200_OK)
+
 
 class MagicLinkCicloView(APIView):
     authentication_classes = []
@@ -228,6 +287,62 @@ class MagicLinkCicloView(APIView):
             else:
                 saldo_restante = 0.0
             msg = f"Aceite final concedido com sucesso! Foram debitadas {float(ciclo.horas_realizadas):.1f}h do Contrato {contrato_num} da empresa {cliente_nome}. Saldo restante: {saldo_restante:.1f}h."
+        elif acao == "avaliar":
+            nota = request.data.get("nota")
+            comentario = request.data.get("comentario", "")
+            if not nota or not (1 <= int(nota) <= 5):
+                return Response({"detail": "Nota de avaliação (1 a 5) é obrigatória."}, status=status.HTTP_400_BAD_REQUEST)
+            from apps.ciclos.models import AvaliacaoCiclo
+            from apps.contratos.models import ContratoAuditLog, TipoEventoContratoAudit
+            
+            avaliador_real = user or ciclo.aceito_por
+            if not avaliador_real and ciclo.pedido and ciclo.pedido.cliente:
+                from django.contrib.auth import get_user_model
+                from apps.accounts.models import UserRole
+                User = get_user_model()
+                avaliador_real = User.objects.filter(
+                    cliente=ciclo.pedido.cliente,
+                    role=UserRole.CLIENTE_GERENTE,
+                    is_active=True
+                ).first()
+            if not avaliador_real:
+                return Response({"detail": "Não foi possível determinar o avaliador."}, status=status.HTTP_400_BAD_REQUEST)
+
+            avaliacao, created = AvaliacaoCiclo.objects.update_or_create(
+                ciclo=ciclo,
+                defaults={
+                    "avaliador": avaliador_real,
+                    "nota": int(nota),
+                    "comentario": comentario,
+                },
+            )
+            
+            acao_str = "criada" if created else "atualizada"
+            if contrato:
+                ContratoAuditLog.objects.create(
+                    contrato=contrato,
+                    tipo_evento=TipoEventoContratoAudit.AVALIACAO_CICLO,
+                    descricao=f"Avaliação de satisfação {acao_str} via Magic Link para o Ciclo #{ciclo.id} do Pedido {pedido.protocolo}.",
+                    justificativa=f"Nota: {nota}/5. Comentário: '{comentario}'",
+                    usuario=avaliador_real,
+                    ip_origem=ip_origem,
+                    user_agent=user_agent,
+                )
+            
+            try:
+                from apps.notificacoes.services import NotificacaoService
+                NotificacaoService.notificar_evento_ciclo(
+                    ciclo,
+                    "ciclo_avaliado",
+                    usuario_autor=avaliador_real,
+                    justificativa=f"Nota: {nota}/5.\n{comentario}",
+                    ip_origem=ip_origem,
+                    user_agent=user_agent
+                )
+            except Exception:
+                pass
+
+            msg = "Avaliação registrada com sucesso! Agradecemos o seu feedback."
         else:
             return Response({"detail": "Ação inválida para o Magic Link."}, status=status.HTTP_400_BAD_REQUEST)
 

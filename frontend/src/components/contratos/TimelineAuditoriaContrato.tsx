@@ -13,6 +13,7 @@ import {
   FileEdit,
   Printer,
   Fingerprint,
+  Star,
 } from 'lucide-react'
 import type { ContratoAuditLog } from '../../types'
 
@@ -43,6 +44,8 @@ function getEventIcon(tipo: string) {
       return <AlertOctagon className="w-4 h-4 text-rose-600 dark:text-rose-400" />
     case 'alteracao':
       return <FileEdit className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+    case 'avaliacao_ciclo':
+      return <Star className="w-4 h-4 text-amber-500 dark:text-amber-400" />
     default:
       return <Clock className="w-4 h-4 text-slate-500" />
   }
@@ -68,6 +71,8 @@ function getEventBadgeColor(tipo: string) {
       return 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
     case 'cancelamento':
       return 'bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-200 border-rose-300 dark:border-rose-800'
+    case 'avaliacao_ciclo':
+      return 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800/60'
     default:
       return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
   }

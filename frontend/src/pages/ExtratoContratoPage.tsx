@@ -282,8 +282,9 @@ export function ExtratoContratoPage() {
             </span>
 
             {contrato.em_carencia && (
-              <span className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 px-2 py-0.5 rounded-md font-bold border border-amber-300 dark:border-amber-800/60">
-                Carência de 30 dias ativa
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2.5 py-1 rounded-full shadow-md shadow-amber-500/20 animate-pulse border border-amber-400">
+                <AlertOctagon className="w-3 h-3" />
+                <span>Carência Ativa</span>
               </span>
             )}
           </div>

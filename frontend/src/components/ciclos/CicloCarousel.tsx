@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,12 +13,18 @@ import {
   User as UserIcon,
   Loader2,
   Layers,
+  ThumbsUp,
+  CornerDownRight,
+  Star,
+  Play,
 } from 'lucide-react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
-import type { Ciclo, Pedido } from '../../types'
+import type { Ciclo, Pedido, Comentario } from '../../types'
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
 
 function getCicloStatusDot(status: string) {
   switch (status) {
@@ -40,6 +47,390 @@ function getCicloStatusDot(status: string) {
   }
 }
 
+function formatDate(dateStr?: string | null) {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
+// ─── Star Rating Widget ─────────────────────────────────────────────────────
+
+function StarRating({ value, onChange, size = 'md' }: { value: number; onChange: (n: number) => void; size?: 'sm' | 'md' }) {
+  const [hovered, setHovered] = useState(0)
+  const sz = size === 'sm' ? 'w-5 h-5' : 'w-7 h-7'
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onChange(n)}
+          onMouseEnter={() => setHovered(n)}
+          onMouseLeave={() => setHovered(0)}
+          className="transition-transform hover:scale-110 cursor-pointer"
+          aria-label={`${n} estrela${n > 1 ? 's' : ''}`}
+        >
+          <Star
+            className={`${sz} transition-colors ${
+              n <= (hovered || value)
+                ? 'fill-amber-400 text-amber-400'
+                : 'fill-transparent text-slate-300 dark:text-slate-600'
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── Avatar helper ─────────────────────────────────────────────────────────
+
+function CommentAvatar({ avatarUrl, nome }: { avatarUrl?: string | null; nome?: string | null }) {
+  if (avatarUrl) {
+    return (
+      <div className="w-6 h-6 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+        <img src={avatarUrl} alt={nome || 'Avatar'} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+      </div>
+    )
+  }
+  return (
+    <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-black text-[10px] flex items-center justify-center shrink-0">
+      {nome ? nome[0].toUpperCase() : <UserIcon className="w-3 h-3" />}
+    </div>
+  )
+}
+
+// ─── Modal de Avaliação ────────────────────────────────────────────────────
+
+interface AvaliacaoModalProps {
+  cicloId: number
+  cicloTipo: string
+  pedidoProtocolo: string
+  onClose: () => void
+  onSkip: () => void
+}
+
+function AvaliacaoModal({ cicloId, cicloTipo, pedidoProtocolo, onClose, onSkip }: AvaliacaoModalProps) {
+  const toast = useToast()
+  const queryClient = useQueryClient()
+  const [nota, setNota] = useState(0)
+  const [comentario, setComentario] = useState('')
+
+  const avaliarMutation = useMutation({
+    mutationFn: () => clientService.ciclos.avaliar(cicloId, { nota, comentario }),
+    onSuccess: () => {
+      toast.success(`Avaliação de ${nota}⭐ registrada com sucesso!`, 'Obrigado pelo feedback!')
+      queryClient.invalidateQueries({ queryKey: ['pedido'] })
+      onClose()
+    },
+    onError: () => toast.error('Erro ao registrar avaliação.', 'Falha'),
+  })
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-5 border border-slate-100 dark:border-slate-800">
+        {/* Header */}
+        <div className="text-center space-y-1">
+          <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center mx-auto text-2xl">
+            ⭐
+          </div>
+          <h3 className="font-black text-slate-900 dark:text-white text-lg">Como foi esse atendimento?</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            Ciclo aceito: <strong className="text-slate-700 dark:text-slate-300">{cicloTipo}</strong> — Pedido{' '}
+            <strong className="text-slate-700 dark:text-slate-300">{pedidoProtocolo}</strong>
+          </p>
+        </div>
+
+        {/* Stars */}
+        <div className="flex flex-col items-center gap-2">
+          <StarRating value={nota} onChange={setNota} />
+          {nota > 0 && (
+            <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
+              {['', 'Muito insatisfeito 😞', 'Insatisfeito 😕', 'Regular 😐', 'Satisfeito 😊', 'Muito satisfeito 😄'][nota]}
+            </p>
+          )}
+        </div>
+
+        {/* Comentário opcional */}
+        <div>
+          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">
+            Comentário <span className="font-normal text-slate-400">(opcional)</span>
+          </label>
+          <textarea
+            rows={3}
+            value={comentario}
+            onChange={(e) => setComentario(e.target.value)}
+            placeholder="Conte mais sobre sua experiência com este atendimento..."
+            maxLength={2000}
+            className="w-full text-xs p-3.5 border border-slate-300 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-amber-400 focus:border-amber-400 focus:outline-none bg-slate-50 dark:bg-slate-800 font-medium text-slate-800 dark:text-slate-100 resize-none"
+          />
+        </div>
+
+        {/* Botões */}
+        <div className="flex justify-end gap-2.5 pt-1">
+          <button
+            onClick={onSkip}
+            className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer transition"
+          >
+            Pular por enquanto
+          </button>
+          <button
+            disabled={nota === 0 || avaliarMutation.isPending}
+            onClick={() => avaliarMutation.mutate()}
+            className="inline-flex items-center gap-2 px-5 py-2 text-xs font-extrabold text-white bg-amber-500 hover:bg-amber-600 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer transition"
+          >
+            {avaliarMutation.isPending ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Enviando...</span>
+              </>
+            ) : (
+              <span>Avaliar {nota > 0 ? `(${nota}⭐)` : ''}</span>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Comment Item ──────────────────────────────────────────────────────────
+
+interface CommentItemProps {
+  c: Comentario
+  user: any
+  cicloAtual: Ciclo
+  isReply?: boolean
+  onRefresh: () => void
+}
+
+function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: CommentItemProps) {
+  const toast = useToast()
+  const [isEditing, setIsEditing] = useState(false)
+  const [editText, setEditText] = useState('')
+  const [deletingConfirm, setDeletingConfirm] = useState(false)
+  const [replyOpen, setReplyOpen] = useState(false)
+  const [replyText, setReplyText] = useState('')
+
+  const isOwner = Boolean(
+    user &&
+    (c.autor === user.id ||
+      (c.autor_username && c.autor_username === user.username) ||
+      (c.autor_nome && user.first_name && c.autor_nome.toLowerCase().includes(user.first_name.toLowerCase())))
+  )
+  const isUpdated = Boolean(c.atualizado_em && c.criado_em && c.atualizado_em !== c.criado_em)
+
+  const editarMutation = useMutation({
+    mutationFn: () => clientService.comunicacao.update(c.id, { texto: editText.trim() }),
+    onSuccess: () => { setIsEditing(false); setEditText(''); onRefresh() },
+    onError: (err: any) => toast.error(err?.response?.data?.detail || 'Erro ao editar comentário.', 'Falha'),
+  })
+
+  const excluirMutation = useMutation({
+    mutationFn: () => clientService.comunicacao.delete(c.id),
+    onSuccess: () => { setDeletingConfirm(false); onRefresh() },
+    onError: (err: any) => toast.error(err?.response?.data?.detail || 'Erro ao excluir comentário.', 'Falha'),
+  })
+
+  const reagirMutation = useMutation({
+    mutationFn: () => clientService.comunicacao.reagir(c.id, 'like'),
+    onSuccess: onRefresh,
+    onError: () => toast.error('Erro ao registrar reação.', 'Falha'),
+  })
+
+  const responderMutation = useMutation({
+    mutationFn: () =>
+      clientService.comunicacao.create({
+        ciclo: cicloAtual.id,
+        texto: replyText.trim(),
+        parent: c.id,
+      }),
+    onSuccess: () => { setReplyText(''); setReplyOpen(false); onRefresh(); toast.success('Resposta publicada!', 'Resposta') },
+    onError: () => toast.error('Erro ao publicar resposta.', 'Falha'),
+  })
+
+  const indentClass = isReply ? 'ml-6 border-l-2 border-indigo-200 dark:border-indigo-800/50 pl-4' : ''
+
+  return (
+    <div className={`space-y-2 ${indentClass}`}>
+      {/* Confirm delete modal */}
+      {deletingConfirm && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-extrabold text-base">
+              <Trash2 className="w-5 h-5" />
+              <span>Excluir Comentário</span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+              Tem certeza que deseja apagar este comentário? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button onClick={() => setDeletingConfirm(false)} className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer">
+                Cancelar
+              </button>
+              <button
+                disabled={excluirMutation.isPending}
+                onClick={() => excluirMutation.mutate()}
+                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-50 disabled:cursor-wait shadow-sm cursor-pointer"
+              >
+                {excluirMutation.isPending ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Excluindo...</span></> : <span>Confirmar Exclusão</span>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comment card */}
+      <div className={`p-4 rounded-2xl border text-xs transition duration-150 space-y-2.5 ${
+        isOwner
+          ? 'bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800/60 shadow-2xs'
+          : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/70'
+      }`}>
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <CommentAvatar avatarUrl={c.autor_avatar_url} nome={c.autor_nome} />
+            <span className="font-black text-slate-900 dark:text-white">{c.autor_nome}</span>
+            <span className="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-300 font-bold px-2 py-0.5 rounded-md border border-slate-300 dark:border-slate-600">
+              {c.autor_role?.split('—')[0] || c.autor_role}
+            </span>
+            {isOwner && (
+              <span className="text-[9px] bg-indigo-600 text-white font-black px-1.5 py-0.5 rounded uppercase tracking-wider">Você</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-mono text-[10px] font-semibold">
+              <span>{formatDate(c.criado_em)}</span>
+              {isUpdated && <span className="text-slate-500 italic font-sans">(editado)</span>}
+            </div>
+            {isOwner && !isEditing && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => { setIsEditing(true); setEditText(c.texto) }}
+                  className="p-1 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-100/60 dark:hover:bg-slate-750 rounded-lg transition cursor-pointer"
+                  title="Editar"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setDeletingConfirm(true)}
+                  className="p-1 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-100/60 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
+                  title="Excluir"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Content / Edit mode */}
+        {isEditing ? (
+          <div className="space-y-2 pt-1">
+            <textarea
+              rows={3}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="w-full text-xs p-3 bg-white dark:bg-slate-800 border border-indigo-300 dark:border-indigo-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 dark:text-slate-100"
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => { setIsEditing(false); setEditText('') }} className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
+                <X className="w-3 h-3" /><span>Cancelar</span>
+              </button>
+              <button
+                disabled={!editText.trim() || editarMutation.isPending}
+                onClick={() => editText.trim() && editarMutation.mutate()}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 text-[11px] font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition disabled:opacity-50 disabled:cursor-wait cursor-pointer"
+              >
+                {editarMutation.isPending ? <><Loader2 className="w-3 h-3 animate-spin" /><span>Salvando...</span></> : <><Check className="w-3 h-3" /><span>Salvar</span></>}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">{c.texto}</p>
+        )}
+
+        {/* Actions: Like + Reply */}
+        {!isEditing && (
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              onClick={() => reagirMutation.mutate()}
+              disabled={reagirMutation.isPending}
+              className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border transition cursor-pointer disabled:opacity-60 ${
+                c.user_reacted
+                  ? 'bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-600 hover:border-indigo-300'
+              }`}
+              title={c.user_reacted ? 'Remover like' : 'Curtir este comentário'}
+            >
+              <ThumbsUp className={`w-3 h-3 ${c.user_reacted ? 'fill-indigo-600 dark:fill-indigo-400' : ''}`} />
+              <span>{(c.reacoes_count ?? 0) > 0 ? c.reacoes_count : 'Curtir'}</span>
+            </button>
+            {!isReply && (
+              <button
+                onClick={() => setReplyOpen(!replyOpen)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
+              >
+                <CornerDownRight className="w-3 h-3" />
+                <span>Responder</span>
+                {(c.respostas?.length ?? 0) > 0 && (
+                  <span className="bg-indigo-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
+                    {c.respostas!.length}
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Reply input (inline) */}
+      {replyOpen && !isReply && (
+        <div className="ml-6 flex gap-2 items-start">
+          <CornerDownRight className="w-4 h-4 text-slate-400 mt-2.5 shrink-0" />
+          <div className="flex-1 flex gap-2">
+            <input
+              type="text"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && replyText.trim()) {
+                  e.preventDefault()
+                  responderMutation.mutate()
+                }
+              }}
+              disabled={responderMutation.isPending}
+              placeholder={`Responder a ${c.autor_nome}...`}
+              className="flex-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 dark:text-slate-100 disabled:opacity-60"
+            />
+            <button
+              disabled={!replyText.trim() || responderMutation.isPending}
+              onClick={() => responderMutation.mutate()}
+              className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl disabled:opacity-50 disabled:cursor-wait transition cursor-pointer shadow-sm shrink-0"
+              title="Publicar resposta"
+            >
+              {responderMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Replies */}
+      {!isReply && (c.respostas?.length ?? 0) > 0 && (
+        <div className="space-y-2 pt-0.5">
+          {c.respostas!.map((r) => (
+            <CommentItem key={r.id} c={r} user={user} cicloAtual={cicloAtual} isReply onRefresh={onRefresh} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Props ─────────────────────────────────────────────────────────────────
+
 interface CicloCarouselProps {
   pedido: Pedido
   ciclos: Ciclo[]
@@ -49,16 +440,37 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
   const { user, isEmpresa, canApprove } = useAuth()
   const toast = useToast()
   const queryClient = useQueryClient()
-  const [index, setIndex] = useState(0)
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  
+  const initialIndex = () => {
+    const focusId = searchParams.get('ciclo')
+    if (focusId) {
+      const idx = ciclos.findIndex(c => String(c.id) === focusId)
+      return idx >= 0 ? idx : 0
+    }
+    return 0
+  }
+  
+  const [index, setIndex] = useState(initialIndex)
+
+  // Opcional: Se a URL mudar, atualiza o index
+  useEffect(() => {
+    const focusId = searchParams.get('ciclo')
+    if (focusId) {
+      const idx = ciclos.findIndex(c => String(c.id) === focusId)
+      if (idx >= 0) setIndex(idx)
+    }
+  }, [searchParams, ciclos])
+
 
   const [modalType, setModalType] = useState<'rejeitar' | 'recusar' | null>(null)
   const [justificativa, setJustificativa] = useState('')
   const [comentarioTexto, setComentarioTexto] = useState('')
 
-  // Estados para edição e exclusão de comentários
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
-  const [editingCommentText, setEditingCommentText] = useState('')
-  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
+  // Avaliação modal (aparece automaticamente após aceite bem-sucedido)
+  const [showAvaliacaoModal, setShowAvaliacaoModal] = useState(false)
+  const [avaliacaoSkippedCiclos, setAvaliacaoSkippedCiclos] = useState<Set<number>>(new Set())
 
   const cicloAtual = ciclos[index] || null
 
@@ -70,6 +482,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
   })
 
   const comentarios = Array.isArray(rawComentarios) ? rawComentarios : []
+  const totalMensagens = comentarios.reduce((acc, c) => acc + 1 + (c.respostas?.length || 0), 0)
 
   const refreshData = () => {
     queryClient.invalidateQueries({ queryKey: ['pedido', pedido.id] })
@@ -77,6 +490,18 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
     queryClient.invalidateQueries({ queryKey: ['contratos'] })
     queryClient.invalidateQueries({ queryKey: ['kanban'] })
   }
+
+  // ── Mutations ──────────────────────────────────────────────────────────
+
+  const apresentarOrcamentoMutation = useMutation({
+    mutationFn: ({ id, horas }: { id: number; horas: number }) =>
+      clientService.ciclos.apresentarOrcamento(id, horas),
+    onSuccess: () => {
+      refreshData()
+      toast.success('Orçamento emitido para aprovação do cliente!', 'Orçamento Emitido')
+    },
+    onError: () => toast.error('Erro ao emitir orçamento.', 'Falha'),
+  })
 
   const aprovarMutation = useMutation({
     mutationFn: (id: number) => clientService.ciclos.aprovar(id),
@@ -99,29 +524,15 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
     onError: () => toast.error('Erro ao rejeitar orçamento.', 'Falha'),
   })
 
-  const iniciarExecMutation = useMutation({
-    mutationFn: (id: number) => clientService.ciclos.iniciarExecucao(id),
-    onSuccess: () => {
-      refreshData()
-      toast.success('Execução técnica iniciada com sucesso!', 'Execução')
-    },
-    onError: () => toast.error('Erro ao iniciar execução.', 'Falha'),
-  })
-
-  const solicitarAceiteMutation = useMutation({
-    mutationFn: (id: number) => clientService.ciclos.solicitarAceite(id),
-    onSuccess: () => {
-      refreshData()
-      toast.success('Solicitação de aceite enviada ao cliente com sucesso!', 'Aceite Solicitado')
-    },
-    onError: () => toast.error('Erro ao solicitar aceite.', 'Falha'),
-  })
-
   const aceitarMutation = useMutation({
     mutationFn: (id: number) => clientService.ciclos.aceitar(id),
     onSuccess: () => {
       refreshData()
       toast.success(`Aceite final concedido (${Number(cicloAtual?.horas_realizadas).toFixed(1)}h debitadas do saldo)!`, 'Aceite Concluído')
+      // Abre modal de avaliação automaticamente após aceite (se não foi pulado)
+      if (cicloAtual && !avaliacaoSkippedCiclos.has(cicloAtual.id)) {
+        setShowAvaliacaoModal(true)
+      }
     },
     onError: () => toast.error('Erro ao conceder aceite.', 'Falha'),
   })
@@ -144,51 +555,24 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
     onSuccess: () => {
       setComentarioTexto('')
       refreshData()
-      toast.success('Comentário publicado no ciclo com sucesso!', 'Comunicação')
     },
     onError: () => toast.error('Erro ao enviar comentário.', 'Falha'),
   })
 
-  const editarComentarioMutation = useMutation({
-    mutationFn: ({ id, texto }: { id: string; texto: string }) =>
-      clientService.comunicacao.update(id, { texto }),
-    onSuccess: () => {
-      setEditingCommentId(null)
-      setEditingCommentText('')
-      refreshData()
-      toast.success('Comentário editado com sucesso!', 'Comentário Atualizado')
-    },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.detail || 'Erro ao editar comentário. Apenas o autor pode alterá-lo.'
-      toast.error(msg, 'Falha')
-    },
-  })
-
-  const excluirComentarioMutation = useMutation({
-    mutationFn: (id: string) => clientService.comunicacao.delete(id),
-    onSuccess: () => {
-      setDeletingCommentId(null)
-      refreshData()
-      toast.success('Comentário excluído com sucesso!', 'Comentário Removido')
-    },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.detail || 'Erro ao excluir comentário. Apenas o autor pode apagá-lo.'
-      toast.error(msg, 'Falha')
-    },
-  })
+  // ── Early return: no ciclo ─────────────────────────────────────────────
 
   if (!cicloAtual) {
     return (
-      <div className="p-8 sm:p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs transition-colors space-y-3">
-        <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 mx-auto flex items-center justify-center border border-slate-200/80 dark:border-slate-700/60 shadow-2xs">
-          <Layers className="w-6 h-6" />
+      <div className="p-8 sm:p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs transition-colors space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 mx-auto flex items-center justify-center border border-slate-200/80 dark:border-slate-700/60 shadow-2xs">
+          <Layers className="w-7 h-7" />
         </div>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <h4 className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">
             Nenhum ciclo cadastrado ainda
           </h4>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto font-medium">
-            Este pedido ainda não possui ciclos técnicos ou orçamentos abertos.
+            Este pedido ainda não possui ciclos técnicos. Nossa equipe irá orçar e criar o primeiro ciclo em breve.
           </p>
         </div>
       </div>
@@ -197,9 +581,25 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
 
   const tarefas = Array.isArray(cicloAtual.tarefas) ? cicloAtual.tarefas : []
 
+  // ── Render ─────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-6">
-      {/* Navigation Header & Cycle Switcher */}
+      {/* ── Avaliação Modal ── */}
+      {showAvaliacaoModal && canApprove && cicloAtual && (
+        <AvaliacaoModal
+          cicloId={cicloAtual.id}
+          cicloTipo={cicloAtual.tipo_display}
+          pedidoProtocolo={pedido.protocolo}
+          onClose={() => setShowAvaliacaoModal(false)}
+          onSkip={() => {
+            setAvaliacaoSkippedCiclos((s) => new Set(s).add(cicloAtual.id))
+            setShowAvaliacaoModal(false)
+          }}
+        />
+      )}
+
+      {/* ── Navigation Header & Cycle Switcher ── */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-xs space-y-4 transition-colors">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
@@ -215,6 +615,18 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                   <span className={`w-2 h-2 rounded-full ${getCicloStatusDot(cicloAtual.status)}`} />
                   <span>{cicloAtual.status_display}</span>
                 </span>
+                {/* Contador de comentários no header */}
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+                  <MessageSquare className="w-3 h-3 text-indigo-500" />
+                  {totalMensagens}
+                </span>
+                {/* Badge de avaliação se aceito */}
+                {cicloAtual.status === 'aceito' && cicloAtual.avaliacao && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-black text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800/60">
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    {cicloAtual.avaliacao.nota}/5
+                  </span>
+                )}
               </div>
               <h3 className="font-black text-slate-900 dark:text-white text-lg sm:text-xl tracking-tight mt-0.5">
                 {cicloAtual.tipo_display}
@@ -258,7 +670,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
           )}
         </div>
 
-        {/* Interactive Cycle Tabs (When multiple cycles exist) */}
+        {/* Interactive Cycle Tabs */}
         {ciclos.length > 1 && (
           <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80">
             <div className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2.5 flex items-center justify-between">
@@ -278,11 +690,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                         : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-slate-600 hover:scale-[1.01]'
                     }`}
                   >
-                    <span
-                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
-                      }`}
-                    >
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${isActive ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'}`}>
                       {i + 1}
                     </span>
                     <span>{c.tipo_display}</span>
@@ -290,6 +698,9 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                     <span className={`text-[11px] font-semibold ${isActive ? 'text-indigo-100' : 'text-slate-600 dark:text-slate-400'}`}>
                       {Number(c.horas_estimadas).toFixed(1)}h
                     </span>
+                    {c.avaliacao && (
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    )}
                   </button>
                 )
               })}
@@ -298,7 +709,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
         )}
       </div>
 
-      {/* Ciclo Detail Card */}
+      {/* ── Ciclo Detail Card ── */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-6 transition-colors">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
           <div className="space-y-1.5 flex-1">
@@ -341,7 +752,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                   <span className="font-bold text-slate-900 dark:text-slate-100">{t.descricao}</span>
                 </div>
                 <div className="flex items-center gap-4 text-xs font-bold shrink-0 self-end sm:self-auto">
-                  <span className="text-slate-600 dark:text-slate-400 font-semibold">Est: {Number(t.horas_estimadas).toFixed(1)}h</span>
+                  <span className="text-slate-600 dark:text-slate-400 font-semibold">Estimadas: {Number(t.horas_estimadas).toFixed(1)}h</span>
                   <span className="text-indigo-800 dark:text-indigo-300 font-black bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 shadow-2xs">
                     Gasto: {Number(t.horas_realizadas).toFixed(1)}h
                   </span>
@@ -357,6 +768,53 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
           </div>
         </div>
 
+        {/* Rating badge on accepted cycle */}
+        {cicloAtual.status === 'aceito' && (
+          <div className={`rounded-2xl p-4 border mt-6 ${
+            cicloAtual.avaliacao
+              ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60'
+              : 'bg-slate-50 dark:bg-slate-800/60 border-dashed border-slate-200 dark:border-slate-700'
+          }`}>
+            {cicloAtual.avaliacao ? (
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <div className="text-[11px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">Avaliação do Cliente</div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <Star key={n} className={`w-4 h-4 ${n <= cicloAtual.avaliacao!.nota ? 'fill-amber-400 text-amber-400' : 'fill-transparent text-slate-300 dark:text-slate-600'}`} />
+                      ))}
+                    </div>
+                    <span className="font-black text-amber-700 dark:text-amber-300 text-sm">{cicloAtual.avaliacao.nota}/5</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      por {cicloAtual.avaliacao.avaliador_nome} {cicloAtual.avaliacao.avaliador_empresa ? `(${cicloAtual.avaliacao.avaliador_empresa})` : ''}
+                    </span>
+                  </div>
+                  {cicloAtual.avaliacao.comentario && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 italic">"{cicloAtual.avaliacao.comentario}"</p>
+                  )}
+                </div>
+              </div>
+            ) : user?.role === 'CLIENTE_GERENTE' ? (
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <div className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-0.5">Avaliação Pendente</div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Como foi este atendimento? Sua avaliação nos ajuda a melhorar.</p>
+                </div>
+                <button
+                  onClick={() => setShowAvaliacaoModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-extrabold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/40 hover:bg-amber-200 dark:hover:bg-amber-900/60 rounded-xl border border-amber-200 dark:border-amber-800/60 transition cursor-pointer"
+                >
+                  <Star className="w-3.5 h-3.5" />
+                  Avaliar Atendimento
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic">Aguardando avaliação do cliente.</p>
+            )}
+          </div>
+        )}
+
         {/* Action Bar */}
         <div className="pt-5 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
           <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
@@ -368,7 +826,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
 
           <div className="flex items-center gap-3">
             {/* Ações Cliente */}
-            {canApprove && cicloAtual.status === 'aguardando_aprovacao' && (
+            {canApprove && ['aguardando_aprovacao', 'orcado'].includes(cicloAtual.status) && (
               <>
                 <button
                   disabled={aprovarMutation.isPending}
@@ -383,10 +841,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                   className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-extrabold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-xl shadow-md shadow-indigo-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
                 >
                   {aprovarMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Aprovando Orçamento...</span>
-                    </>
+                    <><Loader2 className="w-4 h-4 animate-spin" /><span>Aprovando Orçamento...</span></>
                   ) : (
                     <span>Aprovar Orçamento ({Number(cicloAtual.horas_estimadas).toFixed(1)}h)</span>
                   )}
@@ -409,10 +864,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                   className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
                 >
                   {aceitarMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Concedendo Aceite Final...</span>
-                    </>
+                    <><Loader2 className="w-4 h-4 animate-spin" /><span>Concedendo Aceite Final...</span></>
                   ) : (
                     <span>Conceder Aceite Final ({Number(cicloAtual.horas_realizadas).toFixed(1)}h)</span>
                   )}
@@ -421,44 +873,40 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             )}
 
             {/* Ações Técnico */}
-            {isEmpresa && cicloAtual.status === 'aprovado' && (
+            {isEmpresa && cicloAtual.status === 'orcado' && (
               <button
-                disabled={iniciarExecMutation.isPending}
-                onClick={() => iniciarExecMutation.mutate(cicloAtual.id)}
-                className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-extrabold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 rounded-xl shadow-md shadow-indigo-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
+                disabled={apresentarOrcamentoMutation.isPending}
+                onClick={() => apresentarOrcamentoMutation.mutate({ id: cicloAtual.id, horas: Number(cicloAtual.horas_estimadas) })}
+                className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-sm transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
               >
-                {iniciarExecMutation.isPending ? (
+                {apresentarOrcamentoMutation.isPending && (apresentarOrcamentoMutation.variables as any)?.id === cicloAtual.id ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Iniciando Execução Técnica...</span>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Emitindo Orçamento...</span>
                   </>
                 ) : (
-                  <span>Iniciar Execução Técnica</span>
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Emitir Orçamento</span>
+                  </>
                 )}
               </button>
             )}
 
-            {isEmpresa && cicloAtual.status === 'em_execucao' && (
+            {isEmpresa && (cicloAtual.status === 'aprovado' || cicloAtual.status === 'em_execucao') && (
               <button
-                disabled={solicitarAceiteMutation.isPending}
-                onClick={() => solicitarAceiteMutation.mutate(cicloAtual.id)}
-                className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-extrabold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-md shadow-purple-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
+                onClick={() => navigate(`/admin/ciclos/${cicloAtual.id}/execucao`)}
+                className="inline-flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs px-6 py-2.5 rounded-xl shadow-md shadow-indigo-500/20 transition cursor-pointer"
               >
-                {solicitarAceiteMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Solicitando Aceite ao Cliente...</span>
-                  </>
-                ) : (
-                  <span>Solicitar Aceite ao Cliente</span>
-                )}
+                <Play className="w-3.5 h-3.5" />
+                <span>Ir para Execução</span>
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Modal Justificativa */}
+      {/* ── Modal Justificativa ── */}
       {modalType && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-4 border border-slate-100 dark:border-slate-800">
@@ -479,10 +927,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             <div className="flex justify-end gap-2.5 pt-2">
               <button
                 disabled={rejeitarMutation.isPending || recusarMutation.isPending}
-                onClick={() => {
-                  setModalType(null)
-                  setJustificativa('')
-                }}
+                onClick={() => { setModalType(null); setJustificativa('') }}
                 className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer disabled:opacity-50"
               >
                 Cancelar
@@ -499,15 +944,9 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                 className="inline-flex items-center gap-2 px-5 py-2 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-50 disabled:cursor-wait shadow-sm cursor-pointer"
               >
                 {rejeitarMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Rejeitando Orçamento...</span>
-                  </>
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Rejeitando Orçamento...</span></>
                 ) : recusarMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Recusando Aceite...</span>
-                  </>
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Recusando Aceite...</span></>
                 ) : (
                   <span>Confirmar Recusa</span>
                 )}
@@ -517,44 +956,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
         </div>
       )}
 
-      {/* Modal Confirmar Exclusão de Comentário */}
-      {deletingCommentId && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-extrabold text-base">
-              <Trash2 className="w-5 h-5" />
-              <span>Excluir Comentário</span>
-            </div>
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-              Tem certeza que deseja apagar este comentário? Esta ação não pode ser desfeita e ele será removido do histórico do ciclo para todos os usuários.
-            </p>
-            <div className="flex justify-end gap-2.5 pt-2">
-              <button
-                onClick={() => setDeletingCommentId(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                disabled={excluirComentarioMutation.isPending}
-                onClick={() => excluirComentarioMutation.mutate(deletingCommentId)}
-                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-50 disabled:cursor-wait shadow-sm cursor-pointer"
-              >
-                {excluirComentarioMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Excluindo Comentário...</span>
-                  </>
-                ) : (
-                  <span>Confirmar Exclusão</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Comentários Thread */}
+      {/* ── Comentários Thread ── */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-5 transition-colors">
         <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2 font-black text-sm text-slate-900 dark:text-white">
@@ -566,154 +968,27 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
               Visível para Empresa e Cliente
             </span>
             <span className="text-xs font-black text-slate-800 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
-              {comentarios.length} {comentarios.length === 1 ? 'mensagem' : 'mensagens'}
+              {totalMensagens} {totalMensagens === 1 ? 'mensagem' : 'mensagens'}
             </span>
           </div>
         </div>
 
         {/* Lista de Comentários */}
-        <div className="space-y-3.5 max-h-96 overflow-y-auto pr-1">
-          {comentarios.map((c) => {
-            const isOwner = Boolean(
-              user &&
-              (c.autor === user.id ||
-                (c.autor_username && c.autor_username === user.username) ||
-                (c.autor_nome && user.first_name && c.autor_nome.toLowerCase().includes(user.first_name.toLowerCase())))
-            )
-            const isEditing = editingCommentId === c.id
-            const isUpdated = Boolean(c.atualizado_em && c.criado_em && c.atualizado_em !== c.criado_em)
+        <div className="space-y-3.5 max-h-[480px] overflow-y-auto pr-1">
+          {comentarios.map((c) => (
+            <CommentItem
+              key={c.id}
+              c={c}
+              user={user}
+              cicloAtual={cicloAtual}
+              onRefresh={refreshData}
+            />
+          ))}
 
-            const formattedDate = c.criado_em
-              ? new Date(c.criado_em).toLocaleDateString('pt-BR', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              : '-'
-
-            return (
-              <div
-                key={c.id}
-                className={`p-4 rounded-2xl border text-xs transition duration-150 space-y-2.5 ${
-                  isOwner
-                    ? 'bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800/60 shadow-2xs'
-                    : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/70'
-                }`}
-              >
-                {/* Header do Comentário */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {c.autor_avatar_url ? (
-                      <div className="w-6 h-6 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                        <img
-                          src={c.autor_avatar_url}
-                          alt={c.autor_nome || 'Avatar'}
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-black text-[10px] flex items-center justify-center shrink-0">
-                        {c.autor_nome ? c.autor_nome[0].toUpperCase() : <UserIcon className="w-3 h-3" />}
-                      </div>
-                    )}
-                    <span className="font-black text-slate-900 dark:text-white">{c.autor_nome}</span>
-                    <span className="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-300 font-bold px-2 py-0.5 rounded-md border border-slate-300 dark:border-slate-600">
-                      {c.autor_role?.split('—')[0] || c.autor_role}
-                    </span>
-                    {isOwner && (
-                      <span className="text-[9px] bg-indigo-600 text-white font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
-                        Você
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-mono text-[10px] font-semibold">
-                      <span>{formattedDate}</span>
-                      {isUpdated && <span className="text-slate-500 italic font-sans">(editado)</span>}
-                    </div>
-
-                    {/* Botões de Ação para o Dono do Comentário */}
-                    {isOwner && !isEditing && (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => {
-                            setEditingCommentId(c.id)
-                            setEditingCommentText(c.texto)
-                          }}
-                          className="p-1 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-100/60 dark:hover:bg-slate-750 rounded-lg transition cursor-pointer"
-                          title="Editar meu comentário"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setDeletingCommentId(c.id)}
-                          className="p-1 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-100/60 dark:hover:bg-rose-950/40 rounded-lg transition cursor-pointer"
-                          title="Excluir meu comentário"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Conteúdo do Comentário / Modo de Edição */}
-                {isEditing ? (
-                  <div className="space-y-2 pt-1">
-                    <textarea
-                      rows={3}
-                      value={editingCommentText}
-                      onChange={(e) => setEditingCommentText(e.target.value)}
-                      className="w-full text-xs p-3 bg-white dark:bg-slate-800 border border-indigo-300 dark:border-indigo-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 dark:text-slate-100"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingCommentId(null)
-                          setEditingCommentText('')
-                        }}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700 rounded-lg transition cursor-pointer"
-                      >
-                        <X className="w-3 h-3" />
-                        <span>Cancelar</span>
-                      </button>
-                      <button
-                        disabled={!editingCommentText.trim() || editarComentarioMutation.isPending}
-                        onClick={() => {
-                          if (editingCommentText.trim()) {
-                            editarComentarioMutation.mutate({ id: c.id, texto: editingCommentText.trim() })
-                          }
-                        }}
-                        className="inline-flex items-center gap-1.5 px-4 py-1.5 text-[11px] font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition disabled:opacity-50 disabled:cursor-wait cursor-pointer"
-                      >
-                        {editarComentarioMutation.isPending ? (
-                          <>
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            <span>Salvando Alteração...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Check className="w-3 h-3" />
-                            <span>Salvar Alteração</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">{c.texto}</p>
-                )}
-              </div>
-            )
-          })}
-
-          {comentarios.length === 0 && (
-            <div className="p-8 text-center text-slate-400 dark:text-slate-500 text-xs italic bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
-              Nenhuma mensagem registrada neste ciclo até o momento. Todos os usuários da empresa e do cliente podem comentar abaixo.
+          {totalMensagens === 0 && (
+            <div className="p-8 text-center text-slate-400 dark:text-slate-500 text-xs italic bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 space-y-1.5">
+              <MessageSquare className="w-6 h-6 mx-auto text-slate-300 dark:text-slate-600" />
+              <p>Nenhuma mensagem registrada neste ciclo. Todos os usuários da empresa e do cliente podem comentar abaixo.</p>
             </div>
           )}
         </div>
@@ -742,11 +1017,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             className="inline-flex items-center justify-center bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white p-3 rounded-2xl disabled:opacity-50 disabled:cursor-wait transition cursor-pointer shadow-sm shadow-indigo-500/20 shrink-0"
             title={comentarioMutation.isPending ? 'Enviando comentário...' : 'Publicar Comentário'}
           >
-            {comentarioMutation.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
+            {comentarioMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </form>
       </div>

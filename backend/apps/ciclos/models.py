@@ -2,7 +2,9 @@ import uuid
 from decimal import Decimal
 from django.db import models
 from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator
 from apps.core.models import TimeStampedModel
+
 
 class TipoCiclo(models.TextChoices):
     CORRETIVA = "corretiva", "Corretiva"
@@ -11,6 +13,7 @@ class TipoCiclo(models.TextChoices):
     ANALISE = "analise", "Análise"
     CONSULTORIA = "consultoria", "Consultoria"
     TREINAMENTO = "treinamento", "Treinamento"
+    TESTE = "teste", "Teste"
 
 class StatusCiclo(models.TextChoices):
     ORCADO = "orcado", "Orçado"
@@ -76,6 +79,7 @@ class Ciclo(TimeStampedModel):
 class TipoAcaoMagicLink(models.TextChoices):
     APROVACAO_ORCAMENTO = "aprovacao_orcamento", "Aprovação de Orçamento"
     ACEITE_CICLO = "aceite_ciclo", "Aceite Final de Ciclo"
+    AVALIACAO_CICLO = "avaliacao_ciclo", "Avaliação de Satisfação"
 
 class CicloMagicLink(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -101,3 +105,33 @@ class CicloMagicLink(TimeStampedModel):
 
     def __str__(self):
         return f"Magic Link ({self.get_tipo_acao_display()}) — Ciclo #{self.ciclo_id} [Usado: {self.usado}]"
+
+
+class AvaliacaoCiclo(TimeStampedModel):
+    """Avaliação de satisfação do cliente após o aceite do ciclo (rating 1–5 ⭐)."""
+
+    ciclo = models.OneToOneField(
+        Ciclo,
+        on_delete=models.CASCADE,
+        related_name="avaliacao",
+        verbose_name="ciclo avaliado",
+    )
+    avaliador = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="avaliacoes_ciclos",
+        verbose_name="avaliador",
+    )
+    nota = models.PositiveSmallIntegerField(
+        "nota (1–5)",
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    comentario = models.TextField("comentário", max_length=2000, blank=True)
+
+    class Meta:
+        db_table = "shm_avaliacao_ciclo"
+        verbose_name = "avaliação de ciclo"
+        verbose_name_plural = "avaliações de ciclos"
+
+    def __str__(self):
+        return f"Avaliação {self.nota}⭐ — Ciclo #{self.ciclo_id} por {self.avaliador}"

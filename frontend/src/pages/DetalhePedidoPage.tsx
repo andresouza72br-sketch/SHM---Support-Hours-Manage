@@ -1,12 +1,14 @@
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Layers } from 'lucide-react'
+import { ArrowLeft, Layers, Settings } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { CicloCarousel } from '../components/ciclos/CicloCarousel'
 import { clientService } from '../api/client'
+import { useAuth } from '../contexts/AuthContext'
 
 export function DetalhePedidoPage() {
   const { id } = useParams<{ id: string }>()
+  const { isEmpresa } = useAuth()
 
   const { data: pedido, isLoading } = useQuery({
     queryKey: ['pedido', id],
@@ -48,10 +50,19 @@ export function DetalhePedidoPage() {
               </span>
               <h1 className="text-2xl font-black text-slate-900 dark:text-white mt-2 tracking-tight">{pedido.assunto}</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-start sm:self-auto">
               <span className="text-xs font-black px-3.5 py-1.5 rounded-full uppercase bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 shadow-2xs">
                 Contrato: {pedido.contrato_numero} (Saldo: {pedido.contrato_saldo}h)
               </span>
+              {isEmpresa && (
+                <Link
+                  to={`/admin/pedidos/${pedido.id}/analise`}
+                  className="inline-flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow-md shadow-indigo-500/20 transition cursor-pointer"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>Gerenciar Ciclos</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>
