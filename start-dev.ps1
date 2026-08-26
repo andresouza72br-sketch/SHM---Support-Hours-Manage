@@ -3,7 +3,7 @@ param(
 )
 
 Write-Host "===================================================" -ForegroundColor Cyan
-Write-Host "  Iniciando SHM 2.2 (Backend Django + Frontend Vite)" -ForegroundColor Cyan
+Write-Host "  Iniciando SHM 2.3 (Backend Django + Frontend Vite)" -ForegroundColor Cyan
 Write-Host "===================================================" -ForegroundColor Cyan
 
 # 1. Limpeza preventiva
@@ -61,9 +61,9 @@ $port5173 = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction Sile
 
 Write-Host ""
 if ($Visible) {
-    Write-Host "Ambiente SHM 2.2 iniciado em janelas dedicadas!" -ForegroundColor Green
+    Write-Host "Ambiente SHM 2.3 iniciado em janelas dedicadas!" -ForegroundColor Green
 } else {
-    Write-Host "Ambiente SHM 2.2 iniciado em SEGUNDO PLANO (sem janelas extras)!" -ForegroundColor Green
+    Write-Host "Ambiente SHM 2.3 iniciado em SEGUNDO PLANO (sem janelas extras)!" -ForegroundColor Green
 }
 
 if ($port8000) {

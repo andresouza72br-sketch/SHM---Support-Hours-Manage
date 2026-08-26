@@ -1,5 +1,5 @@
 Write-Host "===================================================" -ForegroundColor Cyan
-Write-Host "  Encerrando TODAS as Instancias do SHM 2.2" -ForegroundColor Cyan
+Write-Host "  Encerrando TODAS as Instancias do SHM 2.3" -ForegroundColor Cyan
 Write-Host "===================================================" -ForegroundColor Cyan
 
 $killedCount = 0

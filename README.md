@@ -1,8 +1,8 @@
 <div align="center">
 
-# ⏱️ SHM — Support Hours Manager 2.2
+# ⏱️ SHM — Support Hours Manager 2.3
 
-**Main Release 2.2 — Feature Gestão de Contratos (Integridade Criptográfica SHA-256, Auditoria Forense e Governança de Franquia de Horas)**
+**Main Release 2.3 — Feature Clientes (Gestão de Organizações Tomadoras, Dados Fiscais PJ/PF, Acessos ao Sistema SHM, Branding e Governança de Contratos)**
 
 [![Django](https://img.shields.io/badge/Django-5.2-092E20?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![React](https://img.shields.io/badge/React-19.0-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)

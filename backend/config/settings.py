@@ -164,8 +164,8 @@ SIMPLE_JWT = {
 # DRF Spectacular (OpenAPI Documentation)
 SPECTACULAR_SETTINGS = {
     "TITLE": "SHM API — Support Hours Manager",
-    "DESCRIPTION": "API REST para governança, gestão de contratos, integridade criptográfica SHA-256, orçamento, execução e aceite de horas técnicas em contratos de suporte.",
-    "VERSION": "2.2.0",
+    "DESCRIPTION": "API REST para governança, gestão de clientes e contratos, integridade criptográfica SHA-256, orçamento, execução e aceite de horas técnicas em contratos de suporte.",
+    "VERSION": "2.3.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
 

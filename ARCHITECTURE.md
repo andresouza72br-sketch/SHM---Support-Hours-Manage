@@ -1,8 +1,8 @@
-# 🏛️ Documento de Arquitetura do SHM 2.2 (Main Release 2.2 — Feature Gestão de Contratos)
+# 🏛️ Documento de Arquitetura do SHM 2.3 (Main Release 2.3 — Feature Clientes)
 
 ## 1. Visão Geral e Princípios Arquiteturais
 
-O SHM 2.2 foi concebido seguindo os princípios de **Clean Architecture**, **Domain-Driven Design (DDD)** modular no Django e uma separação estrita entre o cliente Frontend (SPA) e a API Backend RESTful.
+O SHM 2.3 foi concebido seguindo os princípios de **Clean Architecture**, **Domain-Driven Design (DDD)** modular no Django e uma separação estrita entre o cliente Frontend (SPA) e a API Backend RESTful.
 
 ```mermaid
 graph TD
