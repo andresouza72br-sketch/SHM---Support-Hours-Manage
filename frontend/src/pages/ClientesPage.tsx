@@ -499,7 +499,7 @@ export function ClientesPage() {
                   <button
                     onClick={() => setUsuariosModalCliente(c)}
                     className="inline-flex items-center gap-1.5 text-xs font-black text-violet-700 dark:text-violet-400 hover:text-violet-900 dark:hover:text-violet-300 px-3 py-1.5 rounded-xl hover:bg-violet-50 dark:hover:bg-violet-950/60 transition cursor-pointer"
-                    title="Gerenciar Usuários e Convites desta empresa"
+                    title="Acessos ao Sistema SHM (Usuários e Convites)"
                   >
                     <Users className="w-3.5 h-3.5" />
                     <span>Equipe ({totalUsuarios})</span>

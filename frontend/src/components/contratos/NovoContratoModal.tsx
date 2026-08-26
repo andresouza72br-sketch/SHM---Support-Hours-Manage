@@ -279,9 +279,9 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden transition-all">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-4xl w-full h-[670px] max-h-[92vh] flex flex-col overflow-hidden transition-all">
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
+        <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-500/20 shrink-0">
               <FilePlus className="w-6 h-6" />
@@ -304,7 +304,7 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
         </div>
 
         {/* Tab Navigation */}
-        <div className="px-6 pt-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 overflow-x-auto">
+        <div className="px-5 sm:px-6 pt-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 overflow-x-auto shrink-0">
           <button
             type="button"
             onClick={() => setActiveTab('geral')}
@@ -315,7 +315,7 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
-            <span>1. Dados Gerais</span>
+            <span>Contrato</span>
           </button>
 
           <button
@@ -328,7 +328,7 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>2. Franquia & Prazos</span>
+            <span>Financeiro</span>
           </button>
 
           <button
@@ -341,7 +341,7 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
             }`}
           >
             <Mail className="w-3.5 h-3.5" />
-            <span>3. Notificações & Gestor</span>
+            <span>Notificações</span>
             {emailsNotificacao.length > 0 && (
               <span className="text-[10px] bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 px-1.5 py-0.2 rounded-full font-bold">
                 {emailsNotificacao.length}
@@ -359,7 +359,7 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
             }`}
           >
             <Upload className="w-3.5 h-3.5" />
-            <span>4. Documentos & Anexos</span>
+            <span>Documentos</span>
             {arquivosParaUpload.length > 0 && (
               <span className="text-[10px] bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 px-1.5 py-0.2 rounded-full font-bold">
                 {arquivosParaUpload.length}/5
@@ -370,16 +370,18 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
 
         {/* Error Alert */}
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-2xl text-xs font-bold flex items-center gap-2">
+          <div className="mx-6 mt-4 p-3 bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-2xl text-xs font-bold flex items-center gap-2 shrink-0">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* TAB 1: DADOS GERAIS */}
-          {activeTab === 'geral' && (
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 flex flex-col justify-center">
+            <div className="w-full max-w-3xl mx-auto my-auto">
+              {/* TAB 1: CONTRATO */}
+              {activeTab === 'geral' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -862,67 +864,68 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
               </div>
             </div>
           )}
-        </form>
+            </div>
+          </div>
 
-        {/* Footer */}
-        <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-700 transition cursor-pointer"
-          >
-            Cancelar
-          </button>
-
-          <div className="flex items-center gap-2">
-            {activeTab !== 'geral' && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (activeTab === 'documentos') setActiveTab('notificacoes')
-                  else if (activeTab === 'notificacoes') setActiveTab('financeiro')
-                  else if (activeTab === 'financeiro') setActiveTab('geral')
-                }}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition cursor-pointer flex items-center gap-1.5"
-              >
-                Voltar
-              </button>
-            )}
-
-            {activeTab !== 'documentos' ? (
-              <button
-                type="button"
-                onClick={() => {
-                  if (activeTab === 'geral') setActiveTab('financeiro')
-                  else if (activeTab === 'financeiro') setActiveTab('notificacoes')
-                  else if (activeTab === 'notificacoes') setActiveTab('documentos')
-                }}
-                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs shadow-indigo-500/20 transition cursor-pointer flex items-center gap-1.5"
-              >
-                Avançar
-              </button>
-            ) : null}
-
+          {/* Footer */}
+          <div className="p-4 sm:px-8 bg-slate-50/70 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
             <button
               type="button"
-              disabled={createMutation.isPending}
-              onClick={handleSubmit}
-              className="px-6 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-md shadow-indigo-500/20 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-700 transition cursor-pointer"
             >
-              {createMutation.isPending ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Salvando Contrato...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isEditing ? 'Salvar Alterações' : 'Concluir Cadastro'}</span>
-                </>
-              )}
+              Cancelar
             </button>
+
+            <div className="flex items-center gap-2">
+              {activeTab !== 'geral' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeTab === 'documentos') setActiveTab('notificacoes')
+                    else if (activeTab === 'notificacoes') setActiveTab('financeiro')
+                    else if (activeTab === 'financeiro') setActiveTab('geral')
+                  }}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition cursor-pointer flex items-center gap-1.5"
+                >
+                  Voltar
+                </button>
+              )}
+
+              {activeTab !== 'documentos' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeTab === 'geral') setActiveTab('financeiro')
+                    else if (activeTab === 'financeiro') setActiveTab('notificacoes')
+                    else if (activeTab === 'notificacoes') setActiveTab('documentos')
+                  }}
+                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs shadow-indigo-500/20 transition cursor-pointer flex items-center gap-1.5"
+                >
+                  Avançar
+                </button>
+              )}
+
+              <button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="px-6 py-2.5 rounded-xl text-xs font-black text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-md shadow-indigo-500/20 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {createMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Salvando Contrato...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{isEditing ? 'Salvar Alterações' : 'Concluir Cadastro'}</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   )

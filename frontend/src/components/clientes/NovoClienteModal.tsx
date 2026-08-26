@@ -362,9 +362,9 @@ export function NovoClienteModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-6xl w-full max-h-[92vh] flex flex-col overflow-hidden transition-all">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-4xl w-full h-[670px] max-h-[92vh] flex flex-col overflow-hidden transition-all">
         {/* Header */}
-        <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
+        <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-500/20 shrink-0">
               <Building2 className="w-6 h-6" />
@@ -387,7 +387,7 @@ export function NovoClienteModal({
         </div>
 
         {/* Tab Navigation */}
-        <div className="px-5 sm:px-6 pt-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-1 overflow-x-auto">
+        <div className="px-5 sm:px-6 pt-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-1 overflow-x-auto shrink-0">
           <button
             type="button"
             onClick={() => setActiveTab('geral')}
@@ -398,7 +398,7 @@ export function NovoClienteModal({
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
-            <span>1. Dados Gerais & Fiscais</span>
+            <span>Dados Fiscais</span>
           </button>
 
           <button
@@ -411,7 +411,7 @@ export function NovoClienteModal({
             }`}
           >
             <User className="w-3.5 h-3.5" />
-            <span>2. Contatos & Gestor</span>
+            <span>Gestor</span>
           </button>
 
           <button
@@ -424,7 +424,7 @@ export function NovoClienteModal({
             }`}
           >
             <MapPin className="w-3.5 h-3.5" />
-            <span>3. Endereço (ViaCEP)</span>
+            <span>Endereço</span>
           </button>
 
           <button
@@ -437,7 +437,7 @@ export function NovoClienteModal({
             }`}
           >
             <ImageIcon className="w-3.5 h-3.5" />
-            <span>4. Branding & Logo</span>
+            <span>Branding</span>
           </button>
 
           <button
@@ -450,7 +450,7 @@ export function NovoClienteModal({
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>5. Usuários & Equipe</span>
+            <span>Usuários</span>
           </button>
 
           <button
@@ -463,7 +463,7 @@ export function NovoClienteModal({
             }`}
           >
             <Mail className="w-3.5 h-3.5" />
-            <span>6. E-mails Notificação</span>
+            <span>Notificações</span>
             {emailsNotificacao.length > 0 && (
               <span className="text-[10px] bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 px-1.5 py-0.2 rounded-full font-bold">
                 {emailsNotificacao.length}
@@ -481,7 +481,7 @@ export function NovoClienteModal({
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>7. Governança & Status</span>
+            <span>Status</span>
           </button>
         </div>
 
@@ -494,9 +494,11 @@ export function NovoClienteModal({
         )}
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* TAB 1: DADOS GERAIS & FISCAIS */}
-          {activeTab === 'geral' && (
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 flex flex-col justify-center">
+            <div className="w-full max-w-3xl mx-auto my-auto">
+              {/* TAB 1: DADOS GERAIS & FISCAIS */}
+              {activeTab === 'geral' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               {/* PJ / PF Switcher */}
               <div>
@@ -1056,7 +1058,7 @@ export function NovoClienteModal({
                     className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-md shadow-indigo-500/20 transition flex items-center gap-2 cursor-pointer"
                   >
                     <Users className="w-4 h-4" />
-                    <span>Abrir Painel de Gestão de Usuários Deste Cliente</span>
+                    <span>Abrir Acessos ao Sistema SHM</span>
                     <ExternalLink className="w-3.5 h-3.5 ml-1" />
                   </button>
                 )}
@@ -1246,9 +1248,11 @@ export function NovoClienteModal({
               </div>
             </div>
           )}
+            </div>
+          </div>
 
           {/* Footer Actions */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+          <div className="p-4 sm:px-8 bg-slate-50/70 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}
