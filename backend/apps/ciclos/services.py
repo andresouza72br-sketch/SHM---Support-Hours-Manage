@@ -176,6 +176,15 @@ class CicloService:
         user_agent: str = None,
         metodo: str = "APP",
     ) -> Ciclo:
+        # Validação da regra de tolerância de 30% sobre o orçamento aprovado
+        if ciclo.horas_estimadas and ciclo.horas_estimadas > 0:
+            limite_tolerancia = ciclo.horas_estimadas * Decimal("1.30")
+            if ciclo.horas_realizadas > limite_tolerancia:
+                raise ValidationError(
+                    f"Horas realizadas ({ciclo.horas_realizadas}h) excedem o limite de tolerância de 30% sobre o orçamento aprovado ({ciclo.horas_estimadas}h). "
+                    f"Limite máximo permitido: {limite_tolerancia:.2f}h. Solicite um aditivo de escopo ou reorçamento."
+                )
+
         ciclo.status = StatusCiclo.ACEITO
         ciclo.aceito_em = timezone.now()
         ciclo.aceito_por = usuario if (hasattr(usuario, "is_authenticated") and usuario.is_authenticated) else None

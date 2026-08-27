@@ -725,7 +725,25 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             <div className="w-px h-8 bg-slate-300 dark:bg-slate-700 shrink-0" />
             <div className="text-center flex flex-col items-center justify-center min-w-[70px]">
               <div className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-wider">Realizadas</div>
-              <div className="text-lg font-black text-indigo-700 dark:text-indigo-400">{Number(cicloAtual.horas_realizadas).toFixed(1)}h</div>
+              <div className={`text-lg font-black ${
+                Number(cicloAtual.horas_estimadas) > 0 && Number(cicloAtual.horas_realizadas) > Number(cicloAtual.horas_estimadas) * 1.3
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : Number(cicloAtual.horas_estimadas) > 0 && Number(cicloAtual.horas_realizadas) > Number(cicloAtual.horas_estimadas)
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-indigo-700 dark:text-indigo-400'
+              }`}>
+                {Number(cicloAtual.horas_realizadas).toFixed(1)}h
+              </div>
+              {Number(cicloAtual.horas_estimadas) > 0 && Number(cicloAtual.horas_realizadas) > Number(cicloAtual.horas_estimadas) * 1.3 && (
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 mt-0.5" title="Excede o limite máximo de 30% de tolerância">
+                  &gt;+30% Bloq
+                </span>
+              )}
+              {Number(cicloAtual.horas_estimadas) > 0 && Number(cicloAtual.horas_realizadas) > Number(cicloAtual.horas_estimadas) && Number(cicloAtual.horas_realizadas) <= Number(cicloAtual.horas_estimadas) * 1.3 && (
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 mt-0.5" title="Dentro da margem de 30% de tolerância">
+                  +{(((Number(cicloAtual.horas_realizadas) - Number(cicloAtual.horas_estimadas)) / Number(cicloAtual.horas_estimadas)) * 100).toFixed(0)}% tol.
+                </span>
+              )}
             </div>
             <div className="w-px h-8 bg-slate-300 dark:bg-slate-700 shrink-0" />
             <div className="text-center flex flex-col items-center justify-center min-w-[70px]">
