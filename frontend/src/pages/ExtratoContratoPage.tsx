@@ -374,15 +374,7 @@ export function ExtratoContratoPage() {
           <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-indigo-200 dark:border-indigo-800 shadow-xs space-y-1.5 bg-gradient-to-br from-white to-indigo-50/60 dark:from-slate-900 dark:to-indigo-950/30 transition-colors">
             <div className="text-[11px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">Saldo Disponível</div>
             <div className="text-3xl font-black text-indigo-700 dark:text-indigo-400 tracking-tight">{saldo.toFixed(1)}h</div>
-            <div className="text-[11px] text-indigo-600 dark:text-indigo-300 font-bold">
-              {temAjustes ? (
-                <span className="font-mono text-[10px]">
-                  {total.toFixed(0)}h {creditosMigrados > 0 ? `+ ${creditosMigrados.toFixed(0)}h` : ''} {debitosCompensados > 0 ? `- ${debitosCompensados.toFixed(0)}h` : ''} - {consumido.toFixed(0)}h = {saldo.toFixed(1)}h
-                </span>
-              ) : (
-                'Disponível para novos ciclos'
-              )}
-            </div>
+            <div className="text-[11px] text-indigo-600 dark:text-indigo-300 font-bold">Disponível para novos ciclos</div>
           </div>
         </div>
 
