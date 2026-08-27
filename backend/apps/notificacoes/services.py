@@ -74,13 +74,22 @@ class NotificacaoService:
             Notification.objects.bulk_create(notificacoes)
 
         if destinatarios_set:
-            NotificacaoService._enviar_email(
-                destinatarios=destinatarios_set,
-                assunto=titulo,
-                mensagem_texto=mensagem,
-                url_destino=url_destino,
-                cta_texto="Visualizar Pedido no SHM",
-            )
+            # Se pedido aberto pelo cliente, notifica a equipe da empresa para triagem técnica
+            if autor and not autor.is_empresa:
+                destinatarios_email = set(empresa_users)
+            else:
+                destinatarios_email = set(cliente_users) if pedido.cliente else set()
+            if autor:
+                destinatarios_email.discard(autor)
+
+            if destinatarios_email:
+                NotificacaoService._enviar_email(
+                    destinatarios=destinatarios_email,
+                    assunto=titulo,
+                    mensagem_texto=mensagem,
+                    url_destino=url_destino,
+                    cta_texto="Visualizar Pedido no SHM",
+                )
 
     @staticmethod
     def notificar_novo_comentario(comentario):
@@ -330,11 +339,22 @@ class NotificacaoService:
             if notificacoes:
                 Notification.objects.bulk_create(notificacoes)
 
-            # 3. Disparo de E-mail Real (SMTP / Console) com Magic Link e HTML
-            # Regras de Governança:
-            # - E-mails com Magic Link de aprovação/aceite: ESTRITAMENTE para o(s) Gerente(s) do Cliente (CLIENTE_GERENTE).
-            # - E-mails de confirmação de aprovação de orçamento e aceite concedido: enviados para a equipe da Empresa (Gerente/Admin e Técnicos) e do Cliente.
+            # 3. Disparo de E-mail Real (SMTP / Console) com Regras Estritas de Governança
+            # Regras de Negócio e Governança B2B:
+            # A) Ações de Decisão do Cliente (Aprovação de Orçamento e Aceite Final):
+            #    - E-mail com Magic Link enviado ESTRITAMENTE para o(s) Gerente(s) do Cliente (CLIENTE_GERENTE).
+            #    - Analistas do cliente e equipe da empresa NUNCA recebem e-mails para aprovar/aceitar.
+            #
+            # B) Ações Técnicas da Empresa (Orçamento Aprovado, Orçamento Rejeitado, Aceite Recusado, Ciclo Concluído/Debitado):
+            #    - E-mail com instruções de ação técnica (ex: Iniciar Execução, Revisar Orçamento) enviado ESTRITAMENTE para a Empresa (EMPRESA_ADMIN, EMPRESA_TECNICO e Operador).
+            #    - Usuários do Cliente (Gerente e Analistas) NUNCA recebem e-mails com ações operacionais da Empresa.
+            #
+            # C) Acompanhamento do Cliente (Execução Técnica Iniciada):
+            #    - E-mail informativo enviado para os usuários do Cliente (CLIENTE_GERENTE e CLIENTE_ANALISTA).
+            destinatarios_email = set()
+
             if tipo_evento in ["orcamento_apresentado", "aceite_solicitado"]:
+                # Destinado EXCLUSIVAMENTE ao Gerente do Cliente (Aprovador)
                 destinatarios_email = set(
                     User.objects.filter(
                         cliente=pedido.cliente,
@@ -344,20 +364,56 @@ class NotificacaoService:
                 )
                 if autor:
                     destinatarios_email.discard(autor)
-            else:
-                destinatarios_email = destinatarios_set
+
+            elif tipo_evento in ["orcamento_aprovado", "orcamento_rejeitado", "aceite_recusado", "ciclo_aceito"]:
+                # Destinado EXCLUSIVAMENTE à equipe técnica e admins da Empresa
+                destinatarios_email = set(
+                    User.objects.filter(
+                        role__in=[UserRole.EMPRESA_ADMIN, UserRole.EMPRESA_TECNICO],
+                        is_active=True,
+                    )
+                )
+                if ciclo.operador and ciclo.operador.is_active:
+                    destinatarios_email.add(ciclo.operador)
+                if autor:
+                    destinatarios_email.discard(autor)
+
+            elif tipo_evento == "execucao_iniciada":
+                # Destinado aos usuários do Cliente para acompanhamento
+                destinatarios_email = set(
+                    User.objects.filter(
+                        cliente=pedido.cliente,
+                        is_active=True,
+                    )
+                )
+                if autor:
+                    destinatarios_email.discard(autor)
 
             cta_btn = None
             if tipo_evento == "orcamento_apresentado":
                 cta_btn = f"Aprovar Orçamento ({ciclo.horas_estimadas:.1f}h)"
+                url_destino = magic_link_path
             elif tipo_evento == "orcamento_aprovado":
                 cta_btn = "Iniciar Execução Técnica no SHM"
+                url_destino = f"/admin/ciclos/{ciclo.id}/execucao" if ciclo.id else f"/pedidos/{pedido.id}"
+            elif tipo_evento == "orcamento_rejeitado":
+                cta_btn = "Revisar Orçamento no SHM"
+                url_destino = f"/pedidos/{pedido.id}"
+            elif tipo_evento == "execucao_iniciada":
+                cta_btn = "Acompanhar Pedido no SHM"
+                url_destino = f"/pedidos/{pedido.id}"
             elif tipo_evento == "aceite_solicitado":
                 cta_btn = f"Aceitar Entrega / De acordo em Debitar ({ciclo.horas_realizadas:.1f}h)"
+                url_destino = magic_link_path
             elif tipo_evento == "ciclo_aceito":
                 cta_btn = "Visualizar Pedido Concluído no SHM"
+                url_destino = f"/pedidos/{pedido.id}"
+            elif tipo_evento == "aceite_recusado":
+                cta_btn = "Ver Justificativa de Recusa no SHM"
+                url_destino = f"/pedidos/{pedido.id}"
             else:
                 cta_btn = "Visualizar no Portal SHM"
+                url_destino = f"/pedidos/{pedido.id}"
 
             if destinatarios_email and tipo_evento != "ciclo_avaliado":
                 NotificacaoService._enviar_email(
