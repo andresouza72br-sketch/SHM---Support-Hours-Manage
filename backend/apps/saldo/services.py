@@ -200,6 +200,19 @@ class SaldoService:
             user_agent=user_agent,
         )
 
+        # Disparo de e-mail de notificação e transparência contratual
+        try:
+            from apps.contratos.email_service import ContratoEmailNotificacaoService
+            ContratoEmailNotificacaoService.enviar_email_migracao_saldo(
+                contrato_origem=c_origem,
+                contrato_destino=c_destino,
+                quantidade=qtd_migrar,
+                autor=autor,
+                motivo=motivo_final,
+            )
+        except Exception:
+            pass
+
         return {
             "transferencia": transf,
             "saldo_origem": c_origem.saldo,

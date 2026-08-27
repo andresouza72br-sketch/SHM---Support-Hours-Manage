@@ -12,6 +12,7 @@ import {
   Plus,
   Trash2,
   FileCheck,
+  Zap,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
@@ -61,6 +62,11 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
   // Selected files for new upload (up to 5)
   const [arquivosParaUpload, setArquivosParaUpload] = useState<{ file: File; tipo: TipoDocumentoContrato }[]>([])
 
+  // Estados para aproveitamento/resgate inteligente de saldo remanescente
+  const [migrarSaldoOrigemId, setMigrarSaldoOrigemId] = useState<number | ''>('')
+  const [migrarSaldoAtivo, setMigrarSaldoAtivo] = useState(true)
+  const [migrarSaldoHoras, setMigrarSaldoHoras] = useState('')
+
   // Load clients list
   const { data: clientes = [] } = useQuery<Cliente[]>({
     queryKey: ['clientes_select'],
@@ -74,6 +80,26 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
     queryFn: clientService.contratos.list,
     enabled: isOpen,
   })
+
+  // Consulta contratos elegíveis para migração quando clienteId selecionado
+  const { data: contratosElegiveis = [] } = useQuery<any[]>({
+    queryKey: ['saldo_elegiveis_modal', clienteId],
+    queryFn: () => (clienteId ? clientService.saldo.contratosElegiveis(Number(clienteId)) : Promise.resolve([])),
+    enabled: Boolean(clienteId && isOpen && !contratoParaEditar),
+  })
+
+  useEffect(() => {
+    if (contratosElegiveis.length > 0 && !contratoParaEditar) {
+      const primeiro = contratosElegiveis[0]
+      setMigrarSaldoOrigemId(primeiro.id)
+      setMigrarSaldoHoras(String(primeiro.saldo))
+      setMigrarSaldoAtivo(true)
+    } else {
+      setMigrarSaldoOrigemId('')
+      setMigrarSaldoHoras('')
+      setMigrarSaldoAtivo(false)
+    }
+  }, [contratosElegiveis, contratoParaEditar])
 
   // Populate on edit
   useEffect(() => {
@@ -190,6 +216,20 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
         contratoSalvo = await clientService.contratos.update(contratoParaEditar.id, payload)
       } else {
         contratoSalvo = await clientService.contratos.create(payload)
+
+        // Se houver resgate/migração de saldo selecionado
+        if (migrarSaldoAtivo && migrarSaldoOrigemId && Number(migrarSaldoHoras) > 0) {
+          try {
+            await clientService.saldo.migrar({
+              contrato_origem: Number(migrarSaldoOrigemId),
+              contrato_destino: contratoSalvo.id,
+              quantidade: Number(migrarSaldoHoras),
+              motivo: `Aproveitamento e resgate de saldo remanescente na abertura do contrato ${contratoSalvo.numero}`,
+            })
+          } catch (migraErr) {
+            console.error('Erro ao migrar saldo na abertura do contrato:', migraErr)
+          }
+        }
       }
 
       // Upload attached files
@@ -208,10 +248,12 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['contratos'] })
       queryClient.invalidateQueries({ queryKey: ['extrato'] })
-      toast.success(
-        `Contrato ${data.numero} ${isEditing ? 'atualizado' : 'cadastrado'} com sucesso!`,
-        isEditing ? 'Contrato Atualizado' : 'Contrato Criado'
-      )
+      queryClient.invalidateQueries({ queryKey: ['saldo'] })
+      queryClient.invalidateQueries({ queryKey: ['saldo_elegiveis_modal'] })
+      const msg = !isEditing && migrarSaldoAtivo && migrarSaldoOrigemId && Number(migrarSaldoHoras) > 0
+        ? `Contrato ${data.numero} cadastrado e ${Number(migrarSaldoHoras).toFixed(1)}h aproveitadas com sucesso!`
+        : `Contrato ${data.numero} ${isEditing ? 'atualizado' : 'cadastrado'} com sucesso!`
+      toast.success(msg, isEditing ? 'Contrato Atualizado' : 'Contrato Criado')
       onClose()
     },
     onError: (err: any) => {
@@ -263,7 +305,7 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
       observacoes,
       valor_mensal: valorMensal ? Number(valorMensal) : null,
       dia_faturamento: diaFaturamento ? Number(diaFaturamento) : null,
-      status: statusInicial,
+      status: isEditing && contratoParaEditar ? contratoParaEditar.status : statusInicial,
       gestor_nome: gestorNome,
       gestor_email: gestorEmail,
       gestor_telefone: gestorTelefone,
@@ -438,6 +480,83 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
                         </option>
                       ))}
                   </select>
+                </div>
+              )}
+
+              {/* Sugestão Inteligente de Aproveitamento de Saldo Remanescente */}
+              {!isEditing && contratosElegiveis.length > 0 && (
+                <div className="p-4 bg-gradient-to-r from-amber-50 to-indigo-50 dark:from-amber-950/40 dark:to-indigo-950/40 border border-amber-200 dark:border-amber-800/80 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-amber-900 dark:text-amber-300 text-xs font-black">
+                      <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span>Saldo Remanescente Identificado de Contrato Anterior!</span>
+                    </div>
+                    <label className="inline-flex items-center gap-1.5 text-xs font-black text-indigo-700 dark:text-indigo-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={migrarSaldoAtivo}
+                        onChange={(e) => setMigrarSaldoAtivo(e.target.checked)}
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      />
+                      <span>Resgatar Saldo</span>
+                    </label>
+                  </div>
+
+                  {migrarSaldoAtivo && (
+                    <div className="space-y-2.5 pt-1">
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                        Este cliente possui contratos anteriores encerrados com saldo positivo. Deseja aproveitar as horas no novo contrato?
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                            Contrato de Origem (Encerrado)
+                          </label>
+                          <select
+                            value={migrarSaldoOrigemId}
+                            onChange={(e) => {
+                              const oId = Number(e.target.value)
+                              setMigrarSaldoOrigemId(oId)
+                              const opt = contratosElegiveis.find((c) => c.id === oId)
+                              if (opt) setMigrarSaldoHoras(String(opt.saldo))
+                            }}
+                            className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 font-bold text-slate-900 dark:text-slate-100 shadow-2xs cursor-pointer"
+                          >
+                            {contratosElegiveis.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.numero} — Saldo: {Number(c.saldo).toFixed(1)}h ({c.status_display})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                            Horas a Resgatar / Migrar
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              step="0.5"
+                              min="0.5"
+                              value={migrarSaldoHoras}
+                              onChange={(e) => setMigrarSaldoHoras(e.target.value)}
+                              className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 pr-14 font-black text-indigo-700 dark:text-indigo-400 shadow-2xs"
+                            />
+                            <span className="absolute right-3 top-2.5 text-xs font-black text-slate-400">horas</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 bg-white/70 dark:bg-slate-900/60 rounded-xl border border-amber-200/60 dark:border-amber-800/40 text-[11px] text-amber-800 dark:text-amber-300 flex items-center justify-between font-bold">
+                        <span>Projeção de Saldo Inicial:</span>
+                        <span>
+                          {horasContratadas}h contratadas + {migrarSaldoHoras || 0}h resgatadas = <strong>{(Number(horasContratadas || 0) + Number(migrarSaldoHoras || 0)).toFixed(1)}h</strong>
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

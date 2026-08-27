@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from decimal import Decimal
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.utils import timezone
@@ -883,6 +884,189 @@ Equipe SHM — Support Hours Manager
             return True
         except Exception as err:
             logger.error(f"Erro ao enviar avisos de contrato ativado {contrato.numero}: {err}", exc_info=True)
+            return False
+
+    @staticmethod
+    def gerar_corpo_email_migracao_saldo(contrato_origem: Contrato, contrato_destino: Contrato, quantidade: Decimal, motivo: str = None) -> tuple[str, str]:
+        cliente = contrato_origem.cliente or contrato_destino.cliente
+        nome_cliente = cliente.display_name if cliente else "Cliente SHM"
+        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip("/")
+        link_extrato = f"{frontend_url}/contratos/{contrato_destino.id}/extrato"
+        qtd_str = f"{quantidade:.1f}h"
+
+        texto_plano = f"""
+Olá!
+
+Informamos que foi realizado o APROVEITAMENTO E MIGRAÇÃO DE SALDO entre contratos da empresa {nome_cliente}:
+
+DETALHES DA MIGRAÇÃO:
+• Contrato de Origem (Encerrado): {contrato_origem.numero}
+• Contrato de Destino (Vigente): {contrato_destino.numero}
+• Horas Aproveitadas / Migradas: {qtd_str}
+• Novo Saldo Disponível no Contrato {contrato_destino.numero}: {contrato_destino.saldo:.1f}h
+• Motivo / Justificativa: {motivo or 'Aproveitamento de saldo remanescente'}
+
+Esta operação foi registrada com carimbo de integridade no Livro-Razão Forense (Ledger) e na Linha do Tempo de Auditoria de ambos os contratos.
+
+Acesse o extrato completo para acompanhar:
+{link_extrato}
+
+Atenciosamente,
+Equipe SHM — Support Hours Manager
+        """.strip()
+
+        html = f"""
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aproveitamento e Migração de Saldo de Contrato</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #d97706 0%, #4f46e5 100%); padding: 36px 30px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.3px;">⚡ Aproveitamento de Saldo Contratual</h1>
+              <p style="margin: 8px 0 0 0; font-size: 13px; color: #fef3c7; font-weight: 600;">{nome_cliente}</p>
+            </td>
+          </tr>
+
+          <!-- Corpo -->
+          <tr>
+            <td style="padding: 32px 30px;">
+              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #334155;">
+                Informamos que o saldo positivo remanescente de <strong>{qtd_str}</strong> do contrato encerrado foi transferido e aproveitado no novo contrato vigente.
+              </p>
+
+              <!-- Card de Transferência -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; margin: 20px 0; padding: 18px;">
+                <tr>
+                  <td style="padding: 6px 0; font-size: 13px; color: #64748b;">Contrato Origem (Encerrado):</td>
+                  <td style="padding: 6px 0; font-size: 13px; color: #0f172a; font-weight: 800; text-align: right;">{contrato_origem.numero}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; font-size: 13px; color: #64748b;">Contrato Destino (Vigente):</td>
+                  <td style="padding: 6px 0; font-size: 13px; color: #4f46e5; font-weight: 800; text-align: right;">{contrato_destino.numero}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; font-size: 13px; color: #64748b;">Horas Migradas:</td>
+                  <td style="padding: 6px 0; font-size: 15px; color: #16a34a; font-weight: 900; text-align: right;">+{qtd_str}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; font-size: 13px; color: #64748b;">Novo Saldo no Contrato Destino:</td>
+                  <td style="padding: 6px 0; font-size: 14px; color: #0f172a; font-weight: 900; text-align: right;">{contrato_destino.saldo:.1f}h</td>
+                </tr>
+              </table>
+
+              <div style="background-color: #f1f5f9; border-left: 4px solid #d97706; border-radius: 0 12px 12px 0; padding: 12px 16px; margin-bottom: 24px;">
+                <div style="font-size: 11px; font-weight: 800; color: #92400e; text-transform: uppercase; margin-bottom: 4px;">Motivo do Aproveitamento</div>
+                <div style="font-size: 13px; color: #334155; line-height: 1.5;">{motivo or 'Aproveitamento de saldo remanescente entre contratos.'}</div>
+              </div>
+
+              <!-- Botão -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 24px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="{link_extrato}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff; font-size: 13px; font-weight: 800; text-decoration: none; padding: 14px 28px; border-radius: 14px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
+                      Visualizar Extrato & Trilha de Auditoria
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 30px; text-align: center;">
+              <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 500;">
+                SHM — Support Hours Manager • Governança e Transparência Contratual
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+        """.strip()
+
+        return texto_plano, html
+
+    @staticmethod
+    def enviar_email_migracao_saldo(contrato_origem: Contrato, contrato_destino: Contrato, quantidade: Decimal, autor=None, motivo: str = None, request=None) -> bool:
+        """
+        Dispara e-mail de notificação de aproveitamento/migração de saldo para:
+        1. Gestor do contrato de origem.
+        2. Gestor do contrato de destino.
+        3. Gerentes do cliente (CLIENTE_GERENTE).
+        4. Administradores da empresa.
+        """
+        try:
+            from apps.accounts.models import User, UserRole
+
+            destinatarios_emails = set()
+
+            # Gestor de origem e de destino
+            if contrato_origem.gestor_email and "@" in contrato_origem.gestor_email:
+                destinatarios_emails.add(contrato_origem.gestor_email.strip().lower())
+            if contrato_destino.gestor_email and "@" in contrato_destino.gestor_email:
+                destinatarios_emails.add(contrato_destino.gestor_email.strip().lower())
+
+            # Gerentes do cliente
+            cliente = contrato_origem.cliente or contrato_destino.cliente
+            if cliente:
+                gerentes = User.objects.filter(cliente=cliente, role=UserRole.CLIENTE_GERENTE, is_active=True)
+                for g in gerentes:
+                    if g.email and "@" in g.email:
+                        destinatarios_emails.add(g.email.strip().lower())
+
+            # Admins da empresa
+            admins = User.objects.filter(role=UserRole.EMPRESA_ADMIN, is_active=True)
+            for a in admins:
+                if a.email and "@" in a.email:
+                    destinatarios_emails.add(a.email.strip().lower())
+
+            if not destinatarios_emails:
+                return False
+
+            texto_plano, html_conteudo = ContratoEmailNotificacaoService.gerar_corpo_email_migracao_saldo(
+                contrato_origem, contrato_destino, quantidade, motivo
+            )
+            nome_cliente = cliente.display_name if cliente else "Cliente"
+            assunto = f"[SHM] Aproveitamento de Saldo: {quantidade:.1f}h migradas ({contrato_origem.numero} ➔ {contrato_destino.numero}) — {nome_cliente}"
+            remetente = getattr(settings, "DEFAULT_FROM_EMAIL", "SHM Suporte <suporte@shm.com>")
+
+            msg = EmailMultiAlternatives(
+                subject=assunto,
+                body=texto_plano,
+                from_email=remetente,
+                to=list(destinatarios_emails),
+            )
+            msg.attach_alternative(html_conteudo, "text/html")
+            msg.send(fail_silently=False)
+
+            ip = get_client_ip(request) if request else ""
+            ua = get_client_user_agent(request) if request else ""
+
+            ContratoAuditLog.objects.create(
+                contrato=contrato_destino,
+                tipo_evento=TipoEventoContratoAudit.CONFIRMACAO_EMAIL,
+                descricao=f"Notificação de aproveitamento de {quantidade:.1f}h enviada para {len(destinatarios_emails)} destinatários ({', '.join(sorted(destinatarios_emails))}).",
+                ip_origem=ip,
+                user_agent=ua,
+            )
+            return True
+        except Exception as err:
+            logger.error(f"Erro ao enviar e-mail de migração de saldo: {err}", exc_info=True)
             return False
 
 
