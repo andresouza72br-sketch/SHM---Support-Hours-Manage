@@ -1,7 +1,7 @@
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from apps.contratos.models import Contrato, StatusContrato
+from apps.contratos.models import Contrato, StatusContrato, ContratoAuditLog, TipoEventoContratoAudit
 from apps.saldo.models import HistoricoSaldo, TipoOperacaoSaldo, TransferenciaSaldo, Reabastecimento
 
 class SaldoService:
