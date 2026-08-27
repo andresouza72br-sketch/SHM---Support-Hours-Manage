@@ -484,19 +484,19 @@ export function ContratosPage() {
                   {/* Actions for Empresa Admin */}
                   {isEmpresaAdmin && (
                     <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => {
-                          setContratoParaEditar(c)
-                          setIsNovoModalOpen(true)
-                        }}
-                        className="p-1.5 text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-200/70 dark:hover:bg-slate-700 transition cursor-pointer"
-                        title="Editar Contrato"
-                      >
-                        <Edit className="w-3.5 h-3.5" />
-                      </button>
-
                       {!isCancelado && !isConcluido && (
                         <>
+                          <button
+                            onClick={() => {
+                              setContratoParaEditar(c)
+                              setIsNovoModalOpen(true)
+                            }}
+                            className="p-1.5 text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-200/70 dark:hover:bg-slate-700 transition cursor-pointer"
+                            title="Editar Contrato"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+
                           <button
                             onClick={() => setMigracaoModalContrato(c)}
                             className="p-1.5 text-slate-600 hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 transition cursor-pointer"

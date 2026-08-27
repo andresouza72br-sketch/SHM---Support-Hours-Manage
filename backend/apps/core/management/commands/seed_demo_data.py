@@ -354,6 +354,24 @@ class Command(BaseCommand):
             }
         )
 
+        contrato_acme_exp, _ = Contrato.objects.get_or_create(
+            numero="CT-2025-0099",
+            defaults={
+                "tipo": TipoContrato.NOVO,
+                "cliente": cliente_acme,
+                "data_inicio": hoje - timedelta(days=400),
+                "data_termino": hoje - timedelta(days=35),
+                "horas_contratadas": Decimal("100.00"),
+                "saldo": Decimal("25.00"),
+                "horas_consumidas": Decimal("75.00"),
+                "status": StatusContrato.CONCLUIDO,
+                "descricao_servicos": "Contrato Anual Anterior de Suporte ERP 2025 (Encerrado)",
+                "valor_mensal": Decimal("4000.00"),
+                "dia_faturamento": 10,
+                "criado_por": admin_user,
+            }
+        )
+
         contrato_tech3, _ = Contrato.objects.get_or_create(
             numero="CT-2026-0008",
             defaults={

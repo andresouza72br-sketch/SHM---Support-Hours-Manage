@@ -63,6 +63,10 @@ class ContratoViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         contrato_antigo = self.get_object()
+        if contrato_antigo.status in [StatusContrato.CONCLUIDO, StatusContrato.CANCELADO]:
+            raise ValidationError(
+                {"detail": f"Contratos com status '{contrato_antigo.get_status_display()}' estão encerrados e não permitem edição cadastral para preservar a integridade histórica e jurídica."}
+            )
         contrato = serializer.save()
 
         # Log audit of modifications
