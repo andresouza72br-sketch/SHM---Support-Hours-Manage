@@ -303,6 +303,29 @@ class Command(BaseCommand):
             }
         )
 
+        contrato_acme_concluido, _ = Contrato.objects.get_or_create(
+            numero="CT-2025-0099",
+            defaults={
+                "tipo": TipoContrato.NOVO,
+                "cliente": cliente_acme,
+                "data_inicio": hoje - timedelta(days=395),
+                "data_termino": hoje - timedelta(days=30),
+                "horas_contratadas": Decimal("100.00"),
+                "saldo": Decimal("25.00"),
+                "horas_consumidas": Decimal("75.00"),
+                "status": StatusContrato.CONCLUIDO,
+                "descricao_servicos": "Suporte e Manutenção Legada 2025 (Concluído)",
+                "gestor_nome": "Roberto Silva",
+                "gestor_email": "proj.eng.sw@gmail.com",
+                "gestor_telefone": "(11) 98765-4321",
+                "criado_por": admin_user,
+            }
+        )
+        contrato_acme_concluido.status = StatusContrato.CONCLUIDO
+        contrato_acme_concluido.saldo = Decimal("25.00")
+        contrato_acme_concluido.horas_consumidas = Decimal("75.00")
+        contrato_acme_concluido.save()
+
         contrato_tech2, _ = Contrato.objects.get_or_create(
             numero="CT-2026-0005",
             defaults={
