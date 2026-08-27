@@ -41,9 +41,13 @@ class ContratoService:
     @staticmethod
     @transaction.atomic
     def criar_contrato(dados, usuario, request=None) -> Contrato:
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+
         numero_informado = dados.get("numero")
         if numero_informado and str(numero_informado).strip():
             numero = str(numero_informado).strip().upper()
+            if Contrato.objects.filter(numero=numero).exists():
+                raise DRFValidationError({"numero": f"Já existe um contrato cadastrado com o número {numero}."})
         else:
             numero = ContratoService.gerar_numero()
 
