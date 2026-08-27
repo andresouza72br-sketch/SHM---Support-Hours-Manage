@@ -553,10 +553,35 @@ class ContratoViewSet(viewsets.ModelViewSet):
             many=True,
         ).data
 
+        # Apuração / conciliação financeira de horas (créditos migrados / débitos compensados)
+        from apps.saldo.models import HistoricoSaldo, TipoOperacaoSaldo
+        from django.db.models import Sum
+
+        qs_saldo = HistoricoSaldo.objects.filter(contrato=contrato)
+        creditos_migrados = float(
+            qs_saldo.filter(
+                tipo_operacao__in=[TipoOperacaoSaldo.TRANSFERENCIA_RECEBIMENTO, TipoOperacaoSaldo.REABASTECIMENTO]
+            ).aggregate(total=Sum("quantidade"))["total"]
+            or 0
+        )
+        debitos_compensados = float(
+            abs(qs_saldo.filter(tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_ENVIO).aggregate(total=Sum("quantidade"))["total"] or 0)
+        )
+
+        conciliacao = {
+            "franquia_contratada": float(contrato.horas_contratadas),
+            "creditos_migrados": creditos_migrados,
+            "debitos_compensados": debitos_compensados,
+            "consumo_acumulado": float(contrato.horas_consumidas),
+            "saldo_disponivel": float(contrato.saldo),
+            "tem_ajustes": bool(creditos_migrados > 0 or debitos_compensados > 0),
+        }
+
         return Response({
             "contrato": serializer.data,
             "historico_ciclos": ciclos_data,
             "auditoria": auditoria_completa,
+            "conciliacao": conciliacao,
         })
 
 class AceiteContratoView(APIView):
