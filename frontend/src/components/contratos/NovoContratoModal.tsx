@@ -244,34 +244,6 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
         contratoSalvo = await clientService.contratos.update(contratoParaEditar.id, payload)
       } else {
         contratoSalvo = await clientService.contratos.create(payload)
-
-        // Se houver resgate/migração de saldo selecionado
-        if (migrarSaldoAtivo && migrarSaldoOrigemId && Number(migrarSaldoHoras) > 0) {
-          try {
-            await clientService.saldo.migrar({
-              contrato_origem: Number(migrarSaldoOrigemId),
-              contrato_destino: contratoSalvo.id,
-              quantidade: Number(migrarSaldoHoras),
-              motivo: `Aproveitamento e resgate de saldo remanescente na abertura do contrato ${contratoSalvo.numero}`,
-            })
-          } catch (migraErr) {
-            console.error('Erro ao migrar saldo na abertura do contrato:', migraErr)
-          }
-        }
-
-        // Se houver compensação/quitação de débito de contrato anterior
-        if (compensarDebitoAtivo && compensarDebitoDestinoId && Number(compensarDebitoHoras) > 0) {
-          try {
-            await clientService.saldo.compensarDebito({
-              contrato_origem: contratoSalvo.id,
-              contrato_destino: Number(compensarDebitoDestinoId),
-              quantidade: Number(compensarDebitoHoras),
-              motivo: `Compensação e quitação de saldo devedor na abertura do contrato ${contratoSalvo.numero}`,
-            })
-          } catch (compErr) {
-            console.error('Erro ao compensar débito na abertura do contrato:', compErr)
-          }
-        }
       }
 
       // Upload attached files
@@ -360,6 +332,10 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
       gestor_email: gestorEmail,
       gestor_telefone: gestorTelefone,
       emails_notificacao: emailsNotificacao,
+      resgatar_saldo_contrato_id: !isEditing && migrarSaldoAtivo && migrarSaldoOrigemId ? Number(migrarSaldoOrigemId) : null,
+      resgatar_saldo_horas: !isEditing && migrarSaldoAtivo && migrarSaldoOrigemId ? Number(migrarSaldoHoras) : null,
+      compensar_debito_contrato_id: !isEditing && compensarDebitoAtivo && compensarDebitoDestinoId ? Number(compensarDebitoDestinoId) : null,
+      compensar_debito_horas: !isEditing && compensarDebitoAtivo && compensarDebitoDestinoId ? Number(compensarDebitoHoras) : null,
     }
 
     if (numeroCustom.trim()) {

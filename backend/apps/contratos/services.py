@@ -101,6 +101,46 @@ class ContratoService:
             user_agent=ua,
         )
 
+        # 1. Executar migração de saldo remanescente se solicitado (atômico)
+        from apps.saldo.services import SaldoService
+
+        resgatar_id = dados.get("resgatar_saldo_contrato_id")
+        resgatar_horas = dados.get("resgatar_saldo_horas")
+        if resgatar_id and resgatar_horas and float(resgatar_horas) > 0:
+            try:
+                SaldoService.migrar_saldo_contratos_vencidos(
+                    contrato_origem_id=int(resgatar_id),
+                    contrato_destino_id=contrato.id,
+                    quantidade=Decimal(str(resgatar_horas)),
+                    autor=usuario,
+                    motivo=f"Aproveitamento e resgate de saldo remanescente na abertura do contrato {contrato.numero}",
+                    ip_origem=ip,
+                    user_agent=ua,
+                )
+                contrato.refresh_from_db()
+            except Exception as migra_err:
+                import logging
+                logging.getLogger(__name__).error(f"Erro ao migrar saldo na abertura: {migra_err}", exc_info=True)
+
+        # 2. Executar compensação de saldo devedor se solicitado (atômico)
+        compensar_id = dados.get("compensar_debito_contrato_id")
+        compensar_horas = dados.get("compensar_debito_horas")
+        if compensar_id and compensar_horas and float(compensar_horas) > 0:
+            try:
+                SaldoService.compensar_debito_contrato_anterior(
+                    contrato_novo_id=contrato.id,
+                    contrato_devedor_id=int(compensar_id),
+                    quantidade=Decimal(str(compensar_horas)),
+                    autor=usuario,
+                    motivo=f"Compensação e quitação de saldo devedor na abertura do contrato {contrato.numero}",
+                    ip_origem=ip,
+                    user_agent=ua,
+                )
+                contrato.refresh_from_db()
+            except Exception as comp_err:
+                import logging
+                logging.getLogger(__name__).error(f"Erro ao compensar débito na abertura: {comp_err}", exc_info=True)
+
         aceite_link = AceiteLink.objects.create(
             contrato=contrato,
             data_expiracao=timezone.now() + timedelta(days=30),
