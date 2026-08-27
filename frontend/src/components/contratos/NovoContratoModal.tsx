@@ -371,7 +371,7 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-4xl w-full h-[670px] max-h-[92vh] flex flex-col overflow-hidden transition-all">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-4xl w-full h-[740px] max-h-[92vh] flex flex-col overflow-hidden transition-all">
         {/* Modal Header */}
         <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
@@ -470,8 +470,8 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
-          <div className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 flex flex-col justify-center">
-            <div className="w-full max-w-3xl mx-auto my-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8">
+            <div className="w-full max-w-3xl mx-auto">
               {/* TAB 1: CONTRATO */}
               {activeTab === 'geral' && (
             <div className="space-y-4 animate-in fade-in duration-150">
