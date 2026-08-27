@@ -17,6 +17,7 @@ import {
   XCircle,
   Zap,
   Scale,
+  Building2,
 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
@@ -331,24 +332,10 @@ export function ExtratoContratoPage() {
 
         {/* Balance Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-1.5 transition-colors">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-1 transition-colors">
             <div className="text-[11px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-wider">Horas Contratadas</div>
             <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{total.toFixed(1)}h</div>
-            <div className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold flex items-center gap-1.5 flex-wrap">
-              <span>Franquia total contratual</span>
-              {creditosMigrados > 0 && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                  <Zap className="w-2.5 h-2.5 text-amber-500" />
-                  +{creditosMigrados.toFixed(1)}h resgate
-                </span>
-              )}
-              {debitosCompensados > 0 && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/60 px-2 py-0.5 rounded-full border border-sky-200 dark:border-sky-800">
-                  <Scale className="w-2.5 h-2.5 text-sky-500" />
-                  -{debitosCompensados.toFixed(1)}h débito
-                </span>
-              )}
-            </div>
+            <div className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold">Franquia total contratual</div>
           </div>
 
           <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2 transition-colors">
@@ -395,31 +382,41 @@ export function ExtratoContratoPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono">
-              <span className="px-2.5 py-1 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold" title="Franquia Original Contratada">
-                {total.toFixed(1)}h <span className="text-[10px] text-slate-400 font-sans font-normal">(franquia)</span>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold shadow-2xs" title="Franquia Original Contratada">
+                <Building2 className="w-3 h-3 text-slate-500 dark:text-slate-400 shrink-0" />
+                <span>{total.toFixed(1)}h</span>
+                <span className="text-[10px] text-slate-400 font-sans font-normal">(franquia)</span>
               </span>
 
               {creditosMigrados > 0 && (
-                <span className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/60 rounded-xl border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-bold" title="Créditos de Saldo Resgatado de Contrato Anterior">
-                  +{creditosMigrados.toFixed(1)}h <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-sans font-normal">(resgate)</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/60 rounded-xl border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-bold shadow-2xs" title="Créditos de Saldo Resgatado de Contrato Anterior">
+                  <Zap className="w-3 h-3 text-amber-500 shrink-0" />
+                  <span>+{creditosMigrados.toFixed(1)}h</span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-sans font-normal">(resgate)</span>
                 </span>
               )}
 
               {debitosCompensados > 0 && (
-                <span className="px-2.5 py-1 bg-sky-50 dark:bg-sky-950/60 rounded-xl border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 font-bold" title="Abatimento de Franquia para Quitação de Débito Técnico">
-                  -{debitosCompensados.toFixed(1)}h <span className="text-[10px] text-sky-600 dark:text-sky-400 font-sans font-normal">(compensação)</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-50 dark:bg-sky-950/60 rounded-xl border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 font-bold shadow-2xs" title="Abatimento de Franquia para Quitação de Débito Técnico">
+                  <Scale className="w-3 h-3 text-sky-500 shrink-0" />
+                  <span>-{debitosCompensados.toFixed(1)}h</span>
+                  <span className="text-[10px] text-sky-600 dark:text-sky-400 font-sans font-normal">(compensação)</span>
                 </span>
               )}
 
-              <span className="px-2.5 py-1 bg-rose-50 dark:bg-rose-950/60 rounded-xl border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-bold" title="Horas Consumidas em Ciclos Executados">
-                -{consumido.toFixed(1)}h <span className="text-[10px] text-rose-600 dark:text-rose-400 font-sans font-normal">(consumo)</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 dark:bg-rose-950/60 rounded-xl border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-bold shadow-2xs" title="Horas Consumidas em Ciclos Executados">
+                <Clock className="w-3 h-3 text-rose-500 shrink-0" />
+                <span>-{consumido.toFixed(1)}h</span>
+                <span className="text-[10px] text-rose-600 dark:text-rose-400 font-sans font-normal">(consumo)</span>
               </span>
 
               <span className="font-bold text-slate-400 mx-0.5">=</span>
 
-              <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-950/80 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-black shadow-2xs" title="Saldo Líquido Disponível Atual">
-                {saldo.toFixed(1)}h <span className="text-[10px] font-sans font-semibold">(saldo atual)</span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/80 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-black shadow-xs" title="Saldo Líquido Disponível Atual">
+                <CheckCircle2 className="w-3 h-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <span>{saldo.toFixed(1)}h</span>
+                <span className="text-[10px] font-sans font-semibold">(saldo atual)</span>
               </span>
             </div>
           </div>
