@@ -1069,4 +1069,183 @@ Equipe SHM — Support Hours Manager
             logger.error(f"Erro ao enviar e-mail de migração de saldo: {err}", exc_info=True)
             return False
 
+    @staticmethod
+    def gerar_corpo_email_compensacao_debito(contrato_novo: Contrato, contrato_devedor: Contrato, quantidade: Decimal, motivo: str = None) -> tuple[str, str]:
+        cliente = contrato_novo.cliente or contrato_devedor.cliente
+        nome_cliente = cliente.display_name if cliente else "Cliente SHM"
+        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip("/")
+        link_extrato = f"{frontend_url}/contratos/{contrato_novo.id}/extrato"
+        qtd_str = f"{quantidade:.1f}h"
+
+        texto_plano = f"""
+Olá!
+
+Informamos que foi realizada a COMPENSAÇÃO E QUITAÇÃO DE DÉBITO TÉCNICO entre contratos da empresa {nome_cliente}:
+
+DETALHES DA OPERAÇÃO:
+• Contrato Novo (Origem do Crédito): {contrato_novo.numero}
+• Contrato Devedor (Regularizado): {contrato_devedor.numero}
+• Horas Compensadas/Abatidas: {qtd_str}
+• Saldo Atual do Contrato {contrato_devedor.numero}: {contrato_devedor.saldo:.1f}h
+• Saldo Restante no Novo Contrato {contrato_novo.numero}: {contrato_novo.saldo:.1f}h
+• Motivo: {motivo or 'Quitação de saldo devedor através de horas do novo contrato'}
+
+Acesse o extrato para conferir a trilha de auditoria:
+{link_extrato}
+
+Atenciosamente,
+Equipe SHM — Support Hours Manager
+        """.strip()
+
+        html = f"""
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compensação e Quitação de Débito Contratual</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%); padding: 36px 30px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.3px;">⚖️ Compensação & Regularização de Horas</h1>
+              <p style="margin: 8px 0 0 0; font-size: 13px; color: #e0f2fe; font-weight: 600;">{nome_cliente}</p>
+            </td>
+          </tr>
+
+          <!-- Corpo -->
+          <tr>
+            <td style="padding: 32px 30px;">
+              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #334155;">
+                Informamos que <strong>{qtd_str}</strong> foram abatidas da franquia inicial do novo contrato <strong>{contrato_novo.numero}</strong> para quitação e regularização do saldo devedor do contrato <strong>{contrato_devedor.numero}</strong>.
+              </p>
+
+              <!-- Card de Quitação -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; margin: 20px 0; padding: 18px;">
+                <tr>
+                  <td style="padding: 6px 0; font-size: 13px; color: #64748b;">Contrato Devedor (Regularizado):</td>
+                  <td style="padding: 6px 0; font-size: 13px; color: #0f172a; font-weight: 800; text-align: right;">{contrato_devedor.numero}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; font-size: 13px; color: #64748b;">Novo Contrato (Franquia de Horas):</td>
+                  <td style="padding: 6px 0; font-size: 13px; color: #4f46e5; font-weight: 800; text-align: right;">{contrato_novo.numero}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; font-size: 13px; color: #64748b;">Horas Abatidas / Compensadas:</td>
+                  <td style="padding: 6px 0; font-size: 15px; color: #0284c7; font-weight: 900; text-align: right;">{qtd_str}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; font-size: 13px; color: #64748b;">Saldo Final do Contrato Anterior:</td>
+                  <td style="padding: 6px 0; font-size: 14px; color: {'#16a34a' if contrato_devedor.saldo >= 0 else '#dc2626'}; font-weight: 900; text-align: right;">{contrato_devedor.saldo:.1f}h ({'Quitado' if contrato_devedor.saldo == 0 else 'Parcial'})</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; font-size: 13px; color: #64748b;">Saldo Inicial Restante no Novo Contrato:</td>
+                  <td style="padding: 6px 0; font-size: 14px; color: #4f46e5; font-weight: 900; text-align: right;">{contrato_novo.saldo:.1f}h</td>
+                </tr>
+              </table>
+
+              <div style="background-color: #f1f5f9; border-left: 4px solid #0284c7; border-radius: 0 12px 12px 0; padding: 12px 16px; margin-bottom: 24px;">
+                <div style="font-size: 11px; font-weight: 800; color: #0369a1; text-transform: uppercase; margin-bottom: 4px;">Motivo do Encontro de Contas</div>
+                <div style="font-size: 13px; color: #334155; line-height: 1.5;">{motivo or 'Quitação de saldo devedor através de horas do novo contrato.'}</div>
+              </div>
+
+              <!-- Botão -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 24px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="{link_extrato}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%); color: #ffffff; font-size: 13px; font-weight: 800; text-decoration: none; padding: 14px 28px; border-radius: 14px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
+                      Visualizar Extrato & Trilha de Auditoria
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 30px; text-align: center;">
+              <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 500;">
+                SHM — Support Hours Manager • Governança e Transparência Contratual
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+        """.strip()
+
+        return texto_plano, html
+
+    @staticmethod
+    def enviar_email_compensacao_debito(contrato_novo: Contrato, contrato_devedor: Contrato, quantidade: Decimal, autor=None, motivo: str = None, request=None) -> bool:
+        """
+        Dispara e-mail de notificação de compensação/quitação de débito contratual.
+        """
+        try:
+            from apps.accounts.models import User, UserRole
+
+            destinatarios_emails = set()
+
+            if contrato_novo.gestor_email and "@" in contrato_novo.gestor_email:
+                destinatarios_emails.add(contrato_novo.gestor_email.strip().lower())
+            if contrato_devedor.gestor_email and "@" in contrato_devedor.gestor_email:
+                destinatarios_emails.add(contrato_devedor.gestor_email.strip().lower())
+
+            cliente = contrato_novo.cliente or contrato_devedor.cliente
+            if cliente:
+                gerentes = User.objects.filter(cliente=cliente, role=UserRole.CLIENTE_GERENTE, is_active=True)
+                for g in gerentes:
+                    if g.email and "@" in g.email:
+                        destinatarios_emails.add(g.email.strip().lower())
+
+            admins = User.objects.filter(role=UserRole.EMPRESA_ADMIN, is_active=True)
+            for a in admins:
+                if a.email and "@" in a.email:
+                    destinatarios_emails.add(a.email.strip().lower())
+
+            if not destinatarios_emails:
+                return False
+
+            texto_plano, html_conteudo = ContratoEmailNotificacaoService.gerar_corpo_email_compensacao_debito(
+                contrato_novo, contrato_devedor, quantidade, motivo
+            )
+            nome_cliente = cliente.display_name if cliente else "Cliente"
+            assunto = f"[SHM] Compensação de Débito: {quantidade:.1f}h abatidas ({contrato_novo.numero} ➔ {contrato_devedor.numero}) — {nome_cliente}"
+            remetente = getattr(settings, "DEFAULT_FROM_EMAIL", "SHM Suporte <suporte@shm.com>")
+
+            msg = EmailMultiAlternatives(
+                subject=assunto,
+                body=texto_plano,
+                from_email=remetente,
+                to=list(destinatarios_emails),
+            )
+            msg.attach_alternative(html_conteudo, "text/html")
+            msg.send(fail_silently=False)
+
+            ip = get_client_ip(request) if request else ""
+            ua = get_client_user_agent(request) if request else ""
+
+            ContratoAuditLog.objects.create(
+                contrato=contrato_novo,
+                tipo_evento=TipoEventoContratoAudit.CONFIRMACAO_EMAIL,
+                descricao=f"Notificação de compensação de débito de {quantidade:.1f}h enviada para {len(destinatarios_emails)} destinatários ({', '.join(sorted(destinatarios_emails))}).",
+                ip_origem=ip,
+                user_agent=ua,
+            )
+            return True
+        except Exception as err:
+            logger.error(f"Erro ao enviar e-mail de compensação de débito: {err}", exc_info=True)
+            return False
+
 

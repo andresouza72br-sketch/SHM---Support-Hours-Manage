@@ -281,8 +281,14 @@ export const clientService = {
       api
         .get<any[]>('/saldo/contratos_elegiveis/', { params: { cliente_id: clienteId, destino_id: destinoId } })
         .then((r) => r.data),
+    contratosDevedores: (clienteId: number) =>
+      api
+        .get<any[]>('/saldo/contratos_devedores/', { params: { cliente_id: clienteId } })
+        .then((r) => r.data),
     migrar: (data: { contrato_origem: number; contrato_destino: number; quantidade?: number; motivo?: string }) =>
       api.post<any>('/saldo/migrar/', data).then((r) => r.data),
+    compensarDebito: (data: { contrato_origem: number; contrato_destino: number; quantidade: number; motivo?: string }) =>
+      api.post<any>('/saldo/compensar_debito/', data).then((r) => r.data),
     transferir: (data: { contrato_origem: number; contrato_destino: number; quantidade: number; motivo: string }) =>
       api.post<any>('/saldo/transferir/', data).then((r) => r.data),
     reabastecer: (data: { contrato: number; quantidade: number; motivo: string }) =>

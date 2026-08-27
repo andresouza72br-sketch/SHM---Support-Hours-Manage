@@ -219,3 +219,114 @@ class SaldoService:
             "saldo_destino": c_destino.saldo,
             "quantidade": qtd_migrar,
         }
+
+    @staticmethod
+    @transaction.atomic
+    def compensar_debito_contrato_anterior(
+        contrato_novo_id,
+        contrato_devedor_id,
+        quantidade: Decimal,
+        autor,
+        motivo: str = None,
+        ip_origem: str = "",
+        user_agent: str = "",
+    ):
+        c_novo = Contrato.objects.select_for_update().get(id=contrato_novo_id)
+        c_devedor = Contrato.objects.select_for_update().get(id=contrato_devedor_id)
+
+        if c_novo.cliente_id != c_devedor.cliente_id:
+            raise ValidationError("A compensação de débito é permitida apenas entre contratos do mesmo cliente.")
+
+        if c_devedor.saldo >= 0:
+            raise ValidationError("O contrato indicado não possui saldo devedor/negativo.")
+
+        debito_absoluto = abs(c_devedor.saldo)
+        if quantidade <= 0:
+            raise ValidationError("A quantidade de horas a compensar deve ser maior que zero.")
+
+        if quantidade > debito_absoluto:
+            raise ValidationError(
+                f"O teto máximo a debitar do novo contrato é de {debito_absoluto:.2f}h (dívida total do contrato {c_devedor.numero})."
+            )
+
+        if c_novo.saldo < quantidade:
+            raise ValidationError(
+                f"Saldo insuficiente no novo contrato ({c_novo.saldo:.2f}h) para abater {quantidade:.2f}h."
+            )
+
+        motivo_final = motivo or f"Compensação e quitação de saldo devedor do contrato {c_devedor.numero} com horas da franquia do contrato {c_novo.numero}."
+
+        transf = TransferenciaSaldo.objects.create(
+            contrato_origem=c_novo,
+            contrato_destino=c_devedor,
+            quantidade=quantidade,
+            motivo=motivo_final,
+            autor=autor,
+        )
+
+        c_novo.saldo -= quantidade
+        c_novo.save(update_fields=["saldo", "atualizado_em"])
+        HistoricoSaldo.objects.create(
+            contrato=c_novo,
+            tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_ENVIO,
+            quantidade=-quantidade,
+            saldo_resultante=c_novo.saldo,
+            autor=autor,
+            descricao=f"Abatimento de franquia para quitação de débito do contrato {c_devedor.numero}",
+            ip_origem=ip_origem,
+            user_agent=user_agent,
+        )
+
+        c_devedor.saldo += quantidade
+        c_devedor.save(update_fields=["saldo", "atualizado_em"])
+        HistoricoSaldo.objects.create(
+            contrato=c_devedor,
+            tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_RECEBIMENTO,
+            quantidade=quantidade,
+            saldo_resultante=c_devedor.saldo,
+            autor=autor,
+            descricao=f"Quitação de saldo devedor compensado pelo novo contrato {c_novo.numero}",
+            ip_origem=ip_origem,
+            user_agent=user_agent,
+        )
+
+        # Auditoria Contratual Dupla
+        usuario_str = (autor.get_full_name() or autor.username) if autor else "Administrador"
+        ContratoAuditLog.objects.create(
+            contrato=c_novo,
+            tipo_evento=TipoEventoContratoAudit.ALTERACAO,
+            descricao=f"Abatimento de {quantidade:.2f}h da franquia inicial para quitação de saldo devedor do contrato {c_devedor.numero} por {usuario_str}.",
+            justificativa=motivo_final,
+            usuario=autor,
+            ip_origem=ip_origem,
+            user_agent=user_agent,
+        )
+        ContratoAuditLog.objects.create(
+            contrato=c_devedor,
+            tipo_evento=TipoEventoContratoAudit.ALTERACAO,
+            descricao=f"Quitação de saldo devedor de {quantidade:.2f}h através de compensação de horas do novo contrato {c_novo.numero} por {usuario_str}.",
+            justificativa=motivo_final,
+            usuario=autor,
+            ip_origem=ip_origem,
+            user_agent=user_agent,
+        )
+
+        # Disparo de e-mail de compensação
+        try:
+            from apps.contratos.email_service import ContratoEmailNotificacaoService
+            ContratoEmailNotificacaoService.enviar_email_compensacao_debito(
+                contrato_novo=c_novo,
+                contrato_devedor=c_devedor,
+                quantidade=quantidade,
+                autor=autor,
+                motivo=motivo_final,
+            )
+        except Exception:
+            pass
+
+        return {
+            "transferencia": transf,
+            "saldo_novo": c_novo.saldo,
+            "saldo_devedor": c_devedor.saldo,
+            "quantidade": quantidade,
+        }

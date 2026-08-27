@@ -13,6 +13,7 @@ import {
   Trash2,
   FileCheck,
   Zap,
+  Scale,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
@@ -67,6 +68,11 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
   const [migrarSaldoAtivo, setMigrarSaldoAtivo] = useState(true)
   const [migrarSaldoHoras, setMigrarSaldoHoras] = useState('')
 
+  // Estados para compensação/quitação inteligente de saldo devedor
+  const [compensarDebitoDestinoId, setCompensarDebitoDestinoId] = useState<number | ''>('')
+  const [compensarDebitoAtivo, setCompensarDebitoAtivo] = useState(true)
+  const [compensarDebitoHoras, setCompensarDebitoHoras] = useState('')
+
   // Load clients list
   const { data: clientes = [] } = useQuery<Cliente[]>({
     queryKey: ['clientes_select'],
@@ -81,10 +87,17 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
     enabled: isOpen,
   })
 
-  // Consulta contratos elegíveis para migração quando clienteId selecionado
+  // Consulta contratos elegíveis para migração (saldo positivo remanescente) quando clienteId selecionado
   const { data: contratosElegiveis = [] } = useQuery<any[]>({
     queryKey: ['saldo_elegiveis_modal', clienteId],
     queryFn: () => (clienteId ? clientService.saldo.contratosElegiveis(Number(clienteId)) : Promise.resolve([])),
+    enabled: Boolean(clienteId && isOpen && !contratoParaEditar),
+  })
+
+  // Consulta contratos devedores (saldo < 0) quando clienteId selecionado
+  const { data: contratosDevedores = [] } = useQuery<any[]>({
+    queryKey: ['saldo_devedores_modal', clienteId],
+    queryFn: () => (clienteId ? clientService.saldo.contratosDevedores(Number(clienteId)) : Promise.resolve([])),
     enabled: Boolean(clienteId && isOpen && !contratoParaEditar),
   })
 
@@ -100,6 +113,21 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
       setMigrarSaldoAtivo(false)
     }
   }, [contratosElegiveis, contratoParaEditar])
+
+  useEffect(() => {
+    if (contratosDevedores.length > 0 && !contratoParaEditar) {
+      const primeiro = contratosDevedores[0]
+      const maxDebito = Number(primeiro.valor_devedor)
+      const horasNum = Number(horasContratadas) || 100
+      setCompensarDebitoDestinoId(primeiro.id)
+      setCompensarDebitoHoras(String(Math.min(horasNum, maxDebito)))
+      setCompensarDebitoAtivo(true)
+    } else {
+      setCompensarDebitoDestinoId('')
+      setCompensarDebitoHoras('')
+      setCompensarDebitoAtivo(false)
+    }
+  }, [contratosDevedores, contratoParaEditar, horasContratadas])
 
   // Populate on edit
   useEffect(() => {
@@ -230,6 +258,20 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
             console.error('Erro ao migrar saldo na abertura do contrato:', migraErr)
           }
         }
+
+        // Se houver compensação/quitação de débito de contrato anterior
+        if (compensarDebitoAtivo && compensarDebitoDestinoId && Number(compensarDebitoHoras) > 0) {
+          try {
+            await clientService.saldo.compensarDebito({
+              contrato_origem: contratoSalvo.id,
+              contrato_destino: Number(compensarDebitoDestinoId),
+              quantidade: Number(compensarDebitoHoras),
+              motivo: `Compensação e quitação de saldo devedor na abertura do contrato ${contratoSalvo.numero}`,
+            })
+          } catch (compErr) {
+            console.error('Erro ao compensar débito na abertura do contrato:', compErr)
+          }
+        }
       }
 
       // Upload attached files
@@ -250,9 +292,17 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
       queryClient.invalidateQueries({ queryKey: ['extrato'] })
       queryClient.invalidateQueries({ queryKey: ['saldo'] })
       queryClient.invalidateQueries({ queryKey: ['saldo_elegiveis_modal'] })
-      const msg = !isEditing && migrarSaldoAtivo && migrarSaldoOrigemId && Number(migrarSaldoHoras) > 0
-        ? `Contrato ${data.numero} cadastrado e ${Number(migrarSaldoHoras).toFixed(1)}h aproveitadas com sucesso!`
-        : `Contrato ${data.numero} ${isEditing ? 'atualizado' : 'cadastrado'} com sucesso!`
+      queryClient.invalidateQueries({ queryKey: ['saldo_devedores_modal'] })
+
+      let msg = `Contrato ${data.numero} ${isEditing ? 'atualizado' : 'cadastrado'} com sucesso!`
+      if (!isEditing) {
+        if (compensarDebitoAtivo && compensarDebitoDestinoId && Number(compensarDebitoHoras) > 0) {
+          msg = `Contrato ${data.numero} cadastrado e ${Number(compensarDebitoHoras).toFixed(1)}h abatidas para quitação de débito do contrato anterior!`
+        } else if (migrarSaldoAtivo && migrarSaldoOrigemId && Number(migrarSaldoHoras) > 0) {
+          msg = `Contrato ${data.numero} cadastrado e ${Number(migrarSaldoHoras).toFixed(1)}h aproveitadas com sucesso!`
+        }
+      }
+
       toast.success(msg, isEditing ? 'Contrato Atualizado' : 'Contrato Criado')
       onClose()
     },
@@ -555,6 +605,139 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
                           {horasContratadas}h contratadas + {migrarSaldoHoras || 0}h resgatadas = <strong>{(Number(horasContratadas || 0) + Number(migrarSaldoHoras || 0)).toFixed(1)}h</strong>
                         </span>
                       </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Sugestão Inteligente de Compensação / Quitação de Saldo Devedor */}
+              {!isEditing && contratosDevedores.length > 0 && (
+                <div className="p-4 bg-gradient-to-r from-sky-50 to-indigo-50 dark:from-sky-950/40 dark:to-indigo-950/40 border border-sky-200 dark:border-sky-800/80 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sky-900 dark:text-sky-300 text-xs font-black">
+                      <Scale className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
+                      <span>Passivo Técnico / Contrato Devedor Identificado!</span>
+                    </div>
+                    <label className="inline-flex items-center gap-1.5 text-xs font-black text-sky-700 dark:text-sky-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={compensarDebitoAtivo}
+                        onChange={(e) => setCompensarDebitoAtivo(e.target.checked)}
+                        className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 cursor-pointer"
+                      />
+                      <span>Compensar Débito</span>
+                    </label>
+                  </div>
+
+                  {compensarDebitoAtivo && (
+                    <div className="space-y-2.5 pt-1">
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                        Este cliente possui horas devedoras em contrato anterior. Deseja abater da franquia deste novo contrato para regularizar a pendência?
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                            Contrato Devedor (Regularizar)
+                          </label>
+                          <select
+                            value={compensarDebitoDestinoId}
+                            onChange={(e) => {
+                              const dId = Number(e.target.value)
+                              setCompensarDebitoDestinoId(dId)
+                              const opt = contratosDevedores.find((c) => c.id === dId)
+                              if (opt) {
+                                const maxD = Number(opt.valor_devedor)
+                                const hNum = Number(horasContratadas) || 100
+                                setCompensarDebitoHoras(String(Math.min(hNum, maxD)))
+                              }
+                            }}
+                            className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 font-bold text-slate-900 dark:text-slate-100 shadow-2xs cursor-pointer"
+                          >
+                            {contratosDevedores.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.numero} — Saldo: {c.saldo}h ({c.status_display})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                              Horas a Abater do Novo
+                            </label>
+                            {(() => {
+                              const sel = contratosDevedores.find((c) => c.id === Number(compensarDebitoDestinoId))
+                              const maxD = sel ? Number(sel.valor_devedor) : 0
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const hNum = Number(horasContratadas) || 100
+                                    setCompensarDebitoHoras(String(Math.min(hNum, maxD)))
+                                  }}
+                                  className="text-[10px] font-bold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer"
+                                >
+                                  Quitar Total ({maxD}h)
+                                </button>
+                              )
+                            })()}
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              step="0.5"
+                              min="0.5"
+                              max={(() => {
+                                const sel = contratosDevedores.find((c) => c.id === Number(compensarDebitoDestinoId))
+                                const maxD = sel ? Number(sel.valor_devedor) : 0
+                                return Math.min(Number(horasContratadas || 100), maxD)
+                              })()}
+                              value={compensarDebitoHoras}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                const sel = contratosDevedores.find((c) => c.id === Number(compensarDebitoDestinoId))
+                                const maxD = sel ? Number(sel.valor_devedor) : 0
+                                const teto = Math.min(Number(horasContratadas || 100), maxD)
+                                if (Number(val) > teto) {
+                                  setCompensarDebitoHoras(String(teto))
+                                } else {
+                                  setCompensarDebitoHoras(val)
+                                }
+                              }}
+                              className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 pr-14 font-black text-sky-700 dark:text-sky-400 shadow-2xs"
+                            />
+                            <span className="absolute right-3 top-2.5 text-xs font-black text-slate-400">horas</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Projeção de Encontro de Contas */}
+                      {(() => {
+                        const sel = contratosDevedores.find((c) => c.id === Number(compensarDebitoDestinoId))
+                        const divida = sel ? Number(sel.valor_devedor) : 0
+                        const abatido = Number(compensarDebitoHoras || 0)
+                        const saldoInicialNovo = Math.max(0, Number(horasContratadas || 0) - abatido)
+                        const saldoFinalDevedor = -divida + abatido
+
+                        return (
+                          <div className="p-2.5 bg-white/70 dark:bg-slate-900/60 rounded-xl border border-sky-200/60 dark:border-sky-800/40 text-[11px] text-sky-900 dark:text-sky-300 space-y-1 font-bold">
+                            <div className="flex items-center justify-between">
+                              <span>Saldo Inicial do Novo Contrato:</span>
+                              <span className="text-indigo-600 dark:text-indigo-400">
+                                {horasContratadas}h - {abatido}h = <strong>{saldoInicialNovo.toFixed(1)}h</strong>
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between pt-0.5 border-t border-slate-200 dark:border-slate-800">
+                              <span>Situação do Contrato Anterior ({sel?.numero}):</span>
+                              <span className={saldoFinalDevedor === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                                {-divida}h + {abatido}h = <strong>{saldoFinalDevedor.toFixed(1)}h {saldoFinalDevedor === 0 ? '✓ (Quitado)' : '(Parcial)'}</strong>
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })()}
                     </div>
                   )}
                 </div>
