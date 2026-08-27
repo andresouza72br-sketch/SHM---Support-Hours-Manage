@@ -113,3 +113,96 @@ class SaldoService:
         )
 
         return reab
+
+    @staticmethod
+    @transaction.atomic
+    def migrar_saldo_contratos_vencidos(
+        contrato_origem_id,
+        contrato_destino_id,
+        quantidade: Decimal = None,
+        autor=None,
+        motivo: str = None,
+        ip_origem: str = None,
+        user_agent: str = None,
+    ) -> dict:
+        from apps.contratos.models import ContratoAuditLog, TipoEventoContratoAudit
+
+        c_origem = Contrato.objects.select_for_update().get(id=contrato_origem_id)
+        c_destino = Contrato.objects.select_for_update().get(id=contrato_destino_id)
+
+        if c_origem.cliente_id != c_destino.cliente_id:
+            raise ValidationError("Transferência permitida apenas entre contratos do mesmo cliente.")
+
+        if c_origem.id == c_destino.id:
+            raise ValidationError("O contrato de origem e destino não podem ser iguais.")
+
+        if c_origem.saldo <= 0:
+            raise ValidationError("O contrato de origem não possui saldo positivo para migração.")
+
+        qtd_migrar = Decimal(str(quantidade)) if quantidade is not None and Decimal(str(quantidade)) > 0 else c_origem.saldo
+        if qtd_migrar > c_origem.saldo:
+            raise ValidationError(f"A quantidade solicitada ({qtd_migrar}h) é superior ao saldo remanescente disponível ({c_origem.saldo}h).")
+
+        motivo_final = motivo or f"Aproveitamento e migração de saldo remanescente do contrato encerrado {c_origem.numero}"
+
+        transf = TransferenciaSaldo.objects.create(
+            contrato_origem=c_origem,
+            contrato_destino=c_destino,
+            quantidade=qtd_migrar,
+            motivo=motivo_final,
+            autor=autor,
+        )
+
+        c_origem.saldo -= qtd_migrar
+        c_origem.save(update_fields=["saldo", "atualizado_em"])
+        HistoricoSaldo.objects.create(
+            contrato=c_origem,
+            tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_ENVIO,
+            quantidade=-qtd_migrar,
+            saldo_resultante=c_origem.saldo,
+            autor=autor,
+            descricao=f"Migração de saldo de contrato encerrado enviada para {c_destino.numero}: {motivo_final}",
+            ip_origem=ip_origem,
+            user_agent=user_agent,
+        )
+
+        c_destino.saldo += qtd_migrar
+        c_destino.save(update_fields=["saldo", "atualizado_em"])
+        HistoricoSaldo.objects.create(
+            contrato=c_destino,
+            tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_RECEBIMENTO,
+            quantidade=qtd_migrar,
+            saldo_resultante=c_destino.saldo,
+            autor=autor,
+            descricao=f"Migração de saldo de contrato encerrado recebida de {c_origem.numero}: {motivo_final}",
+            ip_origem=ip_origem,
+            user_agent=user_agent,
+        )
+
+        # Registros de Auditoria Contratual Dupla
+        usuario_str = (autor.get_full_name() or autor.username) if autor else "Administrador"
+        ContratoAuditLog.objects.create(
+            contrato=c_origem,
+            tipo_evento=TipoEventoContratoAudit.ALTERACAO,
+            descricao=f"Migração/aproveitamento de {qtd_migrar:.2f}h para o contrato {c_destino.numero} formalizada por {usuario_str}.",
+            justificativa=motivo_final,
+            usuario=autor,
+            ip_origem=ip_origem,
+            user_agent=user_agent,
+        )
+        ContratoAuditLog.objects.create(
+            contrato=c_destino,
+            tipo_evento=TipoEventoContratoAudit.ALTERACAO,
+            descricao=f"Recebimento de migração/aproveitamento de {qtd_migrar:.2f}h do contrato encerrado {c_origem.numero} formalizada por {usuario_str}.",
+            justificativa=motivo_final,
+            usuario=autor,
+            ip_origem=ip_origem,
+            user_agent=user_agent,
+        )
+
+        return {
+            "transferencia": transf,
+            "saldo_origem": c_origem.saldo,
+            "saldo_destino": c_destino.saldo,
+            "quantidade": qtd_migrar,
+        }

@@ -15,6 +15,7 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Zap,
 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
@@ -23,6 +24,7 @@ import { useToast } from '../contexts/ToastContext'
 import { TimelineAuditoriaContrato } from '../components/contratos/TimelineAuditoriaContrato'
 import { DocumentosContratoModal } from '../components/contratos/DocumentosContratoModal'
 import { GerenteClienteEmailsModal } from '../components/contratos/GerenteClienteEmailsModal'
+import { MigracaoSaldoModal } from '../components/contratos/MigracaoSaldoModal'
 import type { ContratoDocumento, EmailNotificacao } from '../types'
 
 export function ExtratoContratoPage() {
@@ -35,7 +37,9 @@ export function ExtratoContratoPage() {
   const [showScrollTopBtn, setShowScrollTopBtn] = useState(false)
   const [isDocsModalOpen, setIsDocsModalOpen] = useState(false)
   const [isEmailsModalOpen, setIsEmailsModalOpen] = useState(false)
+  const [isMigracaoModalOpen, setIsMigracaoModalOpen] = useState(false)
   const [downloadingDocId, setDownloadingDocId] = useState<number | null>(null)
+
 
   const isEmpresaAdmin = user?.role === 'EMPRESA_ADMIN' || user?.is_superuser || user?.is_staff
   const isClienteGerente = user?.role === 'CLIENTE_GERENTE'
@@ -198,17 +202,31 @@ export function ExtratoContratoPage() {
             <span>{isEmpresa ? 'Voltar para Gestão de Contratos' : 'Voltar ao Painel Principal'}</span>
           </Link>
 
-          {podeAcessarRecursosRestritos && (
-          <button
-            onClick={handleImprimirExtrato}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-300 dark:border-slate-700 transition cursor-pointer"
-            title="Imprimir ou salvar PDF (Auditoria registrada automaticamente)"
-          >
-            <Printer className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-            <span>Imprimir Extrato / PDF</span>
-          </button>
-          )}
+          <div className="flex items-center gap-2">
+            {isEmpresaAdmin && !isCancelado && (
+              <button
+                onClick={() => setIsMigracaoModalOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-indigo-600 text-white shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-indigo-500 transition cursor-pointer"
+                title="Aproveitar ou migrar saldo de contratos vencidos deste cliente"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Aproveitar Saldo Vencido</span>
+              </button>
+            )}
+
+            {podeAcessarRecursosRestritos && (
+              <button
+                onClick={handleImprimirExtrato}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-300 dark:border-slate-700 transition cursor-pointer"
+                title="Imprimir ou salvar PDF (Auditoria registrada automaticamente)"
+              >
+                <Printer className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                <span>Imprimir Extrato / PDF</span>
+              </button>
+            )}
+          </div>
         </div>
+
 
         {/* Corporate Contract Banner with Client Logo */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
@@ -595,6 +613,13 @@ export function ExtratoContratoPage() {
         onClose={() => setIsEmailsModalOpen(false)}
         contrato={contrato}
       />
+
+      <MigracaoSaldoModal
+        isOpen={isMigracaoModalOpen}
+        onClose={() => setIsMigracaoModalOpen(false)}
+        contratoDestino={contrato}
+      />
     </AppLayout>
+
   )
 }

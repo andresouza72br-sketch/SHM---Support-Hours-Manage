@@ -1,11 +1,16 @@
-﻿from decimal import Decimal
+from decimal import Decimal
+from django.db import models
+from django.utils import timezone
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
+from apps.contratos.models import Contrato, StatusContrato
 from apps.saldo.models import HistoricoSaldo
 from apps.saldo.serializers import HistoricoSaldoSerializer
 from apps.saldo.services import SaldoService
 from apps.core.permissions import IsEmpresaAdmin
+from apps.core.utils import get_client_ip, get_client_user_agent
 
 class SaldoViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = HistoricoSaldo.objects.select_related("contrato", "autor", "pedido", "ciclo").all()
@@ -39,3 +44,71 @@ class SaldoViewSet(viewsets.ReadOnlyModelViewSet):
         motivo = request.data.get("motivo", "")
         reab = SaldoService.reabastecer(contrato_id, quantidade, request.user, motivo)
         return Response({"detail": "Reabastecimento realizado com sucesso.", "id": reab.id})
+
+    @action(detail=False, methods=["get"], permission_classes=[IsEmpresaAdmin])
+    def contratos_elegiveis(self, request):
+        cliente_id = request.query_params.get("cliente_id")
+        destino_id = request.query_params.get("destino_id")
+        if not cliente_id:
+            raise ValidationError({"cliente_id": "Parâmetro obrigatório."})
+
+        hoje = timezone.localdate()
+        qs = Contrato.objects.filter(
+            cliente_id=cliente_id,
+            saldo__gt=0,
+        ).filter(
+            models.Q(status__in=[StatusContrato.EXPIRADO, StatusContrato.CONCLUIDO])
+            | models.Q(data_termino__lt=hoje)
+        )
+        if destino_id:
+            qs = qs.exclude(id=destino_id)
+
+        dados = [
+            {
+                "id": c.id,
+                "numero": c.numero,
+                "saldo": str(c.saldo),
+                "horas_contratadas": str(c.horas_contratadas),
+                "horas_consumidas": str(c.horas_consumidas),
+                "status": c.status,
+                "status_display": c.get_status_display(),
+                "data_inicio": c.data_inicio.isoformat() if c.data_inicio else None,
+                "data_termino": c.data_termino.isoformat() if c.data_termino else None,
+                "data_fim_carencia": c.data_fim_carencia.isoformat() if c.data_fim_carencia else None,
+                "em_carencia": c.em_carencia,
+            }
+            for c in qs.order_by("-data_termino", "-criado_em")
+        ]
+        return Response(dados)
+
+    @action(detail=False, methods=["post"], permission_classes=[IsEmpresaAdmin])
+    def migrar(self, request):
+        origem = request.data.get("contrato_origem")
+        destino = request.data.get("contrato_destino")
+        if not origem or not destino:
+            raise ValidationError({"detail": "contrato_origem e contrato_destino são obrigatórios."})
+
+        qtd_raw = request.data.get("quantidade")
+        quantidade = Decimal(str(qtd_raw)) if qtd_raw not in (None, "", 0, "0") else None
+        motivo = request.data.get("motivo", "").strip()
+
+        ip = get_client_ip(request)
+        ua = get_client_user_agent(request)
+
+        res = SaldoService.migrar_saldo_contratos_vencidos(
+            contrato_origem_id=origem,
+            contrato_destino_id=destino,
+            quantidade=quantidade,
+            autor=request.user,
+            motivo=motivo,
+            ip_origem=ip,
+            user_agent=ua,
+        )
+
+        return Response({
+            "detail": "Migração e aproveitamento de saldo executados com sucesso!",
+            "transferencia_id": res["transferencia"].id,
+            "quantidade": str(res["quantidade"]),
+            "saldo_origem": str(res["saldo_origem"]),
+            "saldo_destino": str(res["saldo_destino"]),
+        })
