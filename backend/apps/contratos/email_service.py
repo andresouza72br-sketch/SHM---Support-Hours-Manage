@@ -1064,6 +1064,13 @@ Equipe SHM — Support Hours Manager
                 ip_origem=ip,
                 user_agent=ua,
             )
+            ContratoAuditLog.objects.create(
+                contrato=contrato_origem,
+                tipo_evento=TipoEventoContratoAudit.CONFIRMACAO_EMAIL,
+                descricao=f"Notificação de aproveitamento de {quantidade:.1f}h enviada para {len(destinatarios_emails)} destinatários ({', '.join(sorted(destinatarios_emails))}).",
+                ip_origem=ip,
+                user_agent=ua,
+            )
             return True
         except Exception as err:
             logger.error(f"Erro ao enviar e-mail de migração de saldo: {err}", exc_info=True)
@@ -1238,6 +1245,13 @@ Equipe SHM — Support Hours Manager
 
             ContratoAuditLog.objects.create(
                 contrato=contrato_novo,
+                tipo_evento=TipoEventoContratoAudit.CONFIRMACAO_EMAIL,
+                descricao=f"Notificação de compensação de débito de {quantidade:.1f}h enviada para {len(destinatarios_emails)} destinatários ({', '.join(sorted(destinatarios_emails))}).",
+                ip_origem=ip,
+                user_agent=ua,
+            )
+            ContratoAuditLog.objects.create(
+                contrato=contrato_devedor,
                 tipo_evento=TipoEventoContratoAudit.CONFIRMACAO_EMAIL,
                 descricao=f"Notificação de compensação de débito de {quantidade:.1f}h enviada para {len(destinatarios_emails)} destinatários ({', '.join(sorted(destinatarios_emails))}).",
                 ip_origem=ip,

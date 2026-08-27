@@ -213,6 +213,35 @@ class SaldoService:
         except Exception:
             pass
 
+        # Notificações In-App no sistema para gestores do cliente e administradores
+        try:
+            from apps.notificacoes.models import Notification
+            from apps.accounts.models import User, UserRole
+
+            dest_users = set()
+            cli = c_origem.cliente or c_destino.cliente
+            if cli:
+                for u in User.objects.filter(cliente=cli, role=UserRole.CLIENTE_GERENTE, is_active=True):
+                    dest_users.add(u)
+            for a in User.objects.filter(role=UserRole.EMPRESA_ADMIN, is_active=True):
+                dest_users.add(a)
+            if autor:
+                dest_users.discard(autor)
+
+            notifs = [
+                Notification(
+                    usuario=u,
+                    titulo=f"⚡ Aproveitamento de Saldo: {qtd_migrar:.1f}h",
+                    mensagem=f"{qtd_migrar:.1f}h do contrato encerrado {c_origem.numero} foram aproveitadas no contrato {c_destino.numero}.",
+                    url=f"/contratos/{c_destino.id}/extrato",
+                )
+                for u in dest_users
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
+        except Exception:
+            pass
+
         return {
             "transferencia": transf,
             "saldo_origem": c_origem.saldo,
@@ -321,6 +350,35 @@ class SaldoService:
                 autor=autor,
                 motivo=motivo_final,
             )
+        except Exception:
+            pass
+
+        # Notificações In-App no sistema para gestores do cliente e administradores
+        try:
+            from apps.notificacoes.models import Notification
+            from apps.accounts.models import User, UserRole
+
+            dest_users = set()
+            cli = c_novo.cliente or c_devedor.cliente
+            if cli:
+                for u in User.objects.filter(cliente=cli, role=UserRole.CLIENTE_GERENTE, is_active=True):
+                    dest_users.add(u)
+            for a in User.objects.filter(role=UserRole.EMPRESA_ADMIN, is_active=True):
+                dest_users.add(a)
+            if autor:
+                dest_users.discard(autor)
+
+            notifs = [
+                Notification(
+                    usuario=u,
+                    titulo=f"⚖️ Compensação de Débito: {quantidade:.1f}h",
+                    mensagem=f"{quantidade:.1f}h foram abatidas do contrato {c_novo.numero} para quitação de saldo devedor do contrato {c_devedor.numero}.",
+                    url=f"/contratos/{c_novo.id}/extrato",
+                )
+                for u in dest_users
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
         except Exception:
             pass
 
