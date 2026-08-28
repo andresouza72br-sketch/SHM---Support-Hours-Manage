@@ -175,7 +175,22 @@ class CicloService:
         ip_origem: str = None,
         user_agent: str = None,
         metodo: str = "APP",
+        justificativa_excedente: str = "",
     ) -> Ciclo:
+        # Validação da regra de tolerância de 30% sobre o orçamento aprovado
+        excesso_tolerancia = False
+        limite_tolerancia = Decimal("0.00")
+        if ciclo.horas_estimadas and ciclo.horas_estimadas > 0:
+            limite_tolerancia = ciclo.horas_estimadas * Decimal("1.30")
+            if ciclo.horas_realizadas > limite_tolerancia:
+                excesso_tolerancia = True
+                if not justificativa_excedente or not justificativa_excedente.strip():
+                    raise ValidationError(
+                        f"Horas realizadas ({ciclo.horas_realizadas}h) excedem o limite de tolerância de 30% sobre o orçamento aprovado ({ciclo.horas_estimadas}h). "
+                        f"Limite permitido sem justificativa: {limite_tolerancia:.2f}h. "
+                        f"Para aceitar o débito integral de {ciclo.horas_realizadas}h do saldo, é obrigatório fornecer uma justificativa de aprovação de exceção."
+                    )
+
         ciclo.status = StatusCiclo.ACEITO
         ciclo.aceito_em = timezone.now()
         ciclo.aceito_por = usuario if (hasattr(usuario, "is_authenticated") and usuario.is_authenticated) else None
@@ -191,6 +206,22 @@ class CicloService:
             "aceito_metodo",
             "atualizado_em",
         ])
+
+        # Auditoria Forense se houve aceite de exceção acima da tolerância de +30%
+        if excesso_tolerancia and ciclo.pedido and ciclo.pedido.contrato:
+            from apps.contratos.models import ContratoAuditLog, TipoEventoContratoAudit
+            ContratoAuditLog.objects.create(
+                contrato=ciclo.pedido.contrato,
+                tipo_evento=TipoEventoContratoAudit.ACEITE,
+                descricao=(
+                    f"Aceite de exceção formalizado para o Ciclo #{ciclo.id} com horas realizadas ({ciclo.horas_realizadas}h) "
+                    f"acima da tolerância de +30% ({limite_tolerancia:.2f}h sobre {ciclo.horas_estimadas}h orçadas)."
+                ),
+                justificativa=f"Justificativa de aprovação do excedente: '{justificativa_excedente.strip()}'",
+                usuario=ciclo.aceito_por,
+                ip_origem=ip_origem,
+                user_agent=user_agent,
+            )
 
         # Débito de saldo real no contrato com compliance forense
         from apps.saldo.services import SaldoService
@@ -224,6 +255,7 @@ class CicloService:
                 ciclo,
                 "ciclo_aceito",
                 usuario_autor=ciclo.aceito_por,
+                justificativa=justificativa_excedente if excesso_tolerancia else "",
                 ip_origem=ip_origem,
                 user_agent=user_agent,
             )

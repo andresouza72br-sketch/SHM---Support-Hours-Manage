@@ -8,12 +8,12 @@ Este documento consolida o roteiro passo a passo para testes funcionais e valida
 
 ## 🔑 1. Tabela de Acessos & Credenciais de Demonstração
 
-| Perfil | Usuário | Senha | Papel no Sistema |
+| Perfil | Usuário / E-mail | Senha | Papel no Sistema |
 | :--- | :--- | :--- | :--- |
-| 👔 **Cliente — Gerente** | `gerente.acme` | `cliente123` | Abre chamados, **aprova orçamentos**, **concede aceite final** e audita o extrato. |
-| 🧑‍💻 **Cliente — Analista** | `analista.acme` | `cliente123` | Abre solicitações e acompanha o status no Kanban. |
-| 🏢 **Empresa — Admin** | `admin` | `admin123` | Gestão de contratos, triagem operacional, criação de ciclos e orçamentação. |
-| 🛠️ **Empresa — Técnico** | `tecnico` | `tecnico123` | Execução técnica, lançamento de tarefas/horas e solicitação de aceite. |
+| 👔 **Cliente — Gerente** | `proj_eng_sw`<br>*(proj.eng.sw@gmail.com)* | `cliente123` | Abre chamados, **aprova orçamentos**, **concede aceite final** e audita o extrato. |
+| 🧑‍💻 **Cliente — Analista** | `andresouza_consultorialinux`<br>*(andresouza.consultorialinux@gmail.com)* | `cliente123` | Abre solicitações e acompanha o status no Kanban. |
+| 🏢 **Empresa — Admin** | `admin`<br>*(andresouza72br@gmail.com)* | `admin123` | Gestão de contratos, triagem operacional, criação de ciclos e orçamentação. |
+| 🛠️ **Empresa — Técnico** | `tecnico`<br>*(workspace.icb@gmail.com)* | `tecnico123` | Execução técnica, lançamento de tarefas/horas e solicitação de aceite. |
 
 ### 🌐 Endereços dos Serviços Locais
 
@@ -33,7 +33,7 @@ http://localhost:8000/admin/
 ```
 
 > [!TIP]
-> **Dica para Testes Concorrentes:** Abra uma **aba normal** no navegador para o perfil **Cliente** (`gerente.acme`) e uma **aba anônima** para a **Empresa** (`admin` ou `tecnico`). Assim você visualiza as ações refletindo em tempo real em ambas as pontas.
+> **Dica para Testes Concorrentes:** Abra uma **aba normal** no navegador para o perfil **Cliente** (`proj_eng_sw`) e uma **aba anônima** para a **Empresa** (`admin` ou `tecnico`). Assim você visualiza as ações refletindo em tempo real em ambas as pontas.
 
 ---
 
@@ -42,7 +42,7 @@ http://localhost:8000/admin/
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Cliente as 👔 Gerente Cliente (Acme)
+    actor Cliente as 👔 Gerente Cliente (AcmeGer)
     participant SHM as 💻 SHM 2.0 Web App
     actor Empresa as 🏢 Equipe Técnica (Empresa)
 
@@ -65,10 +65,10 @@ sequenceDiagram
 http://localhost:5173/login
 ```
 
-- [ ] **1.2.** Clique no atalho rápido **"Gerente Cliente"** ou utilize as credenciais:
+- [ ] **1.2.** Clique no atalho rápido **"Gerente (Acme)"** ou utilize as credenciais:
   - **Usuário:**
   ```text
-  gerente.acme
+  proj_eng_sw
   ```
   - **Senha:**
   ```text
@@ -138,7 +138,7 @@ http://localhost:5173/admin/dashboard
 ### 🧪 Teste Primordial 3: REGRA DE OURO — Aprovação Sem Débito vs Aceite com Débito Real
 
 - [ ] **3.1. Aprovação do Orçamento (Sem Débito):**
-  - Na aba do **Gerente Cliente** (`gerente.acme`), abra o chamado `OS2026080003`.
+  - Na aba do **Gerente Cliente** (`proj_eng_sw`), abra o chamado `OS2026080003`.
   - Clique no botão roxo **"Aprovar Orçamento (6.0h)"**.
   - 🔍 **Validação Crítica:** Verifique a barra lateral esquerda de contratos: **o saldo CONTINUA exatamente em 86.0h** (nenhuma hora é debitada na aprovação do orçamento).
 
@@ -183,7 +183,7 @@ http://localhost:5173/admin/dashboard
 
 ### 🧪 Teste 4: Auditoria do Ledger Imutável no Extrato do Contrato
 
-- [ ] **4.1.** Logado como `gerente.acme`, acesse o extrato do contrato:
+- [ ] **4.1.** Logado como `proj_eng_sw`, acesse o extrato do contrato:
 ```text
 http://localhost:5173/contratos/1/extrato
 ```
@@ -233,7 +233,7 @@ Necessário rever a estimativa para atender apenas ao módulo básico de exporta
 ### 🧪 Teste 7: Feed de Mensagens e Comunicação Técnica do Ciclo
 
 - [ ] **7.1.** Na tela de detalhes de qualquer chamado, role até a seção **Comentários & Histórico do Ciclo**.
-- [ ] **7.2.** Envie uma mensagem como Cliente (`gerente.acme`):
+- [ ] **7.2.** Envie uma mensagem como Cliente (`proj_eng_sw`):
 ```text
 Favor verificar os detalhes do layout e prazos de entrega.
 ```
@@ -242,6 +242,38 @@ Favor verificar os detalhes do layout e prazos de entrega.
 Entendido! Já estamos implementando conforme solicitado.
 ```
 - [ ] **Validação Esperada:** Mensagens são exibidas cronologicamente com identificação de autor, crachá do perfil (`Gerente Cliente` vs `Empresa — Técnico`) e horário exato.
+
+---
+
+### 🧪 Teste 8 (Feature 001): Trava de Tolerância de 30% no Aceite de Ciclos Excedentes
+
+- [ ] **8.1.** Acesse o chamado com ciclo em status *Aguardando Aceite* como `proj_eng_sw`.
+- [ ] **8.2. Cenário A (Dentro da Tolerância de +30%):**
+  - Horas estimadas orçadas: `10.0h`.
+  - Horas reais apontadas: `12.5h` (+25% de acréscimo).
+  - Badge visual no card de ciclo: **Âmbar** (`+25% horas`).
+  - Ao clicar em **"Conceder Aceite"**, a operação é concluída com sucesso e são debitadas `12.5h` no saldo do contrato.
+- [ ] **8.3. Cenário B (Acima da Tolerância de +30% — Bloqueio):**
+  - Horas estimadas orçadas: `10.0h`.
+  - Horas reais apontadas: `14.0h` (+40% de acréscimo).
+  - Badge visual no card de ciclo: **Vermelho de Alerta** (`+40% horas`).
+  - Ao tentar conceder o aceite, o sistema exibe alerta e bloqueia a finalização (`ValidationError: Horas realizadas (14.0h) ultrapassam a tolerância máxima permitida de 30% sobre o orçamento aprovado (teto: 13.0h)`).
+
+---
+
+### 🧪 Teste 9 (Feature 002): Assistente de Migração / Aproveitamento de Saldo
+
+- [ ] **9.1.** Acesse a Gestão de Contratos (`http://localhost:5173/admin/contratos`) como `admin`.
+- [ ] **9.2.** No card do contrato ativo do cliente (ou no Extrato em `http://localhost:5173/contratos/<ID>/extrato`), clique no botão **"⚡ Aproveitar Saldo Vencido"**.
+- [ ] **9.3.** O **Assistente de Migração** abre exibindo:
+  - Lista de contratos expirados/concluídos do mesmo cliente que possuem saldo positivo remanescente.
+  - Seleção do contrato de origem e opções de preenchimento rápido (**Total 100%**, **50%** ou **Customizado**).
+  - Projeção imediata do saldo resultante de ambos os contratos.
+- [ ] **9.4.** Clique em **"Confirmar e Migrar Saldo"**.
+- [ ] **Validação Esperada:**
+  - O saldo do contrato de origem é debitado e o destino recebe o crédito instantaneamente.
+  - Registro de auditoria criado em `ContratoAuditLog` em ambos os contratos.
+  - Dois lançamentos adicionados ao ledger imutável `shm_historico_saldo` (`TRANSFERENCIA_ENVIO` e `TRANSFERENCIA_RECEBIMENTO`).
 
 ---
 
@@ -258,3 +290,6 @@ Entendido! Já estamos implementando conforme solicitado.
 | **TD-02** | Magic Link Público | Usuário Externo | Aprovação segura via token sem autenticação | 🟢 Pronto |
 | **TD-03** | Recusa com Justificativa | Cliente | Rejeição registrada com motivo obrigatório | 🟢 Pronto |
 | **TD-04** | Feed de Comunicação | Todos | Mensagens em tempo real vinculadas ao ciclo | 🟢 Pronto |
+| **TF-01** | Trava de Tolerância de 30% (Feature 001) | Cliente / Sistema | Aceite permitido até +30%; bloqueado com >30% | 🟢 Validado |
+| **TF-02** | Assistente de Migração de Saldo (Feature 002) | Empresa Admin | Aproveitamento de saldo remanescente entre contratos do mesmo cliente | 🟢 Validado |
+

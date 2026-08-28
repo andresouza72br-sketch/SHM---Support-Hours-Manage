@@ -24,6 +24,16 @@ export function ExecucaoCicloPage() {
     refetchInterval: 5000,
   })
 
+  const { data: rawComentarios } = useQuery({
+    queryKey: ['comentarios', id],
+    queryFn: () => (id ? clientService.comunicacao.list(Number(id)) : Promise.resolve([])),
+    enabled: Boolean(id),
+    refetchInterval: 5000,
+  })
+
+  const comentarios = Array.isArray(rawComentarios) ? rawComentarios : []
+  const totalComentarios = comentarios.reduce((acc, c) => acc + 1 + (c.respostas?.length || 0), 0)
+
   const addTarefaMutation = useMutation({
     mutationFn: (data: Partial<Tarefa>) => clientService.tarefas.create(data),
     onSuccess: () => {
@@ -108,10 +118,14 @@ export function ExecucaoCicloPage() {
               
               <Link
                 to={`/pedidos/${ciclo.pedido}?ciclo=${ciclo.id}`}
-                className="w-full justify-center inline-flex items-center gap-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold text-xs px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs transition cursor-pointer"
+                className="w-full justify-center inline-flex items-center gap-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold text-xs px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs transition cursor-pointer"
+                title={`${totalComentarios} comentário(s) neste ciclo`}
               >
                 <MessageSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <span>Ver Comentários</span>
+                <span className="bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-black px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800/60">
+                  {totalComentarios}
+                </span>
               </Link>
             </div>
           </div>
@@ -150,7 +164,6 @@ export function ExecucaoCicloPage() {
                 addTarefaMutation.mutate({
                   ciclo: ciclo.id,
                   descricao: descricaoTarefa.trim(),
-                  horas_estimadas: Number(horasRealizadas),
                   horas_realizadas: Number(horasRealizadas),
                   status: 'realizada',
                   operador: user?.id,

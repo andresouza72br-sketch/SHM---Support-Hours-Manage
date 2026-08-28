@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from decimal import Decimal
 from django.utils import timezone
 from apps.accounts.models import User, UserRole
@@ -159,3 +159,139 @@ class TestWorkflowCiclosESaldo:
 
         assert self.contrato.saldo == Decimal("85.00")
         assert contrato_destino.saldo == Decimal("35.00")
+
+    def test_aceite_ciclo_dentro_da_tolerancia_30_porcento(self):
+        """Ciclo orçado em 10h com 13h realizadas (exatos 30% acima) deve ser aceito normalmente."""
+        pedido = Pedido.objects.create(
+            protocolo="OS2026089001",
+            cliente=self.cliente,
+            contrato=self.contrato,
+            assunto="Demanda Tolerância OK",
+            descricao="Teste de tolerância dentro do limite",
+            criado_por=self.gerente_cliente,
+        )
+        ciclo = CicloService.criar_ciclo(
+            pedido_id=pedido.id,
+            tipo=TipoCiclo.CORRETIVA,
+            contexto="Ajustes permitidos",
+            operador=self.tecnico,
+            horas_estimadas=Decimal("10.00"),
+        )
+        CicloService.apresentar_orcamento(ciclo, Decimal("10.00"))
+        CicloService.aprovar_orcamento(ciclo, self.gerente_cliente)
+        CicloService.iniciar_execucao(ciclo)
+
+        Tarefa.objects.create(
+            ciclo=ciclo,
+            descricao="Execução de tarefas até 13h",
+            horas_realizadas=Decimal("13.00"),
+            status="realizada",
+        )
+        ciclo.refresh_from_db()
+        assert ciclo.horas_realizadas == Decimal("13.00")
+
+        CicloService.solicitar_aceite(ciclo)
+        CicloService.aceitar_ciclo(ciclo, self.gerente_cliente)
+        ciclo.refresh_from_db()
+        assert ciclo.status == StatusCiclo.ACEITO
+
+    def test_aceite_ciclo_acima_da_tolerancia_30_porcento_sem_justificativa_bloqueado(self):
+        """Ciclo orçado em 10h com 13.50h realizadas (35% acima) sem justificativa deve levantar ValidationError."""
+        from django.core.exceptions import ValidationError
+        import pytest
+
+        pedido = Pedido.objects.create(
+            protocolo="OS2026089002",
+            cliente=self.cliente,
+            contrato=self.contrato,
+            assunto="Demanda Tolerância Excedida",
+            descricao="Teste de bloqueio acima de 30%",
+            criado_por=self.gerente_cliente,
+        )
+        ciclo = CicloService.criar_ciclo(
+            pedido_id=pedido.id,
+            tipo=TipoCiclo.EVOLUTIVA,
+            contexto="Excesso não autorizado",
+            operador=self.tecnico,
+            horas_estimadas=Decimal("10.00"),
+        )
+        CicloService.apresentar_orcamento(ciclo, Decimal("10.00"))
+        CicloService.aprovar_orcamento(ciclo, self.gerente_cliente)
+        CicloService.iniciar_execucao(ciclo)
+
+        Tarefa.objects.create(
+            ciclo=ciclo,
+            descricao="Execução excessiva",
+            horas_realizadas=Decimal("13.50"),
+            status="realizada",
+        )
+        ciclo.refresh_from_db()
+        assert ciclo.horas_realizadas == Decimal("13.50")
+
+        CicloService.solicitar_aceite(ciclo)
+
+        with pytest.raises(ValidationError) as excinfo:
+            CicloService.aceitar_ciclo(ciclo, self.gerente_cliente)
+
+        assert "limite de tolerância de 30%" in str(excinfo.value)
+        assert "justificativa de aprovação de exceção" in str(excinfo.value)
+
+    def test_aceite_ciclo_acima_da_tolerancia_30_porcento_com_justificativa_sucesso(self):
+        """Ciclo orçado em 10h com 14h realizadas (+40%) com justificativa formal é aceito e auditado."""
+        from apps.contratos.models import ContratoAuditLog
+
+        pedido = Pedido.objects.create(
+            protocolo="OS2026089003",
+            cliente=self.cliente,
+            contrato=self.contrato,
+            assunto="Demanda Exceção Aprovada",
+            descricao="Teste de aceite com justificativa formal",
+            criado_por=self.gerente_cliente,
+        )
+        ciclo = CicloService.criar_ciclo(
+            pedido_id=pedido.id,
+            tipo=TipoCiclo.EVOLUTIVA,
+            contexto="Complexidade ampliada",
+            operador=self.tecnico,
+            horas_estimadas=Decimal("10.00"),
+        )
+        CicloService.apresentar_orcamento(ciclo, Decimal("10.00"))
+        CicloService.aprovar_orcamento(ciclo, self.gerente_cliente)
+        CicloService.iniciar_execucao(ciclo)
+
+        Tarefa.objects.create(
+            ciclo=ciclo,
+            descricao="Tarefas adicionais necessárias",
+            horas_realizadas=Decimal("14.00"),
+            status="realizada",
+        )
+        ciclo.refresh_from_db()
+        assert ciclo.horas_realizadas == Decimal("14.00")
+
+        CicloService.solicitar_aceite(ciclo)
+        
+        saldo_antes = self.contrato.saldo
+        justificativa_texto = "Aprovado excedente devido à integração com API externa adicional"
+        
+        CicloService.aceitar_ciclo(
+            ciclo,
+            self.gerente_cliente,
+            ip_origem="192.168.1.50",
+            user_agent="Mozilla/5.0 Test",
+            metodo="APP",
+            justificativa_excedente=justificativa_texto,
+        )
+        
+        ciclo.refresh_from_db()
+        self.contrato.refresh_from_db()
+        
+        assert ciclo.status == StatusCiclo.ACEITO
+        assert self.contrato.saldo == saldo_antes - Decimal("14.00")
+        
+        # Valida registro de auditoria forense do contrato
+        audit = ContratoAuditLog.objects.filter(
+            contrato=self.contrato,
+            justificativa__contains=justificativa_texto
+        ).first()
+        assert audit is not None
+        assert "Aceite de exceção formalizado" in audit.descricao

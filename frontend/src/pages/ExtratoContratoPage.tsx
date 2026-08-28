@@ -15,6 +15,9 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Zap,
+  Scale,
+  Building2,
 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
@@ -23,6 +26,7 @@ import { useToast } from '../contexts/ToastContext'
 import { TimelineAuditoriaContrato } from '../components/contratos/TimelineAuditoriaContrato'
 import { DocumentosContratoModal } from '../components/contratos/DocumentosContratoModal'
 import { GerenteClienteEmailsModal } from '../components/contratos/GerenteClienteEmailsModal'
+import { MigracaoSaldoModal } from '../components/contratos/MigracaoSaldoModal'
 import type { ContratoDocumento, EmailNotificacao } from '../types'
 
 export function ExtratoContratoPage() {
@@ -35,7 +39,9 @@ export function ExtratoContratoPage() {
   const [showScrollTopBtn, setShowScrollTopBtn] = useState(false)
   const [isDocsModalOpen, setIsDocsModalOpen] = useState(false)
   const [isEmailsModalOpen, setIsEmailsModalOpen] = useState(false)
+  const [isMigracaoModalOpen, setIsMigracaoModalOpen] = useState(false)
   const [downloadingDocId, setDownloadingDocId] = useState<number | null>(null)
+
 
   const isEmpresaAdmin = user?.role === 'EMPRESA_ADMIN' || user?.is_superuser || user?.is_staff
   const isClienteGerente = user?.role === 'CLIENTE_GERENTE'
@@ -159,11 +165,14 @@ export function ExtratoContratoPage() {
     )
   }
 
-  const { contrato, historico_ciclos = [], auditoria = [] } = data
+  const { contrato, historico_ciclos = [], auditoria = [], conciliacao } = data
   const total = Number(contrato.horas_contratadas) || 1
   const saldo = Number(contrato.saldo) || 0
   const consumido = Number(contrato.horas_consumidas) || 0
   const percentConsumido = Math.min(Math.round((consumido / total) * 100), 100)
+  const creditosMigrados = Number(conciliacao?.creditos_migrados ?? (contrato as any).creditos_migrados) || 0
+  const debitosCompensados = Number(conciliacao?.debitos_compensados ?? (contrato as any).debitos_compensados) || 0
+  const temAjustes = creditosMigrados > 0 || debitosCompensados > 0
   const documentos: ContratoDocumento[] = Array.isArray(contrato.documentos) ? contrato.documentos : []
   const emailsNotificacao: EmailNotificacao[] =
     Array.isArray(contrato.destinatarios) && contrato.destinatarios.length > 0
@@ -198,17 +207,31 @@ export function ExtratoContratoPage() {
             <span>{isEmpresa ? 'Voltar para Gestão de Contratos' : 'Voltar ao Painel Principal'}</span>
           </Link>
 
-          {podeAcessarRecursosRestritos && (
-          <button
-            onClick={handleImprimirExtrato}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-300 dark:border-slate-700 transition cursor-pointer"
-            title="Imprimir ou salvar PDF (Auditoria registrada automaticamente)"
-          >
-            <Printer className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-            <span>Imprimir Extrato / PDF</span>
-          </button>
-          )}
+          <div className="flex items-center gap-2">
+            {isEmpresaAdmin && !isCancelado && (
+              <button
+                onClick={() => setIsMigracaoModalOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-indigo-600 text-white shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-indigo-500 transition cursor-pointer"
+                title="Aproveitar ou migrar saldo de contratos vencidos deste cliente"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Aproveitar Saldo Vencido</span>
+              </button>
+            )}
+
+            {podeAcessarRecursosRestritos && (
+              <button
+                onClick={handleImprimirExtrato}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-300 dark:border-slate-700 transition cursor-pointer"
+                title="Imprimir ou salvar PDF (Auditoria registrada automaticamente)"
+              >
+                <Printer className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                <span>Imprimir Extrato / PDF</span>
+              </button>
+            )}
+          </div>
         </div>
+
 
         {/* Corporate Contract Banner with Client Logo */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
@@ -335,12 +358,69 @@ export function ExtratoContratoPage() {
             <div className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold">{percentConsumido}% do pacote consumido</div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-indigo-200 dark:border-indigo-800 shadow-xs space-y-1 bg-gradient-to-br from-white to-indigo-50/60 dark:from-slate-900 dark:to-indigo-950/30 transition-colors">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-indigo-200 dark:border-indigo-800 shadow-xs space-y-1.5 bg-gradient-to-br from-white to-indigo-50/60 dark:from-slate-900 dark:to-indigo-950/30 transition-colors">
             <div className="text-[11px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">Saldo Disponível</div>
             <div className="text-3xl font-black text-indigo-700 dark:text-indigo-400 tracking-tight">{saldo.toFixed(1)}h</div>
             <div className="text-[11px] text-indigo-600 dark:text-indigo-300 font-bold">Disponível para novos ciclos</div>
           </div>
         </div>
+
+        {/* Demonstrativo Discreto de Conciliação Contratual */}
+        {temAjustes && (
+          <div className="p-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-sm border border-indigo-200/60 dark:border-indigo-800/60">
+                ∑
+              </div>
+              <div>
+                <h4 className="font-black text-slate-900 dark:text-white text-xs">
+                  Demonstrativo de Conciliação de Horas
+                </h4>
+                <p className="text-[10px] text-slate-500 font-medium">
+                  Composição do saldo considerando franquia base e movimentações de crédito/débito
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold shadow-2xs" title="Franquia Original Contratada">
+                <Building2 className="w-3 h-3 text-slate-500 dark:text-slate-400 shrink-0" />
+                <span>{total.toFixed(1)}h</span>
+                <span className="text-[10px] text-slate-400 font-sans font-normal">(franquia)</span>
+              </span>
+
+              {creditosMigrados > 0 && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/60 rounded-xl border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-bold shadow-2xs" title="Créditos de Saldo Resgatado de Contrato Anterior">
+                  <Zap className="w-3 h-3 text-amber-500 shrink-0" />
+                  <span>+{creditosMigrados.toFixed(1)}h</span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-sans font-normal">(resgate)</span>
+                </span>
+              )}
+
+              {debitosCompensados > 0 && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-50 dark:bg-sky-950/60 rounded-xl border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 font-bold shadow-2xs" title="Abatimento de Franquia para Quitação de Débito Técnico">
+                  <Scale className="w-3 h-3 text-sky-500 shrink-0" />
+                  <span>-{debitosCompensados.toFixed(1)}h</span>
+                  <span className="text-[10px] text-sky-600 dark:text-sky-400 font-sans font-normal">(compensação)</span>
+                </span>
+              )}
+
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 dark:bg-rose-950/60 rounded-xl border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-bold shadow-2xs" title="Horas Consumidas em Ciclos Executados">
+                <Clock className="w-3 h-3 text-rose-500 shrink-0" />
+                <span>-{consumido.toFixed(1)}h</span>
+                <span className="text-[10px] text-rose-600 dark:text-rose-400 font-sans font-normal">(consumo)</span>
+              </span>
+
+              <span className="font-bold text-slate-400 mx-0.5">=</span>
+
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/80 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-black shadow-xs" title="Saldo Líquido Disponível Atual">
+                <CheckCircle2 className="w-3 h-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <span>{saldo.toFixed(1)}h</span>
+                <span className="text-[10px] font-sans font-semibold">(saldo atual)</span>
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Section: Documentos Anexos (Limite 5) & Notificações */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -595,6 +675,13 @@ export function ExtratoContratoPage() {
         onClose={() => setIsEmailsModalOpen(false)}
         contrato={contrato}
       />
+
+      <MigracaoSaldoModal
+        isOpen={isMigracaoModalOpen}
+        onClose={() => setIsMigracaoModalOpen(false)}
+        contratoDestino={contrato}
+      />
     </AppLayout>
+
   )
 }

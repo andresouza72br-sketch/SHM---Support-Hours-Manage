@@ -12,6 +12,7 @@ export function MagicLinkPage() {
   const [sucesso, setSucesso] = useState<string | null>(null)
   const [nota, setNota] = useState(0)
   const [comentario, setComentario] = useState('')
+  const [justificativaExcedente, setJustificativaExcedente] = useState('')
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['magic_link', token],
@@ -21,7 +22,7 @@ export function MagicLinkPage() {
   })
 
   const actionMutation = useMutation({
-    mutationFn: (payload: { acao: string; nota?: number; comentario?: string }) =>
+    mutationFn: (payload: { acao: string; nota?: number; comentario?: string; justificativa_excedente?: string }) =>
       token ? clientService.ciclos.postMagicLink(token, payload) : Promise.reject(),
     onSuccess: (res: any) => {
       setSucesso(res.detail)
@@ -92,7 +93,7 @@ export function MagicLinkPage() {
     )
   }
 
-  const { ciclo, pedido_protocolo, pedido_assunto, cliente_nome, contrato_numero, contrato_saldo, tipo_acao, expirado, expira_em, usado, usado_em } = data
+  const { ciclo, pedido_protocolo, pedido_assunto, cliente_nome, contrato_numero, contrato_saldo, tipo_acao, excede_tolerancia, limite_tolerancia, expirado, expira_em, usado, usado_em } = data
 
   const formatarData = (isoStr: string | null) => {
     if (!isoStr) return ''
@@ -242,10 +243,32 @@ export function MagicLinkPage() {
             {/* A3: Aceite Final de Ciclo */}
             {(ciclo.status === 'aguardando_aceite' || tipo_acao === 'aceite_ciclo') && (
               <div className="space-y-4">
+                {excede_tolerancia && (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl space-y-2 text-left">
+                    <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400 text-xs font-black">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>Aceite de Exceção — Horas Acima da Tolerância (+30%)</span>
+                    </div>
+                    <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed font-medium">
+                      O total realizado (<strong>{Number(ciclo.horas_realizadas).toFixed(1)}h</strong>) excede o orçamento aprovado (<strong>{Number(ciclo.horas_estimadas).toFixed(1)}h</strong>) acrescido da margem contratual de 30% (<strong>{Number(limite_tolerancia).toFixed(1)}h</strong>).
+                    </p>
+                    <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                      Para autorizar o débito integral de <strong>{Number(ciclo.horas_realizadas).toFixed(1)}h</strong> do contrato, é obrigatório informar a justificativa de aprovação desta exceção (gravada na auditoria forense):
+                    </p>
+                    <textarea
+                      rows={3}
+                      value={justificativaExcedente}
+                      onChange={(e) => setJustificativaExcedente(e.target.value)}
+                      placeholder="Descreva o motivo da aprovação do excedente de horas..."
+                      className="w-full text-xs p-3 border border-amber-300 dark:border-amber-700 rounded-xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    />
+                  </div>
+                )}
+
                 <button
-                  disabled={actionMutation.isPending}
-                  onClick={() => actionMutation.mutate({ acao: 'aceitar' })}
-                  className="w-full py-4 text-sm font-black text-white bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-2xl shadow-xl shadow-emerald-500/25 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait flex items-center justify-center gap-2.5"
+                  disabled={actionMutation.isPending || (excede_tolerancia && !justificativaExcedente.trim())}
+                  onClick={() => actionMutation.mutate({ acao: 'aceitar', justificativa_excedente: justificativaExcedente })}
+                  className="w-full py-4 text-sm font-black text-white bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-2xl shadow-xl shadow-emerald-500/25 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5"
                 >
                   {actionMutation.isPending ? (
                     <>
@@ -255,13 +278,17 @@ export function MagicLinkPage() {
                   ) : (
                     <>
                       <CheckCircle2 className="w-5 h-5" />
-                      <span>Aceitar Entrega / De acordo em Debitar horas realizadas ({Number(ciclo.horas_realizadas).toFixed(1)}h)</span>
+                      <span>
+                        {excede_tolerancia
+                          ? `Autorizar Débito de Exceção & Aceitar (${Number(ciclo.horas_realizadas).toFixed(1)}h)`
+                          : `Aceitar Entrega / De acordo em Debitar horas realizadas (${Number(ciclo.horas_realizadas).toFixed(1)}h)`}
+                      </span>
                     </>
                   )}
                 </button>
 
                 {/* Caixa Informativa sobre Recusa de Aceite Exclusiva via App */}
-                <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 space-y-1.5 text-left">
                   <div className="font-extrabold text-slate-800 dark:text-white flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4 text-amber-500" />
                     <span>Identificou inconformidades na entrega?</span>

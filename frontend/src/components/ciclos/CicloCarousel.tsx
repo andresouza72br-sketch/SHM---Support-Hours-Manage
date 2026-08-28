@@ -464,7 +464,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
   }, [searchParams, ciclos])
 
 
-  const [modalType, setModalType] = useState<'rejeitar' | 'recusar' | null>(null)
+  const [modalType, setModalType] = useState<'rejeitar' | 'recusar' | 'aceitar_excecao' | null>(null)
   const [justificativa, setJustificativa] = useState('')
   const [comentarioTexto, setComentarioTexto] = useState('')
 
@@ -483,6 +483,16 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
 
   const comentarios = Array.isArray(rawComentarios) ? rawComentarios : []
   const totalMensagens = comentarios.reduce((acc, c) => acc + 1 + (c.respostas?.length || 0), 0)
+  const totalLikes = comentarios.reduce((acc, c) => {
+    const mainLikes = c.reacoes_count || 0
+    const replyLikes = (c.respostas || []).reduce((rAcc, r) => rAcc + (r.reacoes_count || 0), 0)
+    return acc + mainLikes + replyLikes
+  }, 0)
+
+  const horasEstimadasNum = Number(cicloAtual?.horas_estimadas) || 0
+  const horasRealizadasNum = Number(cicloAtual?.horas_realizadas) || 0
+  const limiteTolerancia = horasEstimadasNum * 1.3
+  const excedeTolerancia = horasEstimadasNum > 0 && horasRealizadasNum > limiteTolerancia
 
   const refreshData = () => {
     queryClient.invalidateQueries({ queryKey: ['pedido', pedido.id] })
@@ -525,8 +535,11 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
   })
 
   const aceitarMutation = useMutation({
-    mutationFn: (id: number) => clientService.ciclos.aceitar(id),
+    mutationFn: ({ id, justificativa_excedente }: { id: number; justificativa_excedente?: string }) =>
+      clientService.ciclos.aceitar(id, justificativa_excedente),
     onSuccess: () => {
+      setModalType(null)
+      setJustificativa('')
       refreshData()
       toast.success(`Aceite final concedido (${Number(cicloAtual?.horas_realizadas).toFixed(1)}h debitadas do saldo)!`, 'Aceite Concluído')
       // Abre modal de avaliação automaticamente após aceite (se não foi pulado)
@@ -534,7 +547,10 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
         setShowAvaliacaoModal(true)
       }
     },
-    onError: () => toast.error('Erro ao conceder aceite.', 'Falha'),
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || 'Erro ao conceder aceite.'
+      toast.error(msg, 'Falha')
+    },
   })
 
   const recusarMutation = useMutation({
@@ -615,10 +631,17 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                   <span className={`w-2 h-2 rounded-full ${getCicloStatusDot(cicloAtual.status)}`} />
                   <span>{cicloAtual.status_display}</span>
                 </span>
-                {/* Contador de comentários no header */}
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
-                  <MessageSquare className="w-3 h-3 text-indigo-500" />
-                  {totalMensagens}
+                {/* Contador de comentários e likes na mesma etiqueta */}
+                <span className="inline-flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs">
+                  <span className="inline-flex items-center gap-1" title={`${totalMensagens} comentário(s)`}>
+                    <MessageSquare className="w-3 h-3 text-indigo-500" />
+                    <span>{totalMensagens}</span>
+                  </span>
+                  <span className="w-px h-3 bg-slate-300 dark:bg-slate-700" />
+                  <span className="inline-flex items-center gap-1" title={`${totalLikes} curtida(s)`}>
+                    <ThumbsUp className="w-3 h-3 text-indigo-500" />
+                    <span>{totalLikes}</span>
+                  </span>
                 </span>
                 {/* Badge de avaliação se aceito */}
                 {cicloAtual.status === 'aceito' && cicloAtual.avaliacao && (
@@ -725,7 +748,32 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             <div className="w-px h-8 bg-slate-300 dark:bg-slate-700 shrink-0" />
             <div className="text-center flex flex-col items-center justify-center min-w-[70px]">
               <div className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-wider">Realizadas</div>
-              <div className="text-lg font-black text-indigo-700 dark:text-indigo-400">{Number(cicloAtual.horas_realizadas).toFixed(1)}h</div>
+              <div className={`text-lg font-black ${
+                excedeTolerancia
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : horasEstimadasNum > 0 && horasRealizadasNum > horasEstimadasNum
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : horasEstimadasNum > 0 && horasRealizadasNum < horasEstimadasNum && horasRealizadasNum > 0
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-indigo-700 dark:text-indigo-400'
+              }`}>
+                {horasRealizadasNum.toFixed(1)}h
+              </div>
+              {excedeTolerancia && (
+                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 mt-0.5 border border-rose-200 dark:border-rose-800/60" title={`Excede a tolerância de +30% (${limiteTolerancia.toFixed(1)}h). Exige justificativa de aprovação no aceite.`}>
+                  &gt;+30% Exceção
+                </span>
+              )}
+              {!excedeTolerancia && horasEstimadasNum > 0 && horasRealizadasNum > horasEstimadasNum && (
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 mt-0.5" title="Dentro da margem de 30% de tolerância">
+                  +{(((horasRealizadasNum - horasEstimadasNum) / horasEstimadasNum) * 100).toFixed(0)}%
+                </span>
+              )}
+              {horasEstimadasNum > 0 && horasRealizadasNum < horasEstimadasNum && horasRealizadasNum > 0 && (
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 mt-0.5 border border-emerald-200/60 dark:border-emerald-800/40" title={`Economia de ${(((horasEstimadasNum - horasRealizadasNum) / horasEstimadasNum) * 100).toFixed(0)}% sobre o orçamento aprovado`}>
+                  -{(((horasEstimadasNum - horasRealizadasNum) / horasEstimadasNum) * 100).toFixed(0)}%
+                </span>
+              )}
             </div>
             <div className="w-px h-8 bg-slate-300 dark:bg-slate-700 shrink-0" />
             <div className="text-center flex flex-col items-center justify-center min-w-[70px]">
@@ -751,8 +799,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${t.status === 'realizada' ? 'bg-emerald-600 ring-2 ring-emerald-100 dark:ring-emerald-950' : 'bg-amber-500 ring-2 ring-amber-100 dark:ring-amber-950'}`} />
                   <span className="font-bold text-slate-900 dark:text-slate-100">{t.descricao}</span>
                 </div>
-                <div className="flex items-center gap-4 text-xs font-bold shrink-0 self-end sm:self-auto">
-                  <span className="text-slate-600 dark:text-slate-400 font-semibold">Estimadas: {Number(t.horas_estimadas).toFixed(1)}h</span>
+                <div className="flex items-center gap-2 text-xs font-bold shrink-0 self-end sm:self-auto">
                   <span className="text-indigo-800 dark:text-indigo-300 font-black bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 shadow-2xs">
                     Gasto: {Number(t.horas_realizadas).toFixed(1)}h
                   </span>
@@ -860,13 +907,19 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                 </button>
                 <button
                   disabled={aceitarMutation.isPending}
-                  onClick={() => aceitarMutation.mutate(cicloAtual.id)}
+                  onClick={() => {
+                    if (excedeTolerancia) {
+                      setModalType('aceitar_excecao')
+                    } else {
+                      aceitarMutation.mutate({ id: cicloAtual.id })
+                    }
+                  }}
                   className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
                 >
                   {aceitarMutation.isPending ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /><span>Concedendo Aceite Final...</span></>
                   ) : (
-                    <span>Conceder Aceite Final ({Number(cicloAtual.horas_realizadas).toFixed(1)}h)</span>
+                    <span>Conceder Aceite Final ({horasRealizadasNum.toFixed(1)}h)</span>
                   )}
                 </button>
               </>
@@ -906,52 +959,100 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
         </div>
       </div>
 
-      {/* ── Modal Justificativa ── */}
+      {/* ── Modal Justificativa (Rejeição / Recusa / Aceite de Exceção) ── */}
       {modalType && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-4 border border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-extrabold text-base">
-              <AlertTriangle className="w-5 h-5" />
-              <span>{modalType === 'rejeitar' ? 'Rejeitar Orçamento' : 'Recusar Aceite de Conclusão'}</span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Por favor, informe a justificativa técnica para que nossa equipe possa reavaliar o escopo e realizar os ajustes necessários:
-            </p>
-            <textarea
-              rows={4}
-              value={justificativa}
-              onChange={(e) => setJustificativa(e.target.value)}
-              placeholder="Descreva o motivo da recusa ou pendências identificadas..."
-              className="w-full text-xs p-3.5 border border-slate-300 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 dark:bg-slate-800 font-medium text-slate-800 dark:text-slate-100"
-            />
-            <div className="flex justify-end gap-2.5 pt-2">
-              <button
-                disabled={rejeitarMutation.isPending || recusarMutation.isPending}
-                onClick={() => { setModalType(null); setJustificativa('') }}
-                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                disabled={!justificativa.trim() || rejeitarMutation.isPending || recusarMutation.isPending}
-                onClick={() => {
-                  if (modalType === 'rejeitar') {
-                    rejeitarMutation.mutate({ id: cicloAtual.id, justificativa })
-                  } else {
-                    recusarMutation.mutate({ id: cicloAtual.id, justificativa })
-                  }
-                }}
-                className="inline-flex items-center gap-2 px-5 py-2 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-50 disabled:cursor-wait shadow-sm cursor-pointer"
-              >
-                {rejeitarMutation.isPending ? (
-                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Rejeitando Orçamento...</span></>
-                ) : recusarMutation.isPending ? (
-                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Recusando Aceite...</span></>
-                ) : (
-                  <span>Confirmar Recusa</span>
-                )}
-              </button>
-            </div>
+            {modalType === 'aceitar_excecao' ? (
+              <>
+                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-extrabold text-base">
+                  <AlertTriangle className="w-5 h-5" />
+                  <span>Aceite de Exceção por Excesso de Horas</span>
+                </div>
+                <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-1.5 leading-relaxed">
+                  <p className="font-bold">
+                    As horas realizadas ({horasRealizadasNum.toFixed(1)}h) excedem o orçamento aprovado ({horasEstimadasNum.toFixed(1)}h) com margem de tolerância de 30% ({limiteTolerancia.toFixed(1)}h).
+                  </p>
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                    Para autorizar formalmente o débito integral de <strong>{horasRealizadasNum.toFixed(1)}h</strong> do saldo contratual, informe a justificativa de aprovação desta exceção (será registrada na trilha de auditoria forense do contrato):
+                  </p>
+                </div>
+                <textarea
+                  rows={3}
+                  value={justificativa}
+                  onChange={(e) => setJustificativa(e.target.value)}
+                  placeholder="Informe o motivo da aprovação do excedente de horas (ex: complexidade adicional alinhada com a equipe técnica)..."
+                  className="w-full text-xs p-3.5 border border-slate-300 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 dark:bg-slate-800 font-medium text-slate-800 dark:text-slate-100"
+                />
+                <div className="flex justify-end gap-2.5 pt-2">
+                  <button
+                    disabled={aceitarMutation.isPending}
+                    onClick={() => { setModalType(null); setJustificativa('') }}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    disabled={!justificativa.trim() || aceitarMutation.isPending}
+                    onClick={() => {
+                      aceitarMutation.mutate({ id: cicloAtual.id, justificativa_excedente: justificativa })
+                    }}
+                    className="inline-flex items-center gap-2 px-5 py-2 text-xs font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl disabled:opacity-50 disabled:cursor-wait shadow-sm cursor-pointer"
+                  >
+                    {aceitarMutation.isPending ? (
+                      <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Autorizando Débito...</span></>
+                    ) : (
+                      <span>Autorizar Débito & Aceitar</span>
+                    )}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-extrabold text-base">
+                  <AlertTriangle className="w-5 h-5" />
+                  <span>{modalType === 'rejeitar' ? 'Rejeitar Orçamento' : 'Recusar Aceite de Conclusão'}</span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Por favor, informe a justificativa técnica para que nossa equipe possa reavaliar o escopo e realizar os ajustes necessários:
+                </p>
+                <textarea
+                  rows={4}
+                  value={justificativa}
+                  onChange={(e) => setJustificativa(e.target.value)}
+                  placeholder="Descreva o motivo da recusa ou pendências identificadas..."
+                  className="w-full text-xs p-3.5 border border-slate-300 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 dark:bg-slate-800 font-medium text-slate-800 dark:text-slate-100"
+                />
+                <div className="flex justify-end gap-2.5 pt-2">
+                  <button
+                    disabled={rejeitarMutation.isPending || recusarMutation.isPending}
+                    onClick={() => { setModalType(null); setJustificativa('') }}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    disabled={!justificativa.trim() || rejeitarMutation.isPending || recusarMutation.isPending}
+                    onClick={() => {
+                      if (modalType === 'rejeitar') {
+                        rejeitarMutation.mutate({ id: cicloAtual.id, justificativa })
+                      } else {
+                        recusarMutation.mutate({ id: cicloAtual.id, justificativa })
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 px-5 py-2 text-xs font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-xl disabled:opacity-50 disabled:cursor-wait shadow-sm cursor-pointer"
+                  >
+                    {rejeitarMutation.isPending ? (
+                      <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Rejeitando Orçamento...</span></>
+                    ) : recusarMutation.isPending ? (
+                      <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Recusando Aceite...</span></>
+                    ) : (
+                      <span>Confirmar Recusa</span>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -145,6 +145,8 @@ class ContratoSerializer(serializers.ModelSerializer):
     aceite_token = serializers.SerializerMethodField()
     aceite_expira_em = serializers.SerializerMethodField()
     aceite_usado = serializers.SerializerMethodField()
+    creditos_migrados = serializers.SerializerMethodField()
+    debitos_compensados = serializers.SerializerMethodField()
 
     class Meta:
         model = Contrato
@@ -205,3 +207,27 @@ class ContratoSerializer(serializers.ModelSerializer):
     def get_aceite_usado(self, obj):
         link = obj.aceite_links.order_by("-criado_em").first()
         return link.usado if link else False
+
+    def get_creditos_migrados(self, obj):
+        from apps.saldo.models import HistoricoSaldo, TipoOperacaoSaldo
+        from django.db.models import Sum
+        total = (
+            HistoricoSaldo.objects.filter(
+                contrato=obj,
+                tipo_operacao__in=[TipoOperacaoSaldo.TRANSFERENCIA_RECEBIMENTO, TipoOperacaoSaldo.REABASTECIMENTO],
+            ).aggregate(total=Sum("quantidade"))["total"]
+            or 0
+        )
+        return float(total)
+
+    def get_debitos_compensados(self, obj):
+        from apps.saldo.models import HistoricoSaldo, TipoOperacaoSaldo
+        from django.db.models import Sum
+        total = (
+            HistoricoSaldo.objects.filter(
+                contrato=obj,
+                tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_ENVIO,
+            ).aggregate(total=Sum("quantidade"))["total"]
+            or 0
+        )
+        return float(abs(total))

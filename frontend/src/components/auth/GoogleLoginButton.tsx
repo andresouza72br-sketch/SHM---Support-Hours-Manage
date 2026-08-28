@@ -229,20 +229,56 @@ export function GoogleLoginButton({ onSuccess, onError, disabled }: GoogleLoginB
                   </span>
                 </button>
 
-                {/* Cliente Gerente mkt-dnb */}
+                {/* Empresa Técnico */}
                 <button
                   type="button"
                   onClick={() => handleSimulatedLogin('workspace.icb@gmail.com')}
+                  className="w-full text-left p-3 bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-emerald-500/60 rounded-xl transition flex items-center justify-between group cursor-pointer"
+                >
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 group-hover:text-emerald-300">
+                      <Building2 className="w-3.5 h-3.5" />
+                      <span>Empresa — Técnico Especialista</span>
+                    </div>
+                    <div className="text-[11px] text-slate-300 font-mono">workspace.icb@gmail.com</div>
+                  </div>
+                  <span className="text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 px-2.5 py-1 rounded-full font-bold">
+                    Autorizado (Técnico)
+                  </span>
+                </button>
+
+                {/* Cliente Gerente Acme */}
+                <button
+                  type="button"
+                  onClick={() => handleSimulatedLogin('proj.eng.sw@gmail.com')}
                   className="w-full text-left p-3 bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/60 rounded-xl transition flex items-center justify-between group cursor-pointer"
                 >
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2 text-xs font-bold text-indigo-400 group-hover:text-indigo-300">
                       <UserCheck className="w-3.5 h-3.5" />
-                      <span>Cliente mkt-dnb — Gerente (Aprovador)</span>
+                      <span>Cliente Acme — Gerente (Aprovador)</span>
                     </div>
-                    <div className="text-[11px] text-slate-300 font-mono">workspace.icb@gmail.com</div>
+                    <div className="text-[11px] text-slate-300 font-mono">proj.eng.sw@gmail.com</div>
                   </div>
                   <span className="text-[10px] bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 px-2.5 py-1 rounded-full font-bold">
+                    Autorizado (Cliente)
+                  </span>
+                </button>
+
+                {/* Cliente Analista Acme */}
+                <button
+                  type="button"
+                  onClick={() => handleSimulatedLogin('andresouza.consultorialinux@gmail.com')}
+                  className="w-full text-left p-3 bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 hover:border-sky-500/60 rounded-xl transition flex items-center justify-between group cursor-pointer"
+                >
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-sky-400 group-hover:text-sky-300">
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span>Cliente Acme — Analista</span>
+                    </div>
+                    <div className="text-[11px] text-slate-300 font-mono">andresouza.consultorialinux@gmail.com</div>
+                  </div>
+                  <span className="text-[10px] bg-sky-950/80 text-sky-300 border border-sky-800/60 px-2.5 py-1 rounded-full font-bold">
                     Autorizado (Cliente)
                   </span>
                 </button>

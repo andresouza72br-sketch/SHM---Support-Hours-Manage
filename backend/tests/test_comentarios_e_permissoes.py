@@ -316,7 +316,7 @@ class TestComentariosEPermissoes:
         assert self.tecnico.email not in destinatarios_aceite
         assert self.admin.email not in destinatarios_aceite
 
-        # 3. Orçamento Aprovado pelo Cliente -> Notifica Gerente e Técnicos da Empresa
+        # 3. Orçamento Aprovado pelo Cliente -> Notifica Gerente e Técnicos da Empresa (Cliente NÃO recebe ação técnica da empresa)
         mail.outbox.clear()
         self.ciclo.status = StatusCiclo.AGUARDANDO_APROVACAO
         self.ciclo.save()
@@ -326,9 +326,10 @@ class TestComentariosEPermissoes:
         destinatarios_orc_aprovado = mail.outbox[0].to
         assert self.admin.email in destinatarios_orc_aprovado
         assert self.tecnico.email in destinatarios_orc_aprovado
-        assert self.analista_mktdnb.email in destinatarios_orc_aprovado
+        assert self.analista_mktdnb.email not in destinatarios_orc_aprovado
+        assert self.gerente_mktdnb.email not in destinatarios_orc_aprovado
 
-        # 4. Aceite Concedido pelo Cliente -> Notifica Gerente e Técnicos da Empresa
+        # 4. Aceite Concedido pelo Cliente -> Notifica Gerente e Técnicos da Empresa (e pesquisa vai separada para quem aceitou)
         mail.outbox.clear()
         self.ciclo.status = StatusCiclo.AGUARDANDO_ACEITE
         self.ciclo.horas_realizadas = Decimal("5.50")
@@ -339,7 +340,7 @@ class TestComentariosEPermissoes:
         destinatarios_ciclo_aceito = mail.outbox[0].to
         assert self.admin.email in destinatarios_ciclo_aceito
         assert self.tecnico.email in destinatarios_ciclo_aceito
-        assert self.analista_mktdnb.email in destinatarios_ciclo_aceito
+        assert self.analista_mktdnb.email not in destinatarios_ciclo_aceito
 
 
 

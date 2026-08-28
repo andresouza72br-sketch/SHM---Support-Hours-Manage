@@ -48,13 +48,15 @@ class Command(BaseCommand):
         tecnico_user, _ = User.objects.get_or_create(
             username="tecnico",
             defaults={
-                "email": "marcos.tecnico@empresa.com",
+                "email": "workspace.icb@gmail.com",
                 "first_name": "Marcos",
                 "last_name": "Técnico Especialista",
                 "role": UserRole.EMPRESA_TECNICO,
                 "is_staff": False,
             }
         )
+        tecnico_user.email = "workspace.icb@gmail.com"
+        tecnico_user.avatar_url = "https://api.dicebear.com/7.x/avataaars/svg?seed=workspace.icb@gmail.com"
         tecnico_user.set_password("tecnico123")
         tecnico_user.save()
 
@@ -106,43 +108,47 @@ class Command(BaseCommand):
 
         # 3. Usuários Clientes
         gerente_acme, _ = User.objects.get_or_create(
-            username="gerente.acme",
+            username="proj_eng_sw",
             defaults={
-                "email": "roberto@acme.com",
-                "first_name": "Roberto",
-                "last_name": "Silva (Gerente)",
+                "email": "proj.eng.sw@gmail.com",
+                "first_name": "AcmeGer",
+                "last_name": "Germano",
                 "role": UserRole.CLIENTE_GERENTE,
                 "cliente": cliente_acme,
             }
         )
+        gerente_acme.email = "proj.eng.sw@gmail.com"
         gerente_acme.set_password("cliente123")
+        gerente_acme.is_active = True
         gerente_acme.save()
 
         analista_acme, _ = User.objects.get_or_create(
-            username="analista.acme",
+            username="andresouza_consultorialinux",
             defaults={
-                "email": "ana@acme.com",
-                "first_name": "Ana",
-                "last_name": "Paula (Analista)",
+                "email": "andresouza.consultorialinux@gmail.com",
+                "first_name": "AcmeAna",
+                "last_name": "Ana Paula",
                 "role": UserRole.CLIENTE_ANALISTA,
                 "cliente": cliente_acme,
             }
         )
+        analista_acme.email = "andresouza.consultorialinux@gmail.com"
         analista_acme.set_password("cliente123")
+        analista_acme.is_active = True
         analista_acme.save()
 
         gerente_mktdnb, _ = User.objects.get_or_create(
             username="gerente.mktdnb",
             defaults={
-                "email": "workspace.icb@gmail.com",
+                "email": "marcelo.gerente@mkt-dnb.com",
                 "first_name": "Marcelo",
                 "last_name": "Ribeiro (Gerente)",
                 "role": UserRole.CLIENTE_GERENTE,
                 "cliente": cliente_mktdnb,
             }
         )
-        gerente_mktdnb.email = "workspace.icb@gmail.com"
-        gerente_mktdnb.avatar_url = "https://api.dicebear.com/7.x/avataaars/svg?seed=workspace.icb@gmail.com"
+        gerente_mktdnb.email = "marcelo.gerente@mkt-dnb.com"
+        gerente_mktdnb.avatar_url = "https://api.dicebear.com/7.x/avataaars/svg?seed=marcelo.gerente@mkt-dnb.com"
         gerente_mktdnb.set_password("cliente123")
         gerente_mktdnb.save()
 
@@ -260,10 +266,10 @@ class Command(BaseCommand):
                 "valor_mensal": Decimal("5000.00"),
                 "dia_faturamento": 15,
                 "gestor_nome": "Marcelo Ribeiro",
-                "gestor_email": "workspace.icb@gmail.com",
+                "gestor_email": "marcelo.gerente@mkt-dnb.com",
                 "gestor_telefone": "(11) 98888-7766",
                 "emails_notificacao": [
-                    {"email": "workspace.icb@gmail.com", "nome": "Marcelo Ribeiro (Gerente)", "ativo": True},
+                    {"email": "marcelo.gerente@mkt-dnb.com", "nome": "Marcelo Ribeiro (Gerente)", "ativo": True},
                     {"email": "fernanda.analista@mkt-dnb.com", "nome": "Fernanda Costa", "ativo": True},
                 ],
                 "criado_por": admin_user,
@@ -296,6 +302,29 @@ class Command(BaseCommand):
                 "criado_por": admin_user,
             }
         )
+
+        contrato_acme_concluido, _ = Contrato.objects.get_or_create(
+            numero="CT-2025-0099",
+            defaults={
+                "tipo": TipoContrato.NOVO,
+                "cliente": cliente_acme,
+                "data_inicio": hoje - timedelta(days=395),
+                "data_termino": hoje - timedelta(days=30),
+                "horas_contratadas": Decimal("100.00"),
+                "saldo": Decimal("25.00"),
+                "horas_consumidas": Decimal("75.00"),
+                "status": StatusContrato.CONCLUIDO,
+                "descricao_servicos": "Suporte e Manutenção Legada 2025 (Concluído)",
+                "gestor_nome": "Roberto Silva",
+                "gestor_email": "proj.eng.sw@gmail.com",
+                "gestor_telefone": "(11) 98765-4321",
+                "criado_por": admin_user,
+            }
+        )
+        contrato_acme_concluido.status = StatusContrato.CONCLUIDO
+        contrato_acme_concluido.saldo = Decimal("25.00")
+        contrato_acme_concluido.horas_consumidas = Decimal("75.00")
+        contrato_acme_concluido.save()
 
         contrato_tech2, _ = Contrato.objects.get_or_create(
             numero="CT-2026-0005",
@@ -344,6 +373,24 @@ class Command(BaseCommand):
                 "status": StatusContrato.ATIVO,
                 "descricao_servicos": "Desenvolvimento e Sustentação de Módulos ERP",
                 "valor_mensal": Decimal("7500.00"),
+                "criado_por": admin_user,
+            }
+        )
+
+        contrato_acme_exp, _ = Contrato.objects.get_or_create(
+            numero="CT-2025-0099",
+            defaults={
+                "tipo": TipoContrato.NOVO,
+                "cliente": cliente_acme,
+                "data_inicio": hoje - timedelta(days=400),
+                "data_termino": hoje - timedelta(days=35),
+                "horas_contratadas": Decimal("100.00"),
+                "saldo": Decimal("25.00"),
+                "horas_consumidas": Decimal("75.00"),
+                "status": StatusContrato.CONCLUIDO,
+                "descricao_servicos": "Contrato Anual Anterior de Suporte ERP 2025 (Encerrado)",
+                "valor_mensal": Decimal("4000.00"),
+                "dia_faturamento": 10,
                 "criado_por": admin_user,
             }
         )

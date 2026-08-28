@@ -243,13 +243,14 @@ export const clientService = {
       api.post<Ciclo>(`/ciclos/${id}/rejeitar/`, { justificativa }).then((r) => r.data),
     iniciarExecucao: (id: number) => api.post<Ciclo>(`/ciclos/${id}/iniciar_execucao/`).then((r) => r.data),
     solicitarAceite: (id: number) => api.post<Ciclo>(`/ciclos/${id}/solicitar_aceite/`).then((r) => r.data),
-    aceitar: (id: number) => api.post<Ciclo>(`/ciclos/${id}/aceitar/`).then((r) => r.data),
+    aceitar: (id: number, justificativa_excedente?: string) =>
+      api.post<Ciclo>(`/ciclos/${id}/aceitar/`, { justificativa_excedente }).then((r) => r.data),
     recusar: (id: number, justificativa: string) =>
       api.post<Ciclo>(`/ciclos/${id}/recusar/`, { justificativa }).then((r) => r.data),
     avaliar: (id: number, data: { nota: number; comentario?: string }) =>
       api.post<any>(`/ciclos/${id}/avaliar/`, data).then((r) => r.data),
     getMagicLink: (token: string) => api.get(`/ciclos/publico/${token}/`).then((r) => r.data),
-    postMagicLink: (token: string, data: { acao: string; justificativa?: string }) =>
+    postMagicLink: (token: string, data: { acao: string; justificativa?: string; justificativa_excedente?: string; nota?: number; comentario?: string }) =>
       api.post(`/ciclos/publico/${token}/`, data).then((r) => r.data),
   },
   tarefas: {
@@ -273,6 +274,25 @@ export const clientService = {
     list: () => api.get<any>('/notificacoes/notificacoes/').then((r) => normalizeArray<Notification>(r.data)),
     marcarLida: (id: number) => api.post(`/notificacoes/notificacoes/${id}/marcar_lida/`).then((r) => r.data),
     marcarTodasLidas: () => api.post('/notificacoes/notificacoes/marcar_todas_lidas/').then((r) => r.data),
+  },
+  saldo: {
+    list: (params?: Record<string, any>) => api.get<any>('/saldo/', { params }).then((r) => normalizeArray<any>(r.data)),
+    contratosElegiveis: (clienteId: number, destinoId?: number) =>
+      api
+        .get<any[]>('/saldo/contratos_elegiveis/', { params: { cliente_id: clienteId, destino_id: destinoId } })
+        .then((r) => r.data),
+    contratosDevedores: (clienteId: number) =>
+      api
+        .get<any[]>('/saldo/contratos_devedores/', { params: { cliente_id: clienteId } })
+        .then((r) => r.data),
+    migrar: (data: { contrato_origem: number; contrato_destino: number; quantidade?: number; motivo?: string }) =>
+      api.post<any>('/saldo/migrar/', data).then((r) => r.data),
+    compensarDebito: (data: { contrato_origem: number; contrato_destino: number; quantidade: number; motivo?: string }) =>
+      api.post<any>('/saldo/compensar_debito/', data).then((r) => r.data),
+    transferir: (data: { contrato_origem: number; contrato_destino: number; quantidade: number; motivo: string }) =>
+      api.post<any>('/saldo/transferir/', data).then((r) => r.data),
+    reabastecer: (data: { contrato: number; quantidade: number; motivo: string }) =>
+      api.post<any>('/saldo/reabastecer/', data).then((r) => r.data),
   },
   system: {
     status: () => api.get('/status/').then((r) => r.data),

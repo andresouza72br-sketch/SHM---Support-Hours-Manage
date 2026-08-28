@@ -64,10 +64,21 @@ class CicloViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], permission_classes=[IsClienteGerente])
     def aceitar(self, request, pk=None):
         ciclo = self.get_object()
+        justificativa_excedente = request.data.get("justificativa_excedente", "")
         ip = get_client_ip(request)
         ua = get_client_user_agent(request)
-        ciclo = CicloService.aceitar_ciclo(ciclo, request.user, ip_origem=ip, user_agent=ua, metodo="APP")
-        return Response(self.get_serializer(ciclo).data)
+        try:
+            ciclo = CicloService.aceitar_ciclo(
+                ciclo,
+                request.user,
+                ip_origem=ip,
+                user_agent=ua,
+                metodo="APP",
+                justificativa_excedente=justificativa_excedente,
+            )
+            return Response(self.get_serializer(ciclo).data)
+        except ValidationError as e:
+            return Response({"detail": str(e.message if hasattr(e, "message") else e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=["post"], permission_classes=[IsClienteGerente])
     def recusar(self, request, pk=None):
@@ -207,6 +218,11 @@ class MagicLinkCicloView(APIView):
         )
         saldo_atual = float(contrato.saldo) if contrato else 0.0
 
+        horas_estimadas = float(ciclo.horas_estimadas) if ciclo.horas_estimadas else 0.0
+        horas_realizadas = float(ciclo.horas_realizadas) if ciclo.horas_realizadas else 0.0
+        limite_tolerancia = round(horas_estimadas * 1.30, 2)
+        excede_tolerancia = horas_estimadas > 0 and horas_realizadas > limite_tolerancia
+
         return Response({
             "ciclo": serializer.data,
             "pedido_protocolo": ciclo.pedido.protocolo,
@@ -215,6 +231,8 @@ class MagicLinkCicloView(APIView):
             "contrato_numero": contrato_num,
             "contrato_saldo": saldo_atual,
             "tipo_acao": magic_link.tipo_acao,
+            "excede_tolerancia": excede_tolerancia,
+            "limite_tolerancia": limite_tolerancia,
             "expirado": expirado,
             "expira_em": magic_link.expira_em.isoformat(),
             "usado": magic_link.usado,
@@ -274,13 +292,22 @@ class MagicLinkCicloView(APIView):
             )
             msg = f"Orçamento de {float(ciclo.horas_estimadas):.1f}h do Pedido {pedido.protocolo} ({cliente_nome} / Contrato {contrato_num}) aprovado com sucesso via Magic Link."
         elif acao == "aceitar":
-            CicloService.aceitar_ciclo(
-                ciclo=ciclo,
-                usuario=user,
-                ip_origem=ip_origem,
-                user_agent=user_agent,
-                metodo="MAGIC_LINK",
-            )
+            justificativa_excedente = request.data.get("justificativa_excedente", "")
+            try:
+                CicloService.aceitar_ciclo(
+                    ciclo=ciclo,
+                    usuario=user,
+                    ip_origem=ip_origem,
+                    user_agent=user_agent,
+                    metodo="MAGIC_LINK",
+                    justificativa_excedente=justificativa_excedente,
+                )
+            except ValidationError as e:
+                return Response(
+                    {"detail": str(e.message if hasattr(e, "message") else e)},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             if contrato:
                 contrato.refresh_from_db()
                 saldo_restante = float(contrato.saldo)
