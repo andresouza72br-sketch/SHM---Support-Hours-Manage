@@ -1,0 +1,206 @@
+{
+  "generated_at": "2026-08-27T12:20:19.217773+00:00",
+  "modules": [
+    {
+      "name": "accounts",
+      "type": "django_app",
+      "models": [
+        "User",
+        "PasswordlessLoginToken"
+      ],
+      "responsibilities": [
+        "Autenticação JWT",
+        "4 Níveis de Acesso RBAC",
+        "Magic Login sem Senha",
+        "Google OAuth"
+      ],
+      "dependencies": [
+        "clientes"
+      ]
+    },
+    {
+      "name": "clientes",
+      "type": "django_app",
+      "models": [
+        "Cliente",
+        "ClienteAceiteLink",
+        "ClienteAuditLog"
+      ],
+      "responsibilities": [
+        "Cadastro PF e PJ",
+        "Validação matemática CPF/CNPJ",
+        "Magic Link de Aceite (7 dias)",
+        "Auditoria Forense"
+      ],
+      "dependencies": [
+        "core"
+      ]
+    },
+    {
+      "name": "contratos",
+      "type": "django_app",
+      "models": [
+        "Contrato",
+        "ContratoDocumento",
+        "ContratoAuditLog",
+        "AceiteLink",
+        "ContratoEmailNotificacao"
+      ],
+      "responsibilities": [
+        "Gestão Contratual CT-YYYY-NNNN",
+        "Aditivos",
+        "Carência de 30 dias",
+        "Hash SHA-256 em Documentos",
+        "Gestão de Destinatários"
+      ],
+      "dependencies": [
+        "clientes",
+        "core"
+      ]
+    },
+    {
+      "name": "pedidos",
+      "type": "django_app",
+      "models": [
+        "Pedido",
+        "AnexoPedido"
+      ],
+      "responsibilities": [
+        "Chamados de Suporte OSYYYYMMNNNN",
+        "Agrupamento de Ciclos",
+        "Sincronização Automática de Status"
+      ],
+      "dependencies": [
+        "clientes",
+        "contratos",
+        "core"
+      ]
+    },
+    {
+      "name": "ciclos",
+      "type": "django_app",
+      "models": [
+        "Ciclo",
+        "CicloMagicLink",
+        "AvaliacaoCiclo"
+      ],
+      "responsibilities": [
+        "Decomposição Atômica em Ciclos",
+        "Workflow Orçamento -> Execução -> Aceite",
+        "Débito Exclusivo no Aceite",
+        "Magic Links Públicos",
+        "Avaliação 1-5 Estrelas"
+      ],
+      "dependencies": [
+        "pedidos",
+        "saldo",
+        "notificacoes",
+        "core"
+      ]
+    },
+    {
+      "name": "tarefas",
+      "type": "django_app",
+      "models": [
+        "Tarefa"
+      ],
+      "responsibilities": [
+        "Apontamento Técnico de Horas Reais",
+        "Recálculo Automático das Horas do Ciclo"
+      ],
+      "dependencies": [
+        "ciclos",
+        "core"
+      ]
+    },
+    {
+      "name": "saldo",
+      "type": "django_app",
+      "models": [
+        "HistoricoSaldo",
+        "TransferenciaSaldo",
+        "Reabastecimento"
+      ],
+      "responsibilities": [
+        "Ledger Append-Only Imutável de Saldo",
+        "Consumo por Aceite",
+        "Transferências entre Contratos do Mesmo Cliente",
+        "Reabastecimentos"
+      ],
+      "dependencies": [
+        "contratos",
+        "core"
+      ]
+    },
+    {
+      "name": "comunicacao",
+      "type": "django_app",
+      "models": [
+        "Comentario",
+        "AnexoComentario",
+        "ReacaoComentario"
+      ],
+      "responsibilities": [
+        "Threads de Comentários em Ciclos/Tarefas",
+        "Respostas Aninhadas em Árvore",
+        "Reações com Emojis",
+        "Conversão de Comentário em Tarefa"
+      ],
+      "dependencies": [
+        "ciclos",
+        "tarefas",
+        "core"
+      ]
+    },
+    {
+      "name": "notificacoes",
+      "type": "django_app",
+      "models": [
+        "TimelineEvent",
+        "Notification"
+      ],
+      "responsibilities": [
+        "Timeline de Eventos do Pedido/Ciclo",
+        "Notificações In-App",
+        "Disparo de E-mails Transacionais"
+      ],
+      "dependencies": [
+        "pedidos",
+        "ciclos",
+        "core"
+      ]
+    },
+    {
+      "name": "core",
+      "type": "django_app",
+      "models": [
+        "TimeStampedModel"
+      ],
+      "responsibilities": [
+        "Modelos Base",
+        "Tratamento Global de Exceções REST",
+        "Comando Seed Demo Data"
+      ],
+      "dependencies": []
+    },
+    {
+      "name": "frontend",
+      "type": "react_spa",
+      "models": [
+        "14 Pages",
+        "TanStack Query State",
+        "Axios Client"
+      ],
+      "responsibilities": [
+        "Interface Web SPA",
+        "Kanban Board de 6 Colunas",
+        "Carrossel de Ciclos",
+        "Gestão de Clientes e Contratos",
+        "Light/Dark Theme"
+      ],
+      "dependencies": [
+        "backend_api"
+      ]
+    }
+  ]
+}
