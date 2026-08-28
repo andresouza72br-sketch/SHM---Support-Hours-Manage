@@ -13,10 +13,10 @@ framework: "Reversa"
 ### Da Programação por Impulso à Engenharia no Support Hours Manager (SHM)
 
 [![Autor](https://img.shields.io/badge/Autor-André%20Luis%20de%20Souza-007ACC?style=for-the-badge&logo=github&logoColor=white)](https://github.com/andresouza72br-sketch)
+[![Formação](https://img.shields.io/badge/Formação-Engenharia%20de%20Requisitos%20de%20Software%2C%20Análise%20de%20Sistemas%20--%20UniCEUB-1E3A8A?style=for-the-badge&logoColor=white)](https://www.uniceub.br/)
+
 [![Mentoria](https://img.shields.io/badge/Mentoria-Prof.%20Sandeco%20Macedo-ff904d?style=for-the-badge&logo=youtube&logoColor=white)](https://github.com/sandeco)
-[![Instituição](https://img.shields.io/badge/Formação-UniCEUB-1E3A8A?style=for-the-badge&logoColor=white)](https://www.uniceub.br/)
 [![Framework](https://img.shields.io/badge/Framework-Reversa%20SDD-7c3aed?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sandeco)
-[![Baixar PDF](https://img.shields.io/badge/Download-PDF%20Oficial-dc2626?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](Manifesto-SHM-Engenharia-vs-Vibe-Coding.pdf)
 
 </div>
 
