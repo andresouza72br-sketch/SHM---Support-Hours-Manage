@@ -42,26 +42,29 @@ O termo **"Vibe Coding"**, cunhado por Andrej Karpathy em 2025, descreve o perig
 
 ```mermaid
 flowchart LR
-    subgraph Vibe["❌ Programação por Impulso (Vibe Coding)"]
-        V1["Mês 1-3: Velocidade Ilusória<br>(Sem Requisitos)"] --> V2["Mês 4-7: Acúmulo de Débito<br>(Quebra a cada mudança)"]
-        V2 --> V3["🚨 Mês 8.2: PONTO DE INVERSÃO<br>(Custo Impagável / Colapso)"]
+    subgraph Vibe["❌ O Ciclo Vicioso do Vibe Coding (Mercado)"]
+        V1["Impulso Inicial<br>(Velocidade Ilusória)"] --> V2["Acúmulo de Débito Técnico<br>(Sem Arquitetura)"]
+        V2 --> V3["🚨 Ponto de Inversão (~8.2 Meses)<br>(Manutenção Inviável / Colapso)"]
     end
     
-    subgraph Eng["✅ Engenharia de Software (SHM)"]
-        E1["Mês 1-3: Especificação SDD<br>& Agent Harness"] --> E2["Mês 4-7: Testes TDD<br>& Padrões GoF"]
-        E2 --> E3["💎 Mês 8.2+: Sustentabilidade Eterna<br>& Custo Linear"]
+    subgraph SHM["⚡ Engenharia com IA no SHM (7 Dias de Rigor)"]
+        S1["Requisitos & SDD<br>(Contratos Claros)"] --> S2["TDD, GoF & 73+ Testes<br>(Agent Harness)"]
+        S2 --> S3["💎 Produto Sólido em 7 Dias<br>(Sustentável por Design)"]
     end
 ```
 
-| Aspecto | Programação por Impulso (*Vibe Coding*) | Engenharia de Software de Verdade (SHM) |
+| Aspecto | Programação por Impulso (*Vibe Coding*) | Engenharia de Software com IA (SHM) |
 | :--- | :--- | :--- |
-| **Requisitos** | Alucinados pela IA ou baseados em suposições. | Levantados para resolver o problema real do negócio. |
-| **Processo** | Acúmulo caótico de prompts sem rastro técnico. | Abordagem sistemática, disciplinada e quantificável. |
-| **Sustentabilidade** | Custo de mudança cresce de forma exponencial. | Custo de mudança mantém-se linear e previsível. |
-| **Qualidade** | Funciona por coincidência (*protótipo*). | Funciona por design e validação (*produto*). |
+| **Tempo de Entrega** | Ilusão de velocidade que se arrasta por meses de retrabalho. | **7 dias de engenharia de verdade**, do zero ao produto testado. |
+| **Requisitos** | Alucinados pela IA ou baseados em intuições voláteis. | Levantados com rigor para resolver o problema real do negócio. |
+| **Processo** | Acúmulo caótico de prompts sem rastro técnico ou testes. | Abordagem sistemática, disciplinada e quantificável (**SDD + TDD**). |
+| **Sustentabilidade** | Custo de mudança cresce de forma exponencial até o colapso. | Custo de evolução mantém-se linear, previsível e escalável. |
+| **Qualidade** | Funciona por coincidência (*protótipo frágil*). | Funciona por design, contratos formais e 73+ testes (*produto robusto*). |
 
 > [!WARNING]
-> **O Ponto de Inversão Crítico:** A experiência nos ensina que o "juro" do débito técnico não perdoa. Conforme detalhado na documentação técnica, projetos sem processo atingem o **Ponto de Inversão exatamente aos 8.2 meses**. Nesse estágio, a taxa de juros do débito acumulado torna-se impagável: cada nova funcionalidade custa mais do que se o projeto fosse reiniciado do zero com engenharia. O que começou como agilidade transforma-se em paralisia sistêmica.
+> **O Ponto de Inversão Crítico:** A experiência do mercado nos ensina que o "juro" do débito técnico não perdoa. Projetos gerados por impulso sem processo costumam atingir o **Ponto de Inversão por volta dos 8.2 meses** de vida: a taxa de juros do débito acumulado torna-se impagável, onde cada nova funcionalidade custa mais do que se o projeto fosse reiniciado do zero.
+> 
+> O **SHM quebrou esse paradigma:** foi projetado, arquitetado, testado e documentado em **apenas 7 dias de trabalho real de engenharia**, provando que a IA, quando contida por método e arquitetura, gera software de alta integridade em tempo recorde.
 
 *Para evitar essa podridão arquitetural, é imperativo resgatar os fundamentos que dão ordem ao caos gerado pela IA.*
 

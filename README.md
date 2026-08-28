@@ -35,27 +35,30 @@
 ### ⚡ A Ilusão do *Vibe Coding* e o Ponto de Inversão (8.2 Meses)
 O termo **"Vibe Coding"** (Karpathy, 2025) descreve a codificação por impulso onde o desenvolvedor aceita sugestões de IAs sem questionamento crítico, gerando um "software descartável" sem espinha dorsal arquitetural.
 
-Estudos e métricas comprovam que projetos sem processo atingem o **Ponto de Inversão aos 8.2 meses**: momento em que o juro do débito técnico torna cada alteração mais cara do que reconstruir o sistema do zero com engenharia.
+Estudos e métricas comprovam que projetos sem processo atingem o **Ponto de Inversão por volta dos 8.2 meses**: momento em que o juro do débito técnico torna cada alteração mais cara do que reconstruir o sistema do zero.
+
+O **SHM quebrou esse paradigma:** foi projetado, arquitetado, testado e documentado em **apenas 7 dias de trabalho real de engenharia**, provando que a IA, quando contida por método e arquitetura, gera software de alta integridade em tempo recorde.
 
 ```mermaid
 flowchart LR
-    subgraph Vibe["❌ Programação por Impulso (Vibe Coding)"]
-        V1["Mês 1-3: Velocidade Ilusória<br>(Sem Requisitos)"] --> V2["Mês 4-7: Acúmulo de Débito<br>(Quebra a cada mudança)"]
-        V2 --> V3["🚨 Mês 8.2: PONTO DE INVERSÃO<br>(Custo Impagável / Colapso)"]
+    subgraph Vibe["❌ O Ciclo Vicioso do Vibe Coding (Mercado)"]
+        V1["Impulso Inicial<br>(Velocidade Ilusória)"] --> V2["Acúmulo de Débito Técnico<br>(Sem Arquitetura)"]
+        V2 --> V3["🚨 Ponto de Inversão (~8.2 Meses)<br>(Manutenção Inviável / Colapso)"]
     end
     
-    subgraph Eng["✅ Engenharia de Software (SHM)"]
-        E1["Mês 1-3: Especificação SDD<br>& Agent Harness"] --> E2["Mês 4-7: Testes TDD<br>& Padrões GoF"]
-        E2 --> E3["💎 Mês 8.2+: Sustentabilidade Eterna<br>& Custo Linear"]
+    subgraph SHM["⚡ Engenharia com IA no SHM (7 Dias de Rigor)"]
+        S1["Requisitos & SDD<br>(Contratos Claros)"] --> S2["TDD, GoF & 73+ Testes<br>(Agent Harness)"]
+        S2 --> S3["💎 Produto Sólido em 7 Dias<br>(Sustentável por Design)"]
     end
 ```
 
-| Aspecto | Programação por Impulso (*Vibe Coding*) | Engenharia de Software de Verdade (SHM) |
+| Aspecto | Programação por Impulso (*Vibe Coding*) | Engenharia de Software com IA (SHM) |
 | :--- | :--- | :--- |
+| **Tempo de Entrega** | Ilusão de velocidade que se arrasta por meses de retrabalho. | **7 dias de engenharia de verdade**, do zero ao produto testado. |
 | **Requisitos** | Alucinados pela IA ou baseados em intuições voláteis. | Levantados com precisão para resolver o problema real do negócio. |
 | **Processo** | Acúmulo caótico de prompts sem rastro técnico ou testes. | Abordagem sistemática, disciplinada e quantificável (**SDD + TDD**). |
 | **Sustentabilidade** | Custo de mudança cresce de forma exponencial até o colapso. | Custo de evolução mantém-se linear, previsível e escalável. |
-| **Qualidade** | Funciona por coincidência (*protótipo frágil*). | Funciona por design, contratos formais e validação contínua (*produto*). |
+| **Qualidade** | Funciona por coincidência (*protótipo frágil*). | Funciona por design, contratos formais e 73+ testes (*produto robusto*). |
 
 ---
 
