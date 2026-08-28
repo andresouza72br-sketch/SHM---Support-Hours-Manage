@@ -4,30 +4,51 @@
 
 **Engenharia de Software de Alta Integridade para Gestão de Contratos, Horas Técnicas, Ciclos de Atendimento e Governança Forense**
 
+[![Manifesto SHM](https://img.shields.io/badge/Manifesto-Engenharia%20vs%20Vibe%20Coding-8b5cf6?style=for-the-badge&logo=markdown&logoColor=white)](Manifesto/manifesto.md)
+[![Livro AI Eng](https://img.shields.io/badge/Livro-Engenharia%20de%20Software%20com%20IA-ff904d?style=for-the-badge&logo=book&logoColor=white)](https://physia.com.br/aieng/)
 [![Django](https://img.shields.io/badge/Django-5.2-092E20?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![React](https://img.shields.io/badge/React-19.0-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-6.1-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![OpenAPI](https://img.shields.io/badge/OpenAPI-Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](http://localhost:8000/api/docs/)
 [![Pytest](https://img.shields.io/badge/Pytest-73%20Passing-brightgreen?style=for-the-badge&logo=pytest&logoColor=white)](https://docs.pytest.org/)
-[![Livro AI Eng](https://img.shields.io/badge/Livro-Engenharia%20de%20Software%20com%20IA-ff904d?style=for-the-badge&logo=book&logoColor=white)](https://physia.com.br/aieng/)
+[![OpenAPI](https://img.shields.io/badge/OpenAPI-Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](http://localhost:8000/api/docs/)
 [![Reversa](https://img.shields.io/badge/Framework-Reversa%20SDD-7c3aed?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sandeco)
 
-[Engenharia vs Vibe Coding](#-da-programação-por-impulso-à-engenharia-de-software) • [Origem & Créditos](#-origem-mentoria--créditos-acadêmicos) • [O Que o SHM Resolve](#-o-que-o-shm-resolve-a-engenharia-a-serviço-do-negócio) • [Diferenciais](#-os-5-pilares-de-diferenciação-do-shm) • [Arquitetura](#-arquitetura-do-sistema) • [Como Executar](#-como-executar) • [Documentação](#-documentação-detalhada)
+[📜 Manifesto de Engenharia](#-manifesto-de-engenharia-da-programação-por-impulso-ao-software-de-verdade) • [🎓 Autoria & Mentoria](#-origem-mentoria--créditos-acadêmicos) • [🎯 O Que o SHM Resolve](#-o-que-o-shm-resolve-a-engenharia-a-serviço-do-negócio) • [🌟 5 Pilares do Produto](#-os-5-pilares-de-diferenciação-do-shm) • [🏛️ Arquitetura](#-arquitetura-do-sistema) • [🚀 Como Executar](#-como-executar) • [📚 Especificações SDD](#-especificações-vivas-sdd--documentação-do-reversa)
 
 ---
 
 </div>
 
-## 🏛️ Da Programação por Impulso à Engenharia de Software
+> [!IMPORTANT]
+> ### 📜 [DESTAQUE EXECUTIVO] Manifesto de Engenharia do SHM
+> **Da Programação por Impulso à Engenharia de Software com IA**  
+> *Por André Luis de Souza (sob a luz dos ensinamentos do Prof. Sandeco Macedo)*
+> 
+> *"A tecnologia é efêmera, mas o rigor é eterno. Em um mundo onde a Inteligência Artificial pode gerar milhares de linhas de código em segundos, o valor do desenvolvedor não está mais na velocidade com que digita, mas na lucidez com que julga, arquiteta e governa o sistema."*
+> 
+> 🔗 👉 [**Clique aqui para ler o Manifesto Completo na íntegra (`Manifesto/manifesto.md`) ➔**](Manifesto/manifesto.md)
 
-> *"A tecnologia é efêmera, mas o rigor é eterno. Em um mundo onde a Inteligência Artificial pode gerar milhares de linhas de código em segundos, o valor do desenvolvedor não está na velocidade com que digita, mas na lucidez com que julga, arquiteta e governa o sistema."* — **André Luis de Souza**
+---
+
+## 📜 Manifesto de Engenharia: Da Programação por Impulso ao Software de Verdade
 
 ### ⚡ A Ilusão do *Vibe Coding* e o Ponto de Inversão (8.2 Meses)
-O termo **"Vibe Coding"** (cunhado por Andrej Karpathy em 2025) descreve a codificação por impulso e fluxo contínuo onde o desenvolvedor aceita sugestões de IAs sem questionamento crítico, gerando um "software descartável" sem espinha dorsal.
+O termo **"Vibe Coding"** (Karpathy, 2025) descreve a codificação por impulso onde o desenvolvedor aceita sugestões de IAs sem questionamento crítico, gerando um "software descartável" sem espinha dorsal arquitetural.
 
-Na prática de engenharia, a taxa de juros do débito técnico cobra seu preço. Dados e estudos comprovam que projetos sem processo atingem o **Ponto de Inversão aos 8.2 meses**: estágio crítico em que cada nova linha de código custa mais caro do que reconstruir o sistema do zero com engenharia.
+Estudos e métricas comprovam que projetos sem processo atingem o **Ponto de Inversão aos 8.2 meses**: momento em que o juro do débito técnico torna cada alteração mais cara do que reconstruir o sistema do zero com engenharia.
+
+```mermaid
+flowchart LR
+    subgraph Vibe["❌ Programação por Impulso (Vibe Coding)"]
+        V1["Mês 1-3: Velocidade Ilusória<br>(Sem Requisitos)"] --> V2["Mês 4-7: Acúmulo de Débito<br>(Quebra a cada mudança)"]
+        V2 --> V3["🚨 Mês 8.2: PONTO DE INVERSÃO<br>(Custo Impagável / Colapso)"]
+    end
+    
+    subgraph Eng["✅ Engenharia de Software (SHM)"]
+        E1["Mês 1-3: Especificação SDD<br>& Agent Harness"] --> E2["Mês 4-7: Testes TDD<br>& Padrões GoF"]
+        E2 --> E3["💎 Mês 8.2+: Sustentabilidade Eterna<br>& Custo Linear"]
+    end
+```
 
 | Aspecto | Programação por Impulso (*Vibe Coding*) | Engenharia de Software de Verdade (SHM) |
 | :--- | :--- | :--- |
@@ -43,16 +64,13 @@ O **Support Hours Manager (SHM)** foi concebido para durar, sustentando-se nos p
 
 * 📚 **Guia SWEBOK (*Software Engineering Body of Knowledge*):** Reconhece que a manutenção consome até **80% do orçamento total** de um software. No SHM, a prioridade absoluta é a manutenibilidade, rastreabilidade e governança de configuração.
 * 🧩 **Padrões GoF (*Gang of Four*) como Isolamento Cognitivo:** Padrões como *Strategy*, *Observer*, *Factory Method* e *Repository* são empregados como fronteiras cognitivas que delimitam o raciocínio dos agentes de IA, impedindo o acoplamento e o estouro de janelas de contexto.
-* 🤖 **O Paradigma do *AI Engineer* (*SDD + TDD + Agent Harness*):** A IA não substitui o engenheiro; ela atua sob a tutela de um **Agent Harness** rigoroso. As especificações vivas (*Spec-Driven Development*) definem as leis inegociáveis, enquanto os testes automatizados (*Test-Driven Development*) blindam o comportamento do sistema.
+* 🤖 **O Paradigma do *AI Engineer* (*SDD + TDD + Agent Harness*):** A IA atua sob a tutela de um **Agent Harness** rigoroso. As especificações vivas (*Spec-Driven Development*) definem as leis inegociáveis, enquanto os testes automatizados (*Test-Driven Development*) blindam o comportamento do sistema.
 
 ### 🏛️ As Lições da História: Por Que o Processo é Inegociável?
-Na aviação, a taxa de acidentes é de apenas **0,07 por milhão de voos** porque o processo é lei. Na medicina, checklists reduzem complicações em **47%**. Enquanto o **Chaos Report 2020** revela que **69% dos projetos de TI falham ou sofrem estouros graves**, desastres clássicos como *Ariane 5 (1996)*, *Therac-25 (1985)* e *HealthCare.gov (2013)* nos lembram que a negligência cobra vidas e bilhões. No SHM, adotamos três premissas inegociáveis:
+Na aviação, a taxa de acidentes é de apenas **0,07 por milhão de voos** porque o processo é lei. Na medicina, checklists reduzem complicações em **47%**. Enquanto o **Chaos Report 2020** revela que **69% dos projetos de TI falham ou sofrem estouros graves**, desastres como *Ariane 5 (1996)*, *Therac-25 (1985)* e *HealthCare.gov (2013)* nos lembram que a negligência cobra vidas e bilhões. No SHM, adotamos três premissas inegociáveis:
 1. **A IA é o motor, o Engenheiro é o freio e o leme:** A responsabilidade final pela qualidade é humana e inalienável.
 2. **Especificação é o novo código:** Sem o rigor do SDD, a aceleração da IA apenas antecipa o abismo.
 3. **Manutenibilidade é a métrica da verdade:** Software de verdade é desenhado para a sua próxima mudança.
-
-📄 **Leia o Ensaio Completo do Autor:**  
-Consulte o documento integral em [`Manifesto/manifesto.md`](Manifesto/manifesto.md) (*"Manifesto: Da Programação por Impulso à Engenharia no SHM"*).
 
 ---
 
@@ -74,7 +92,7 @@ O **SHM** foi concebido e implementado por **André Luis de Souza** (Engenheiro 
 
 Na prestação de serviços de TI e consultoria especializada, o maior vilão da lucratividade e do relacionamento com o cliente não é o código em si, mas a **falta de clareza na apuração de esforço**, a **dificuldade de aprovação de escopos** e a **desconfiança mútua no consumo de horas**.
 
-O **SHM** substitui a informalidade de e-mails, planilhas e chamados genéricos por um fluxo de alta integridade com governança de ponta a ponta:
+O **SHM (Support Hours Manager)** substitui a informalidade de e-mails, planilhas e chamados genéricos por um ecossistema com **5 pilares de alta integridade e governança**:
 
 ```mermaid
 flowchart LR
