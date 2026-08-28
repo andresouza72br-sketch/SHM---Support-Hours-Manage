@@ -36,7 +36,7 @@
 
 ## 📜 Manifesto de Engenharia: Da Programação por Impulso ao Software de Verdade
 
-### ⚡ A Ilusão do *Vibe Coding* e o Ponto de Inversão (8.2 Meses)
+### ⚡ A Ilusão do *Vibe Coding* e o Ponto de Inversão
 O termo **"Vibe Coding"** (Karpathy, 2025) descreve a codificação por impulso onde o desenvolvedor aceita sugestões de IAs sem questionamento crítico, gerando um "software descartável" sem espinha dorsal arquitetural.
 
 Estudos e métricas comprovam que projetos sem processo atingem o **Ponto de Inversão por volta dos 8.2 meses**: momento em que o juro do débito técnico torna cada alteração mais cara do que reconstruir o sistema do zero.
