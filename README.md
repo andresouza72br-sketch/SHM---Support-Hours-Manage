@@ -22,36 +22,51 @@
 
 ## 🏛️ Da Programação por Impulso à Engenharia de Software
 
-> *"Em uma era onde a Inteligência Artificial é capaz de gerar milhares de linhas de código em segundos, o valor do desenvolvedor não está mais na velocidade com que digita, mas na lucidez com que julga, arquiteta e governa o sistema."*
+> *"A tecnologia é efêmera, mas o rigor é eterno. Em um mundo onde a Inteligência Artificial pode gerar milhares de linhas de código em segundos, o valor do desenvolvedor não está na velocidade com que digita, mas na lucidez com que julga, arquiteta e governa o sistema."* — **André Luis de Souza**
 
-### ⚡ A Ilusão do *Vibe Coding* e o Desafio da Sustentabilidade
-A Inteligência Artificial transformou a velocidade de desenvolvimento, mas trouxe consigo uma armadilha sedutora: o **"Vibe Coding"** — a prática de programar por impulso e aceitar sugestões de modelos de linguagem sem o devido questionamento de requisitos, arquitetura ou limites de falha.
+### ⚡ A Ilusão do *Vibe Coding* e o Ponto de Inversão (8.2 Meses)
+O termo **"Vibe Coding"** (cunhado por Andrej Karpathy em 2025) descreve a codificação por impulso e fluxo contínuo onde o desenvolvedor aceita sugestões de IAs sem questionamento crítico, gerando um "software descartável" sem espinha dorsal.
 
-Embora o *vibe coding* proporcione uma sensação inicial de alta produtividade, a realidade da produção é implacável. Sem método, o sistema atinge rapidamente o **Ponto de Inversão**: o momento em que a dívida técnica se torna impagável, onde cada nova linha introduz três novos bugs e a manutenção se torna um pesadelo tanto para humanos quanto para IAs.
+Na prática de engenharia, a taxa de juros do débito técnico cobra seu preço. Dados e estudos comprovam que projetos sem processo atingem o **Ponto de Inversão aos 8.2 meses**: estágio crítico em que cada nova linha de código custa mais caro do que reconstruir o sistema do zero com engenharia.
 
-### 🛡️ O Resgate dos Fundamentos: SWEBOK, GoF e Rigor Técnico
-O **Support Hours Manager (SHM)** nasceu na contramão do imediatismo. Ele foi concebido sob a premissa de que **software de verdade é um compromisso contínuo**, sustentado pelos pilares clássicos da engenharia:
+| Aspecto | Programação por Impulso (*Vibe Coding*) | Engenharia de Software de Verdade (SHM) |
+| :--- | :--- | :--- |
+| **Requisitos** | Alucinados pela IA ou baseados em intuições voláteis. | Levantados com precisão para resolver o problema real do negócio. |
+| **Processo** | Acúmulo caótico de prompts sem rastro técnico ou testes. | Abordagem sistemática, disciplinada e quantificável (**SDD + TDD**). |
+| **Sustentabilidade** | Custo de mudança cresce de forma exponencial até o colapso. | Custo de evolução mantém-se linear, previsível e escalável. |
+| **Qualidade** | Funciona por coincidência (*protótipo frágil*). | Funciona por design, contratos formais e validação contínua (*produto*). |
 
-* 📚 **Guia SWEBOK (*Software Engineering Body of Knowledge*):** O código executável é apenas uma fração do ciclo de vida. No SHM, 80% do foco reside na manutenibilidade, na gestão de configuração, na rastreabilidade e na garantia contínua da qualidade.
-* 🧩 **Padrões de Projeto Consagrados (*Gang of Four - GoF*):** Aplicação disciplinada de padrões arquiteturais e estruturais (como *Strategy*, *Observer*, *Factory* e *Repository*), assegurando baixo acoplamento, alta coesão e facilidade de extensão.
-* 🤖 **O Paradigma do *AI Engineer* (*SDD + TDD + Harness*):** A IA não substitui o engenheiro; ela atua como uma força de trabalho de altíssima velocidade orquestrada por um **Agent Harness**. A especificação viva (*Spec-Driven Development*) define os contratos inegociáveis, os testes automatizados (*Test-Driven Development*) blindam o comportamento esperado, e o julgamento humano valida cada decisão crítica.
+---
 
-📄 **Conheça o Manifesto Completo:**  
-Leia o ensaio na íntegra em [`Manifesto/manifesto.md`](Manifesto/manifesto.md) (*"Guia de Fundamentos: Da Programação por Impulso à Engenharia no SHM"*).
+### 🛡️ O Resgate dos Fundamentos: SWEBOK e GoF como Contratos de Isolamento
+O **Support Hours Manager (SHM)** foi concebido para durar, sustentando-se nos pilares clássicos da ciência da computação:
+
+* 📚 **Guia SWEBOK (*Software Engineering Body of Knowledge*):** Reconhece que a manutenção consome até **80% do orçamento total** de um software. No SHM, a prioridade absoluta é a manutenibilidade, rastreabilidade e governança de configuração.
+* 🧩 **Padrões GoF (*Gang of Four*) como Isolamento Cognitivo:** Padrões como *Strategy*, *Observer*, *Factory Method* e *Repository* são empregados como fronteiras cognitivas que delimitam o raciocínio dos agentes de IA, impedindo o acoplamento e o estouro de janelas de contexto.
+* 🤖 **O Paradigma do *AI Engineer* (*SDD + TDD + Agent Harness*):** A IA não substitui o engenheiro; ela atua sob a tutela de um **Agent Harness** rigoroso. As especificações vivas (*Spec-Driven Development*) definem as leis inegociáveis, enquanto os testes automatizados (*Test-Driven Development*) blindam o comportamento do sistema.
+
+### 🏛️ As Lições da História: Por Que o Processo é Inegociável?
+Na aviação, a taxa de acidentes é de apenas **0,07 por milhão de voos** porque o processo é lei. Na medicina, checklists reduzem complicações em **47%**. Enquanto o **Chaos Report 2020** revela que **69% dos projetos de TI falham ou sofrem estouros graves**, desastres clássicos como *Ariane 5 (1996)*, *Therac-25 (1985)* e *HealthCare.gov (2013)* nos lembram que a negligência cobra vidas e bilhões. No SHM, adotamos três premissas inegociáveis:
+1. **A IA é o motor, o Engenheiro é o freio e o leme:** A responsabilidade final pela qualidade é humana e inalienável.
+2. **Especificação é o novo código:** Sem o rigor do SDD, a aceleração da IA apenas antecipa o abismo.
+3. **Manutenibilidade é a métrica da verdade:** Software de verdade é desenhado para a sua próxima mudança.
+
+📄 **Leia o Ensaio Completo do Autor:**  
+Consulte o documento integral em [`Manifesto/manifesto.md`](Manifesto/manifesto.md) (*"Manifesto: Da Programação por Impulso à Engenharia no SHM"*).
 
 ---
 
 ## 🎓 Origem, Mentoria & Créditos Acadêmicos
 
-Este projeto nasceu de uma **necessidade profissional real** na gestão e prestação de serviços de suporte e consultoria técnica em TI — onde a transparência no consumo de horas e o controle contratual são vitais para a saúde financeira e a confiança entre cliente e fornecedor.
+Este projeto nasceu da confluência entre **décadas de experiência profissional em Engenharia de Requisitos** e a revolução dos **Agentes Autônomos de IA**.
 
-O **SHM** foi projetado e construído aplicando na íntegra as melhores práticas e fundamentos do curso e ecossistema de **Engenharia de Software com IA**, sob mentoria do **Prof. Sandeco Macedo**, sendo especificado e modernizado através do **Framework Reversa**.
+O **SHM** foi concebido e implementado por **André Luis de Souza** (Engenheiro de Requisitos e Analista de Sistemas formado pelo UniCEUB), aplicando na íntegra os fundamentos do curso **Engenharia de Software com IA**, sob mentoria do **Prof. Sandeco Macedo**, e estruturado através do **Framework Reversa**.
 
 ### 👨‍🏫 Prof. Sandeco Macedo & Framework Reversa
 * **Professor & Pesquisador:** Docente e pesquisador no **Instituto Federal de Goiás (IFG)** e na **Universidade Federal de Goiás (UFG)**, e Embaixador da Campus Party Brasil.
 * **Autor & Referência:** Autor de mais de 10 obras consagradas sobre Inteligência Artificial, incluindo o livro definitivo [Engenharia de Software e Agentes Inteligentes](https://physia.com.br/aieng/).
 * **Criador do Framework Reversa:** Metodologia pioneira de Engenharia Reversa e *Spec-Driven Development* (SDD) com Agentes Autônomos de IA ([GitHub: @sandeco](https://github.com/sandeco)).
-* **Autor do Projeto:** [André Luis de Souza](https://github.com/andresouza72br-sketch), aluno do Prof. Sandeco e praticante da Engenharia de Software orientada a IA.
+* **Autor do Projeto:** [André Luis de Souza](https://github.com/andresouza72br-sketch), Engenheiro de Requisitos e Arquiteto de Software.
 
 ---
 
