@@ -16,6 +16,7 @@ framework: "Reversa"
 [![Mentoria](https://img.shields.io/badge/Mentoria-Prof.%20Sandeco%20Macedo-ff904d?style=for-the-badge&logo=youtube&logoColor=white)](https://github.com/sandeco)
 [![Instituição](https://img.shields.io/badge/Formação-UniCEUB-1E3A8A?style=for-the-badge&logoColor=white)](https://www.uniceub.br/)
 [![Framework](https://img.shields.io/badge/Framework-Reversa%20SDD-7c3aed?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sandeco)
+[![Baixar PDF](https://img.shields.io/badge/Download-PDF%20Oficial-dc2626?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](Manifesto-SHM-Engenharia-vs-Vibe-Coding.pdf)
 
 </div>
 

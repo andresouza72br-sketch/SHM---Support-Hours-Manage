@@ -4,7 +4,8 @@
 
 **Engenharia de Software de Alta Integridade para Gestão de Contratos, Horas Técnicas, Ciclos de Atendimento e Governança Forense**
 
-[![Manifesto SHM](https://img.shields.io/badge/Manifesto-Engenharia%20vs%20Vibe%20Coding-8b5cf6?style=for-the-badge&logo=markdown&logoColor=white)](Manifesto/manifesto.md)
+[![Download Manifesto PDF](https://img.shields.io/badge/Download_PDF-Manifesto%20SHM-8b5cf6?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](Manifesto/Manifesto-SHM-Engenharia-vs-Vibe-Coding.pdf)
+[![Download README PDF](https://img.shields.io/badge/Download_PDF-Documentação%20Oficial-0284c7?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](docs/SHM-Documentacao-Oficial.pdf)
 [![Livro AI Eng](https://img.shields.io/badge/Livro-Engenharia%20de%20Software%20com%20IA-ff904d?style=for-the-badge&logo=book&logoColor=white)](https://physia.com.br/aieng/)
 [![Django](https://img.shields.io/badge/Django-5.2-092E20?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![React](https://img.shields.io/badge/React-19.0-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
@@ -26,7 +27,10 @@
 > 
 > *"A tecnologia é efêmera, mas o rigor é eterno. Em um mundo onde a Inteligência Artificial pode gerar milhares de linhas de código em segundos, o valor do desenvolvedor não está mais na velocidade com que digita, mas na lucidez com que julga, arquiteta e governa o sistema."*
 > 
-> 🔗 👉 [**Clique aqui para ler o Manifesto Completo na íntegra (`Manifesto/manifesto.md`) ➔**](Manifesto/manifesto.md)
+> 📄 **Leitura Online:** [`Manifesto/manifesto.md`](Manifesto/manifesto.md)  
+> 📥 **Downloads em PDF Prontos para Compartilhamento:**
+> * 📥 [**Baixar Manifesto em PDF** (`Manifesto/Manifesto-SHM-Engenharia-vs-Vibe-Coding.pdf`)](Manifesto/Manifesto-SHM-Engenharia-vs-Vibe-Coding.pdf)
+> * 📥 [**Baixar Documentação Completa do SHM em PDF** (`docs/SHM-Documentacao-Oficial.pdf`)](docs/SHM-Documentacao-Oficial.pdf)
 
 ---
 
