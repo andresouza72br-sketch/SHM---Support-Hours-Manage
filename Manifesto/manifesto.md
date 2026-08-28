@@ -1,5 +1,5 @@
 ---
-title: "Guia de Fundamentos: Da Programação por Impulso à Engenharia no SHM"
+title: "Guia de Fundamentos: Da Programação por Impulso à Engenharia de Software - AI Engineer & Agent Harness"
 project: "Support Hours Manager (SHM)"
 mentorship: "Prof. Sandeco Macedo"
 author: "André Luis de Souza"
@@ -10,7 +10,7 @@ framework: "Reversa"
 <div align="center">
 
 # 📜 MANIFESTO DE ENGENHARIA DE SOFTWARE
-### Da Programação por Impulso à Engenharia no Support Hours Manager (SHM)
+### Da Programação por Impulso à Engenharia de Software - AI Engineer & Agent Harness
 
 [![Autor](https://img.shields.io/badge/Autor-André%20Luis%20de%20Souza-007ACC?style=for-the-badge&logo=github&logoColor=white)](https://github.com/andresouza72br-sketch)
 [![Formação](https://img.shields.io/badge/Formação-Engenharia%20de%20Requisitos%20de%20Software%2C%20Análise%20de%20Sistemas%20--%20UniCEUB-1E3A8A?style=for-the-badge&logoColor=white)](https://www.uniceub.br/)
