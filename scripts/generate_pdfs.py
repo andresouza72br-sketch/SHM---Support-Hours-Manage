@@ -1,7 +1,7 @@
 """
 Gerador de PDFs Editoriais de Alta Qualidade para o Projeto SHM 2.5
-- Manifesto de Engenharia de Software (3 Páginas Perfeitas)
-- Documentação Oficial do SHM (6 Páginas Perfeitas)
+- Manifesto de Engenharia de Software (Diagramas Nítidos e Legíveis)
+- Documentação Oficial do SHM (README)
 
 Autor: André Luis de Souza (Engenheiro de Requisitos - UniCEUB)
 Mentoria: Prof. Sandeco Macedo (Framework Reversa SDD)
@@ -400,7 +400,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             border: 1px solid #e2e8f0;
         }}
 
-        pre {{
+        pre:not(.mermaid) {{
             font-family: var(--font-mono);
             font-size: 7.2pt;
             line-height: 1.35;
@@ -414,33 +414,54 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             page-break-inside: avoid;
             break-inside: avoid;
         }}
-        pre code {{
+        pre:not(.mermaid) code {{
             background: transparent;
             border: none;
             padding: 0;
             color: inherit;
         }}
 
-        /* Mermaid Flowcharts Container */
+        /* Mermaid Flowcharts Container - Clean, Prominent & Fully Legible */
         .mermaid-card {{
             background: #ffffff;
-            border: 1px solid var(--color-border-light);
-            border-radius: 6px;
-            padding: 6px 8px;
-            margin: 8px 0;
+            border: 1.5px solid var(--color-border-subtle);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin: 12px 0;
             text-align: center;
             page-break-inside: avoid;
             break-inside: avoid;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
         }}
 
-        .mermaid-card svg {{
-            max-width: 520px !important;
-            max-height: 130px !important;
-            width: auto !important;
+        .mermaid {{
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }}
+
+        .mermaid svg {{
+            width: 100% !important;
+            max-width: 720px !important;
             height: auto !important;
             display: block;
             margin: 0 auto;
+        }}
+
+        .mermaid .nodeLabel {{
             font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
+            font-size: 13.5px !important;
+            font-weight: 600 !important;
+            line-height: 1.35 !important;
+        }}
+
+        .mermaid .edgeLabel {{
+            font-family: 'Inter', sans-serif !important;
+            font-size: 11.5px !important;
+            font-weight: 600 !important;
+            background-color: #ffffff !important;
+            padding: 2px 5px !important;
+            border-radius: 3px !important;
         }}
 
         /* Math formula display */
@@ -495,29 +516,29 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         document.addEventListener("DOMContentLoaded", function() {{
             if (typeof mermaid !== 'undefined') {{
                 mermaid.initialize({{
-                    startOnLoad: false,
+                    startOnLoad: true,
                     theme: 'base',
                     themeVariables: {{
                         fontFamily: 'Plus Jakarta Sans, Inter, sans-serif',
-                        fontSize: '11px',
-                        primaryColor: '#e0f2fe',
-                        primaryTextColor: '#0369a1',
-                        primaryBorderColor: '#38bdf8',
-                        lineColor: '#64748b',
-                        secondaryColor: '#f1f5f9',
+                        fontSize: '13.5px',
+                        primaryColor: '#f0fdfa',
+                        primaryTextColor: '#0f766e',
+                        primaryBorderColor: '#0d9488',
+                        lineColor: '#475569',
+                        secondaryColor: '#fef2f2',
                         tertiaryColor: '#f8fafc',
                         clusterBkg: '#f8fafc',
-                        clusterBorder: '#cbd5e1',
+                        clusterBorder: '#94a3b8',
                         edgeLabelBackground: '#ffffff',
                         nodeTextColor: '#0f172a',
                         mainBkg: '#ffffff',
-                        nodeBorder: '#94a3b8'
+                        nodeBorder: '#0284c7'
                     }},
                     flowchart: {{
                         curve: 'basis',
                         htmlLabels: true,
                         useMaxWidth: true,
-                        padding: 6
+                        padding: 14
                     }}
                 }});
             }}
@@ -538,19 +559,20 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 
 def clean_markdown_to_html(md_text: str, is_manifesto: bool = False) -> str:
-    """Converte markdown em HTML limpo, evitando vazamento de tags e gerando estrutura editorial."""
+    """Converte markdown em HTML limpo, garantindo rendering perfeito de diagramas e sem vazamento de tags."""
     # 1. Remove YAML frontmatter se houver
     if md_text.startswith("---"):
         parts = md_text.split("---", 2)
         if len(parts) >= 3:
             md_text = parts[2]
 
-    # 2. Extrai Mermaid blocks usando placeholders seguros
+    # 2. Extrai Mermaid blocks mantendo quebras de linha exatas
     mermaid_blocks = {}
     def save_mermaid(match):
         idx = len(mermaid_blocks)
         placeholder = f"MERMAIDPLACEHOLDER{idx}BLOCK"
-        mermaid_blocks[placeholder] = match.group(1).strip()
+        code = match.group(1).strip()
+        mermaid_blocks[placeholder] = code
         return f"\n\n{placeholder}\n\n"
 
     md_text = re.sub(r'```mermaid\s*\n(.*?)\n```', save_mermaid, md_text, flags=re.DOTALL)
@@ -562,7 +584,7 @@ def clean_markdown_to_html(md_text: str, is_manifesto: bool = False) -> str:
         header_content = div_center_match.group(1).strip()
         md_text = md_text.replace(div_center_match.group(0), "")
         
-        # Remove a barra de links de navegacao no README ([Manifesto...] • [Autoria...])
+        # Remove barra de links de navegacao no README
         header_lines = []
         for line in header_content.split('\n'):
             if "•" in line and "[" in line and "]" in line:
@@ -594,7 +616,6 @@ def clean_markdown_to_html(md_text: str, is_manifesto: bool = False) -> str:
         icon = "📜" if a_type == "IMPORTANT" else ("⚠️" if a_type == "WARNING" else ("💡" if a_type == "TIP" else "ℹ️"))
         label = "Destaque Importante" if a_type == "IMPORTANT" else ("Atenção Crítica" if a_type == "WARNING" else ("Nota Técnica" if a_type == "TIP" else "Nota"))
         
-        # Pattern matches <blockquote> containing [!TYPE]
         pattern = re.compile(
             rf'<blockquote>\s*<p>\s*\[!{a_type}\]\s*(?:</p>)?\s*(.*?)\s*</blockquote>',
             re.DOTALL | re.IGNORECASE
@@ -606,10 +627,10 @@ def clean_markdown_to_html(md_text: str, is_manifesto: bool = False) -> str:
             return f'<div class="callout callout-{cls}"><div class="callout-title">{ic} {lb}</div><div class="callout-content">{inner}</div></div>'
         body_html = pattern.sub(repl, body_html)
 
-    # 8. Restaura Mermaid Blocks
+    # 8. Restaura Mermaid Blocks com tag <pre class="mermaid"> para compilação visual nativa
     for placeholder, code in mermaid_blocks.items():
         cleaned_code = code.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
-        mermaid_html = f'<div class="mermaid-card"><div class="mermaid">\n{cleaned_code}\n</div></div>'
+        mermaid_html = f'<div class="mermaid-card"><pre class="mermaid">\n{cleaned_code}\n</pre></div>'
         body_html = re.sub(rf'<p>\s*{placeholder}\s*</p>', mermaid_html, body_html)
         body_html = body_html.replace(placeholder, mermaid_html)
 
@@ -640,7 +661,7 @@ def generate_single_pdf(
     line_height: str = "1.44",
     is_manifesto: bool = False
 ):
-    """Gera o PDF a partir de um arquivo markdown com alta fidelidade editorial."""
+    """Gera o PDF a partir de um arquivo markdown com alta fidelidade editorial e diagramas nítidos."""
     with open(md_file, "r", encoding="utf-8") as f:
         md_content = f.read()
 
@@ -669,26 +690,8 @@ def generate_single_pdf(
         page = context.new_page()
         page.goto(temp_html_path.as_uri(), wait_until="networkidle")
         
-        # Executa Mermaid e ajusta dimensões das SVGs
-        page.evaluate('''async () => {
-            if (typeof mermaid !== 'undefined') {
-                try {
-                    await mermaid.run();
-                } catch (e) {
-                    console.error("Mermaid execution error:", e);
-                }
-            }
-            document.querySelectorAll('.mermaid-card svg').forEach(svg => {
-                const vb = svg.viewBox.baseVal;
-                if (vb && vb.width > 0) {
-                    svg.style.maxWidth = Math.min(vb.width * 0.9, 520) + 'px';
-                    svg.style.maxHeight = '130px';
-                    svg.style.width = '100%';
-                    svg.style.height = 'auto';
-                }
-            });
-        }''')
-        page.wait_for_timeout(2500)
+        # Aguarda compilação do Mermaid
+        page.wait_for_timeout(3000)
 
         output_pdf.parent.mkdir(parents=True, exist_ok=True)
         page.pdf(
@@ -739,7 +742,7 @@ def main():
     manifesto_md = BASE_DIR / "Manifesto" / "manifesto.md"
     readme_md = BASE_DIR / "README.md"
     
-    # 1. Manifesto (3 páginas perfeitas)
+    # 1. Manifesto
     manifesto_pdf_main = BASE_DIR / "Manifesto" / "Manifesto-SHM-Engenharia-vs-Vibe-Coding.pdf"
     manifesto_pdf_copy = BASE_DIR / "Manifesto" / "manifesto.pdf"
     
@@ -756,7 +759,7 @@ def main():
     shutil.copyfile(manifesto_pdf_main, manifesto_pdf_copy)
     print(f"[COPIA] Criada copia: {manifesto_pdf_copy}")
 
-    # 2. README / Documentacao Oficial (6 páginas perfeitas)
+    # 2. README / Documentacao Oficial
     doc_pdf_main = BASE_DIR / "docs" / "SHM-Documentacao-Oficial.pdf"
     doc_pdf_readme = BASE_DIR / "README.pdf"
     doc_pdf_docs_readme = BASE_DIR / "docs" / "README.pdf"

@@ -42,15 +42,15 @@ A história do nosso *craft* é marcada por ciclos de amadorismo que custam caro
 O termo **"Vibe Coding"**, cunhado por Andrej Karpathy em 2025, descreve o perigoso estado de *flow* onde o desenvolvedor aceita sugestões de IAs por intuição, sem planejamento ou revisão crítica. Embora a sensação de onipotência seja inebriante, ela mascara a criação de um "software descartável" que carece de espinha dorsal arquitetural.
 
 ```mermaid
-flowchart LR
+flowchart TD
     subgraph Vibe["❌ O Ciclo Vicioso do Vibe Coding (Mercado)"]
-        V1["Impulso Inicial<br>(Velocidade Ilusória)"] --> V2["Acúmulo de Débito Técnico<br>(Sem Arquitetura)"]
-        V2 --> V3["🚨 Ponto de Inversão (~8.2 Meses)<br>(Manutenção Inviável / Colapso)"]
+        direction LR
+        V1["Impulso Inicial<br><b>(Velocidade Ilusória)</b>"] --> V2["Acúmulo de Débito Técnico<br><b>(Sem Arquitetura)</b>"] --> V3["🚨 Ponto de Inversão (~8.2m)<br><b>(Colapso / Inviável)</b>"]
     end
     
     subgraph SHM["⚡ Engenharia com IA no SHM (7 Dias de Rigor)"]
-        S1["Requisitos & SDD<br>(Contratos Claros)"] --> S2["TDD, GoF & 73+ Testes<br>(Agent Harness)"]
-        S2 --> S3["💎 Produto Sólido em 7 Dias<br>(Sustentável por Design)"]
+        direction LR
+        S1["Requisitos & SDD<br><b>(Contratos Claros)</b>"] --> S2["TDD, GoF & 73+ Testes<br><b>(Agent Harness)</b>"] --> S3["💎 Produto Sólido em 7 Dias<br><b>(Sustentável por Design)</b>"]
     end
 ```
 
@@ -96,13 +96,13 @@ A governança do SHM repousa sobre três pilares:
 O **AI Engineer** não escreve código; ele governa processos. No SHM, adotamos o **SDD (*Spec-Driven Development*)** como a nossa "especificação viva" — um contrato inegociável que dita as regras para a IA.
 
 ```mermaid
-flowchart TD
-    A["👨‍💻 Humano: Engenheiro de Restrições (SDD)"] -->|Define Spec & Teste Red| B["🔴 Red: Teste Automatizado Falha"]
-    B -->|Agent Harness + Skills| C["🟢 Green: Agente IA Gera Código"]
-    C -->|Validação dos Contratos GoF| D{"Passou nos 73+ Testes?"}
-    D -- Sim --> E["♻️ Refactor: Humano e IA Limpam Código"]
-    D -- Não --> C
-    E --> F["🚀 Deploy Seguro, Rastreável & Reversível"]
+flowchart LR
+    A["👨‍💻 <b>Humano: SDD</b><br>Spec & Teste Red"] -->|Contrato| B["🔴 <b>Red</b><br>Teste Falha"]
+    B -->|Agent Harness| C["🟢 <b>Green</b><br>IA Gera Código"]
+    C -->|Contratos GoF| D{"<b>Passou 73+<br>Testes?</b>"}
+    D -- "Não" --> C
+    D -- "Sim" --> E["♻️ <b>Refactor</b><br>Limpeza de Código"]
+    E --> F["🚀 <b>Deploy Seguro</b><br>Rastreável"]
 ```
 
 O ciclo de desenvolvimento é regido pelo rigor do **TDD (*Test-Driven Development*)** adaptado para agentes:

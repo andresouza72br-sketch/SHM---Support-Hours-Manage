@@ -44,15 +44,15 @@ Estudos e métricas comprovam que projetos sem processo atingem o **Ponto de Inv
 O **SHM quebrou esse paradigma:** foi projetado, arquitetado, testado e documentado em **apenas 7 dias de trabalho real de engenharia**, provando que a IA, quando contida por método e arquitetura, gera software de alta integridade em tempo recorde.
 
 ```mermaid
-flowchart LR
+flowchart TD
     subgraph Vibe["❌ O Ciclo Vicioso do Vibe Coding (Mercado)"]
-        V1["Impulso Inicial<br>(Velocidade Ilusória)"] --> V2["Acúmulo de Débito Técnico<br>(Sem Arquitetura)"]
-        V2 --> V3["🚨 Ponto de Inversão (~8.2 Meses)<br>(Manutenção Inviável / Colapso)"]
+        direction LR
+        V1["Impulso Inicial<br><b>(Velocidade Ilusória)</b>"] --> V2["Acúmulo de Débito Técnico<br><b>(Sem Arquitetura)</b>"] --> V3["🚨 Ponto de Inversão (~8.2m)<br><b>(Colapso / Inviável)</b>"]
     end
     
     subgraph SHM["⚡ Engenharia com IA no SHM (7 Dias de Rigor)"]
-        S1["Requisitos & SDD<br>(Contratos Claros)"] --> S2["TDD, GoF & 73+ Testes<br>(Agent Harness)"]
-        S2 --> S3["💎 Produto Sólido em 7 Dias<br>(Sustentável por Design)"]
+        direction LR
+        S1["Requisitos & SDD<br><b>(Contratos Claros)</b>"] --> S2["TDD, GoF & 73+ Testes<br><b>(Agent Harness)</b>"] --> S3["💎 Produto Sólido em 7 Dias<br><b>(Sustentável por Design)</b>"]
     end
 ```
 
@@ -103,15 +103,11 @@ O **SHM (Support Hours Manager)** substitui a informalidade de e-mails, planilha
 
 ```mermaid
 flowchart LR
-    A[Cliente: Abertura do Pedido] --> B[Empresa: Decomposição em Ciclos]
-    B --> C[Empresa: Orçamento de Horas]
-    C --> D{Cliente: Aprova Orçamento?}
-    D -- Sim --> E[Empresa: Execução Técnica & Tarefas]
-    D -- Não --> B
-    E --> F[Empresa: Solicita Aceite]
-    F --> G{Cliente: Concede Aceite?}
-    G -- Sim --> H[💰 Débito Automático do Saldo pelas Horas Reais]
-    G -- Não --> E
+    A["👤 <b>Cliente</b><br>Abertura do Pedido"] --> B["🏢 <b>Empresa</b><br>Decomposição em Ciclos"] --> C["⏱️ <b>Empresa</b><br>Orçamento de Horas"] --> D{"<b>Aprova<br>Orçamento?</b>"}
+    D -- "Não" --> B
+    D -- "Sim" --> E["⚙️ <b>Empresa</b><br>Execução Técnica"] --> F["📋 <b>Empresa</b><br>Solicita Aceite"] --> G{"<b>Concede<br>Aceite?</b>"}
+    G -- "Não" --> E
+    G -- "Sim" --> H["💰 <b>Débito Automático</b><br>pelas Horas Reais"]
 ```
 
 ---
