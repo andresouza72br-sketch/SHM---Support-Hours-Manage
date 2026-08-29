@@ -379,6 +379,18 @@ class NotificacaoService:
                     ciclo=ciclo,
                     autor=autor,
                 )
+
+                cc_emails = []
+                if tipo_evento in ["orcamento_apresentado", "aceite_solicitado"]:
+                    # Se o cliente não possuir nenhum CLIENTE_GERENTE ativo cadastrado,
+                    # utiliza Cliente.email_contato como fallback para garantir o recebimento
+                    if not destinatarios_email and pedido.cliente and pedido.cliente.email_contato:
+                        destinatarios_email = [pedido.cliente.email_contato]
+
+                    # Adiciona os e-mails cadastrados em Cliente.emails_notificacao_padrao em cópia (CC)
+                    if pedido.cliente:
+                        cc_emails = NotificacaoService._extrair_emails_lista(pedido.cliente.emails_notificacao_padrao)
+
                 if destinatarios_email:
                     NotificacaoService._enviar_email(
                         destinatarios=destinatarios_email,
@@ -386,7 +398,31 @@ class NotificacaoService:
                         mensagem_texto=payload["mensagem"],
                         url_destino=payload["url_destino"],
                         cta_texto=payload["cta_btn"],
+                        cc=cc_emails,
                     )
+
+    @staticmethod
+    def _extrair_emails_lista(emails_input) -> list[str]:
+        """
+        Extrai e normaliza uma lista de endereços de e-mail válidos a partir de JSONField (lista de strings ou dicts) ou string.
+        """
+        resultado = []
+        if not emails_input:
+            return resultado
+        if isinstance(emails_input, list):
+            for item in emails_input:
+                if isinstance(item, str) and "@" in item.strip():
+                    resultado.append(item.strip())
+                elif isinstance(item, dict):
+                    email_val = item.get("email")
+                    if email_val and isinstance(email_val, str) and "@" in email_val.strip():
+                        if item.get("ativo", True):
+                            resultado.append(email_val.strip())
+        elif isinstance(emails_input, str) and emails_input.strip():
+            for e in emails_input.replace(";", ",").split(","):
+                if "@" in e.strip():
+                    resultado.append(e.strip())
+        return list(dict.fromkeys(resultado))
 
     @staticmethod
     def enviar_email_avaliacao(ciclo, destinatario, magic_link):
@@ -423,13 +459,30 @@ class NotificacaoService:
         )
 
     @staticmethod
-    def _enviar_email(destinatarios, assunto: str, mensagem_texto: str, url_destino: str = None, cta_texto: str = None):
+    def _enviar_email(destinatarios, assunto: str, mensagem_texto: str, url_destino: str = None, cta_texto: str = None, cc: list = None):
         """
-        Dispara e-mail formatado em Plain-Text e HTML com link seguro (Magic Link).
+        Dispara e-mail formatado em Plain-Text e HTML com link seguro (Magic Link), suportando destinatários (User ou string) e cópia (CC).
         """
-        emails_destino = [u.email for u in destinatarios if u.email and "@" in u.email]
+        emails_destino = []
+        for dest in (destinatarios or []):
+            if isinstance(dest, str):
+                if "@" in dest.strip():
+                    emails_destino.append(dest.strip())
+            elif hasattr(dest, "email") and dest.email and "@" in dest.email:
+                emails_destino.append(dest.email.strip())
+
+        emails_destino = list(dict.fromkeys(emails_destino))
         if not emails_destino:
             return
+
+        emails_cc = []
+        if cc:
+            for item in cc:
+                if isinstance(item, str) and "@" in item.strip():
+                    emails_cc.append(item.strip())
+                elif hasattr(item, "email") and item.email and "@" in item.email:
+                    emails_cc.append(item.email.strip())
+            emails_cc = [e for e in dict.fromkeys(emails_cc) if e not in emails_destino]
 
         frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip("/")
         link_final = url_destino if (url_destino and url_destino.startswith("http")) else f"{frontend_url}{url_destino if url_destino else ''}"
@@ -447,10 +500,11 @@ class NotificacaoService:
                 body=f"{mensagem_texto}\n\nAcessar link direto: {link_final}\n",
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 to=emails_destino,
+                cc=emails_cc if emails_cc else None,
             )
             msg.attach_alternative(html_content, "text/html")
             msg.send(fail_silently=True)
-            logger.info("[EMAIL ENVIADO] %s para %s", assunto, emails_destino)
+            logger.info("[EMAIL ENVIADO] %s para %s (CC: %s)", assunto, emails_destino, emails_cc)
         except Exception as e:
-            logger.error("[EMAIL ERRO] Falha ao enviar para %s: %s", emails_destino, e, exc_info=True)
+            logger.error("[EMAIL ERRO] Falha ao enviar para %s (CC: %s): %s", emails_destino, emails_cc, e, exc_info=True)
 
