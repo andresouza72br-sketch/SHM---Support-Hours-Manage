@@ -1,6 +1,6 @@
 param(
     [Parameter(Position=0)]
-    [ValidateSet("start", "stop", "restart", "status", "logs")]
+    [ValidateSet("start", "stop", "restart", "status", "logs", "reset-db")]
     [string]$Action = "start",
 
     [Parameter(Position=1)]
@@ -10,6 +10,9 @@ param(
 )
 
 switch ($Action) {
+    "reset-db" {
+        & "$PSScriptRoot\base_DB_testes\reset_db.ps1"
+    }
     "stop" {
         & "$PSScriptRoot\stop-dev.ps1"
     }

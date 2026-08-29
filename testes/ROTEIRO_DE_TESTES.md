@@ -10,8 +10,8 @@ Este documento consolida o roteiro passo a passo para testes funcionais e valida
 
 | Perfil | Usuário / E-mail | Senha | Papel no Sistema |
 | :--- | :--- | :--- | :--- |
-| 👔 **Cliente — Gerente** | `proj_eng_sw`<br>*(proj.eng.sw@gmail.com)* | `cliente123` | Abre chamados, **aprova orçamentos**, **concede aceite final** e audita o extrato. |
-| 🧑‍💻 **Cliente — Analista** | `andresouza_consultorialinux`<br>*(andresouza.consultorialinux@gmail.com)* | `cliente123` | Abre solicitações e acompanha o status no Kanban. |
+| 👔 **Cliente — Gerente** | `cligerente`<br>*(proj.eng.sw@gmail.com)* | `cliente123` | Abre chamados, **aprova orçamentos**, **concede aceite final** e audita o extrato. |
+| 🧑‍💻 **Cliente — Analista** | `clianalista`<br>*(andresouza.consultorialinux@gmail.com)* | `cliente123` | Abre solicitações e acompanha o status no Kanban. |
 | 🏢 **Empresa — Admin** | `admin`<br>*(andresouza72br@gmail.com)* | `admin123` | Gestão de contratos, triagem operacional, criação de ciclos e orçamentação. |
 | 🛠️ **Empresa — Técnico** | `tecnico`<br>*(workspace.icb@gmail.com)* | `tecnico123` | Execução técnica, lançamento de tarefas/horas e solicitação de aceite. |
 
@@ -33,7 +33,7 @@ http://localhost:8000/admin/
 ```
 
 > [!TIP]
-> **Dica para Testes Concorrentes:** Abra uma **aba normal** no navegador para o perfil **Cliente** (`proj_eng_sw`) e uma **aba anônima** para a **Empresa** (`admin` ou `tecnico`). Assim você visualiza as ações refletindo em tempo real em ambas as pontas.
+> **Dica para Testes Concorrentes:** Abra uma **aba normal** no navegador para o perfil **Cliente** (`cligerente`) e uma **aba anônima** para a **Empresa** (`admin` ou `tecnico`). Assim você visualiza as ações refletindo em tempo real em ambas as pontas.
 
 ---
 
@@ -68,7 +68,7 @@ http://localhost:5173/login
 - [ ] **1.2.** Clique no atalho rápido **"Gerente (Acme)"** ou utilize as credenciais:
   - **Usuário:**
   ```text
-  proj_eng_sw
+  cligerente
   ```
   - **Senha:**
   ```text
@@ -138,7 +138,7 @@ http://localhost:5173/admin/dashboard
 ### 🧪 Teste Primordial 3: REGRA DE OURO — Aprovação Sem Débito vs Aceite com Débito Real
 
 - [ ] **3.1. Aprovação do Orçamento (Sem Débito):**
-  - Na aba do **Gerente Cliente** (`proj_eng_sw`), abra o chamado `OS2026080003`.
+  - Na aba do **Gerente Cliente** (`cligerente`), abra o chamado `OS2026080003`.
   - Clique no botão roxo **"Aprovar Orçamento (6.0h)"**.
   - 🔍 **Validação Crítica:** Verifique a barra lateral esquerda de contratos: **o saldo CONTINUA exatamente em 86.0h** (nenhuma hora é debitada na aprovação do orçamento).
 
@@ -183,7 +183,7 @@ http://localhost:5173/admin/dashboard
 
 ### 🧪 Teste 4: Auditoria do Ledger Imutável no Extrato do Contrato
 
-- [ ] **4.1.** Logado como `proj_eng_sw`, acesse o extrato do contrato:
+- [ ] **4.1.** Logado como `cligerente`, acesse o extrato do contrato:
 ```text
 http://localhost:5173/contratos/1/extrato
 ```
@@ -233,7 +233,7 @@ Necessário rever a estimativa para atender apenas ao módulo básico de exporta
 ### 🧪 Teste 7: Feed de Mensagens e Comunicação Técnica do Ciclo
 
 - [ ] **7.1.** Na tela de detalhes de qualquer chamado, role até a seção **Comentários & Histórico do Ciclo**.
-- [ ] **7.2.** Envie uma mensagem como Cliente (`proj_eng_sw`):
+- [ ] **7.2.** Envie uma mensagem como Cliente (`cligerente`):
 ```text
 Favor verificar os detalhes do layout e prazos de entrega.
 ```
@@ -247,7 +247,7 @@ Entendido! Já estamos implementando conforme solicitado.
 
 ### 🧪 Teste 8 (Feature 001): Trava de Tolerância de 30% no Aceite de Ciclos Excedentes
 
-- [ ] **8.1.** Acesse o chamado com ciclo em status *Aguardando Aceite* como `proj_eng_sw`.
+- [ ] **8.1.** Acesse o chamado com ciclo em status *Aguardando Aceite* como `cligerente`.
 - [ ] **8.2. Cenário A (Dentro da Tolerância de +30%):**
   - Horas estimadas orçadas: `10.0h`.
   - Horas reais apontadas: `12.5h` (+25% de acréscimo).
