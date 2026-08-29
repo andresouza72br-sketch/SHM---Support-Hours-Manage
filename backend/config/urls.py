@@ -10,10 +10,10 @@ from django.utils import timezone
 def status_view(request):
     return JsonResponse({
         "status": "ok",
-        "service": "SHM 2.4",
-        "version": "2.4.0",
-        "release": "Main Release 2.4 — Features Avaliação & Mensagens",
-        "sessao": "Main Release 2.4 — Features Avaliação & Mensagens (Avaliações de Ciclo, Respostas em Comentários, Reações, Ajustes UI/UX)",
+        "service": "SHM 2.5",
+        "version": "2.5.0",
+        "release": "Release Manifest RC 2.5 — Trava de Tolerância & Regras de Ciclos",
+        "sessao": "Release Manifest RC 2.5 — Trava de Tolerância & Regras de Ciclos (Trava de Tolerância orçamentária, Timeline de Auditoria, Avaliação de Ciclos)",
         "regras_envio": "E-mails de aprovação/aceite restritos exclusivamente ao CLIENTE_GERENTE",
         "avisos_empresa": "Gerente e Técnicos avisados na aprovação do orçamento e concessão do aceite",
         "timestamp": timezone.now().isoformat(),

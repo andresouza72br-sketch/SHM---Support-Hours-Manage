@@ -124,12 +124,12 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
   const releaseBadgeLabel = systemStatus?.release
     ? systemStatus.release.split('—')[0].trim()
     : systemStatus?.version
-    ? `Main Release ${systemStatus.version}`
-    : 'Main Release 2.3'
+    ? `Release Manifest RC ${systemStatus.version}`
+    : 'Release Manifest RC 2.5'
 
   const releaseBadgeTooltip = systemStatus
     ? `Versão Oficial ${systemStatus.version} (${systemStatus.release || systemStatus.service})`
-    : 'Versão Release Oficial 2.3 ativa em produção'
+    : 'Versão Release Manifest RC 2.5 ativa em produção'
 
   // Notificações
   const { data: rawNotifs } = useQuery({
