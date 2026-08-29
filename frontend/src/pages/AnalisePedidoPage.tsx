@@ -26,6 +26,18 @@ function CicloItem({ c, apresentarOrcamentoMutation, navigate }: { c: Ciclo, apr
     onError: () => toast.error('Erro ao atualizar ciclo.', 'Erro')
   })
 
+  const reenviarMagicLinkMutation = useMutation({
+    mutationFn: () => clientService.ciclos.reenviarMagicLink(c.id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['pedido'] })
+      toast.success(data.detail || 'Magic Link reenviado com sucesso por e-mail!', 'Link Reenviado')
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || 'Erro ao reenviar Magic Link.'
+      toast.error(msg, 'Falha no Reenvio')
+    },
+  })
+
   return (
     <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors">
       <div className="space-y-2 flex-1">
@@ -116,6 +128,26 @@ function CicloItem({ c, apresentarOrcamentoMutation, navigate }: { c: Ciclo, apr
                 <>
                   <Send className="w-3.5 h-3.5" />
                   <span>Emitir Orçamento</span>
+                </>
+              )}
+            </button>
+          )}
+          {(c.status === 'aguardando_aprovacao' || c.status === 'aguardando_aceite') && (
+            <button
+              disabled={reenviarMagicLinkMutation.isPending}
+              onClick={() => reenviarMagicLinkMutation.mutate()}
+              className="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait shadow-2xs"
+              title={`Renovar token seguro e redisparar e-mail (${c.status_display})`}
+            >
+              {reenviarMagicLinkMutation.isPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Reenviando...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Reenviar Magic Link</span>
                 </>
               )}
             </button>

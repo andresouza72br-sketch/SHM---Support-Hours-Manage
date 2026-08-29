@@ -249,6 +249,8 @@ export const clientService = {
       api.post<Ciclo>(`/ciclos/${id}/recusar/`, { justificativa }).then((r) => r.data),
     avaliar: (id: number, data: { nota: number; comentario?: string }) =>
       api.post<any>(`/ciclos/${id}/avaliar/`, data).then((r) => r.data),
+    reenviarMagicLink: (id: number) =>
+      api.post<{ detail: string; magic_link_token: string; expira_em: string; ciclo: Ciclo }>(`/ciclos/${id}/reenviar_magic_link/`).then((r) => r.data),
     getMagicLink: (token: string) => api.get(`/ciclos/publico/${token}/`).then((r) => r.data),
     postMagicLink: (token: string, data: { acao: string; justificativa?: string; justificativa_excedente?: string; nota?: number; comentario?: string }) =>
       api.post(`/ciclos/publico/${token}/`, data).then((r) => r.data),

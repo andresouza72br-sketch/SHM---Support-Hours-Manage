@@ -575,6 +575,18 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
     onError: () => toast.error('Erro ao enviar comentário.', 'Falha'),
   })
 
+  const reenviarMagicLinkMutation = useMutation({
+    mutationFn: (id: number) => clientService.ciclos.reenviarMagicLink(id),
+    onSuccess: (data) => {
+      refreshData()
+      toast.success(data.detail || 'Magic Link reenviado com sucesso por e-mail!', 'Link Reenviado')
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || 'Erro ao reenviar Magic Link.'
+      toast.error(msg, 'Falha no Reenvio')
+    },
+  })
+
   // ── Early return: no ciclo ─────────────────────────────────────────────
 
   if (!cicloAtual) {
@@ -926,6 +938,27 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             )}
 
             {/* Ações Técnico */}
+            {isEmpresa && (cicloAtual.status === 'aguardando_aprovacao' || cicloAtual.status === 'aguardando_aceite') && (
+              <button
+                disabled={reenviarMagicLinkMutation.isPending}
+                onClick={() => reenviarMagicLinkMutation.mutate(cicloAtual.id)}
+                className="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-extrabold text-xs px-4 py-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait shadow-2xs"
+                title={`Renovar token seguro e redisparar e-mail de ${cicloAtual.status === 'aguardando_aprovacao' ? 'aprovação de orçamento' : 'aceite final'}`}
+              >
+                {reenviarMagicLinkMutation.isPending && (reenviarMagicLinkMutation.variables as any) === cicloAtual.id ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Reenviando Magic Link...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Reenviar Magic Link</span>
+                  </>
+                )}
+              </button>
+            )}
+
             {isEmpresa && cicloAtual.status === 'orcado' && (
               <button
                 disabled={apresentarOrcamentoMutation.isPending}
