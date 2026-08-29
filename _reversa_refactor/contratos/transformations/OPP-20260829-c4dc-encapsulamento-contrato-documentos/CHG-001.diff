@@ -1,0 +1,201 @@
+--- a/backend/apps/contratos/services.py
++++ b/backend/apps/contratos/services.py
+@@ -503,2 +503,154 @@ class ContratoService:
++
++
++class ContratoDocumentoService:
++    @staticmethod
++    @transaction.atomic
++    def adicionar_documento(
++        contrato: Contrato,
++        arquivo,
++        tipo_doc: str,
++        usuario,
++        ip: str = "",
++        ua: str = "",
++    ) -> ContratoDocumento:
++        from rest_framework.exceptions import ValidationError
++        from apps.core.utils import calcular_hash_sha256
++        from apps.contratos.models import TipoDocumentoContrato
++
++        if contrato.documentos.count() >= 5:
++            raise ValidationError(
++                {"detail": "Limite máximo de 5 documentos por contrato atingido. Remova um documento existente antes de adicionar outro."}
++            )
++
++        if not arquivo:
++            raise ValidationError({"arquivo": "Nenhum arquivo enviado."})
++
++        if arquivo.size > 25 * 1024 * 1024:
++            raise ValidationError({"arquivo": "O arquivo excede o limite máximo permitido de 25MB."})
++
++        if tipo_doc not in TipoDocumentoContrato.values:
++            tipo_doc = TipoDocumentoContrato.OUTRO
++
++        nome_original = getattr(arquivo, "name", "documento")
++        hash_sha256 = calcular_hash_sha256(arquivo)
++
++        doc = ContratoDocumento.objects.create(
++            contrato=contrato,
++            arquivo=arquivo,
++            nome_original=nome_original,
++            tipo_documento=tipo_doc,
++            tamanho_bytes=arquivo.size,
++            hash_sha256=hash_sha256,
++            algoritmo_hash="SHA-256",
++            enviado_por=usuario,
++        )
++
++        ContratoAuditLog.objects.create(
++            contrato=contrato,
++            tipo_evento=TipoEventoContratoAudit.UPLOAD_DOCUMENTO,
++            descricao=f"Upload do documento '{nome_original}' ({doc.get_tipo_documento_display()}) realizado por {usuario.get_full_name() or usuario.username}.",
++            documento_nome=nome_original,
++            documento_hash=hash_sha256,
++            usuario=usuario,
++            ip_origem=ip,
++            user_agent=ua,
++        )
++        return doc
++
++    @staticmethod
++    @transaction.atomic
++    def excluir_documento(
++        doc: ContratoDocumento,
++        justificativa: str,
++        usuario,
++        ip: str = "",
++        ua: str = "",
++    ) -> dict:
++        nome = doc.nome_original
++        tipo_disp = doc.get_tipo_documento_display()
++        doc_hash = doc.hash_sha256
++        contrato = doc.contrato
++
++        if doc.arquivo:
++            try:
++                doc.arquivo.delete(save=False)
++            except Exception:
++                pass
++        doc.delete()
++
++        usuario_str = usuario.get_full_name() or usuario.username
++        role_str = usuario.get_role_display() if hasattr(usuario, "get_role_display") else ""
++
++        ContratoAuditLog.objects.create(
++            contrato=contrato,
++            tipo_evento=TipoEventoContratoAudit.EXCLUSAO_DOCUMENTO,
++            descricao=f"Documento '{nome}' ({tipo_disp}) excluído por {usuario_str} ({role_str}). Motivo: {justificativa}",
++            justificativa=justificativa,
++            documento_nome=nome,
++            documento_hash=doc_hash,
++            usuario=usuario,
++            ip_origem=ip,
++            user_agent=ua,
++        )
++        return {"nome": nome, "hash": doc_hash, "justificativa": justificativa}
++
++    @staticmethod
++    def verificar_integridade(doc: ContratoDocumento) -> dict:
++        from apps.core.utils import calcular_hash_sha256
++
++        if not doc.arquivo:
++            return {
++                "sucesso": False,
++                "status_code": 404,
++                "payload": {
++                    "doc_id": doc.id,
++                    "nome_original": doc.nome_original,
++                    "integro": False,
++                    "hash_registrado": doc.hash_sha256,
++                    "hash_calculado": "",
++                    "algoritmo": doc.algoritmo_hash or "SHA-256",
++                    "mensagem": "Arquivo físico não encontrado no storage.",
++                    "verificado_em": timezone.now().isoformat(),
++                },
++            }
++
++        try:
++            hash_calculado = calcular_hash_sha256(doc.arquivo)
++        except Exception as e:
++            return {
++                "sucesso": False,
++                "status_code": 500,
++                "payload": {
++                    "doc_id": doc.id,
++                    "nome_original": doc.nome_original,
++                    "integro": False,
++                    "hash_registrado": doc.hash_sha256,
++                    "hash_calculado": "",
++                    "algoritmo": doc.algoritmo_hash or "SHA-256",
++                    "mensagem": f"Erro ao acessar arquivo no storage: {str(e)}",
++                    "verificado_em": timezone.now().isoformat(),
++                },
++            }
++
++        if not doc.hash_sha256:
++            doc.hash_sha256 = hash_calculado
++            doc.save(update_fields=["hash_sha256"])
++
++        integro = bool(hash_calculado and hash_calculado == doc.hash_sha256)
++
++        return {
++            "sucesso": True,
++            "status_code": 200,
++            "payload": {
++                "doc_id": doc.id,
++                "nome_original": doc.nome_original,
++                "integro": integro,
++                "hash_registrado": doc.hash_sha256,
++                "hash_calculado": hash_calculado,
++                "algoritmo": doc.algoritmo_hash or "SHA-256",
++                "tamanho_bytes": doc.tamanho_bytes,
++                "mensagem": "Arquivo 100% íntegro e autêntico em conformidade com o hash criptográfico." if integro else "Atenção: O arquivo físico no storage não corresponde ao hash criptográfico original registrado!",
++                "verificado_em": timezone.now().isoformat(),
++            },
++        }
+--- a/backend/apps/contratos/views.py
++++ b/backend/apps/contratos/views.py
+@@ -23,1 +23,1 @@
+-from apps.contratos.services import ContratoService
++from apps.contratos.services import ContratoService, ContratoDocumentoService
+@@ -162,49 +162,16 @@ class ContratoViewSet(viewsets.ModelViewSet):
+     @action(detail=True, methods=["post"], permission_classes=[IsEmpresaAdmin], parser_classes=[MultiPartParser, FormParser])
+     def upload_documento(self, request, pk=None):
+         contrato = self.get_object()
+-        ...
++        ip = get_client_ip(request)
++        ua = get_client_user_agent(request)
++        doc = ContratoDocumentoService.adicionar_documento(
++            contrato=contrato,
++            arquivo=request.FILES.get("arquivo"),
++            tipo_doc=request.data.get("tipo_documento", TipoDocumentoContrato.OUTRO),
++            usuario=request.user,
++            ip=ip,
++            ua=ua,
++        )
+         serializer = ContratoDocumentoSerializer(doc, context={"request": request})
+         return Response(serializer.data, status=status.HTTP_201_CREATED)
+@@ -230,41 +197,15 @@ class ContratoViewSet(viewsets.ModelViewSet):
+-        nome = doc.nome_original
+-        ...
++        ip = get_client_ip(request)
++        ua = get_client_user_agent(request)
++        res = ContratoDocumentoService.excluir_documento(doc, justificativa, request.user, ip, ua)
+         return Response({
+-            "detail": f"Documento '{nome}' removido com sucesso e auditado no log forense.",
+-            "documento_nome": nome,
+-            "documento_hash": doc_hash,
+-            "hash_sha256": doc_hash,
++            "detail": f"Documento '{res['nome']}' removido com sucesso e auditado no log forense.",
++            "documento_nome": res["nome"],
++            "documento_hash": res["hash"],
++            "hash_sha256": res["hash"],
+             "justificativa": justificativa,
+             "motivo": justificativa,
+         })
+@@ -320,49 +261,8 @@ class ContratoViewSet(viewsets.ModelViewSet):
+-        if not doc.arquivo:
+-            ...
++        resultado = ContratoDocumentoService.verificar_integridade(doc)
++        return Response(resultado["payload"], status=resultado["status_code"])

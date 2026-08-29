@@ -49,7 +49,30 @@ class TipoEventoContratoAudit(models.TextChoices):
     DOWNLOAD_RELATORIO = "download_relatorio", "Download / Impressão de Relatório"
     AVALIACAO_CICLO = "avaliacao_ciclo", "Avaliação de Ciclo"
 
+
+class ContratoQuerySet(models.QuerySet):
+    def elegiveis_para_migracao(self, cliente_id, destino_id=None):
+        hoje = timezone.localdate()
+        qs = self.filter(
+            cliente_id=cliente_id,
+            saldo__gt=0,
+        ).filter(
+            models.Q(status__in=[StatusContrato.EXPIRADO, StatusContrato.CONCLUIDO])
+            | models.Q(data_termino__lt=hoje)
+        )
+        if destino_id:
+            qs = qs.exclude(id=destino_id)
+        return qs.order_by("-data_termino", "-criado_em")
+
+    def devedores(self, cliente_id=None):
+        qs = self.filter(saldo__lt=0)
+        if cliente_id:
+            qs = qs.filter(cliente_id=cliente_id)
+        return qs.order_by("saldo", "-criado_em")
+
+
 class Contrato(TimeStampedModel):
+    objects = ContratoQuerySet.as_manager()
     numero = models.CharField("número do contrato", max_length=30, unique=True, db_index=True)
     tipo = models.CharField("tipo", max_length=15, choices=TipoContrato.choices, default=TipoContrato.NOVO)
     contrato_referencia = models.ForeignKey(

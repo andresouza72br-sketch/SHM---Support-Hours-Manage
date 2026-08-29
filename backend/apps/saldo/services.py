@@ -1,8 +1,90 @@
+import logging
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from apps.contratos.models import Contrato, StatusContrato, ContratoAuditLog, TipoEventoContratoAudit
+from apps.contratos.models import Contrato, StatusContrato
+from apps.contratos.services import ContratoService
 from apps.saldo.models import HistoricoSaldo, TipoOperacaoSaldo, TransferenciaSaldo, Reabastecimento
+
+logger = logging.getLogger(__name__)
+
+def _obter_par_contratos_com_lock_ordenado(contrato_origem_id, contrato_destino_id) -> tuple[Contrato, Contrato]:
+    """
+    Adquire locks pessimistas select_for_update em ordem deterministica por ID
+    para eliminar riscos de deadlock em transferencias concorrentes e reduzir
+    o overhead para uma unica query SQL.
+    """
+    if str(contrato_origem_id) == str(contrato_destino_id):
+        raise ValidationError("O contrato de origem e destino não podem ser iguais.")
+
+    ids_ordenados = sorted([contrato_origem_id, contrato_destino_id], key=lambda x: str(x))
+    locked_qs = Contrato.objects.select_for_update().filter(id__in=ids_ordenados).order_by("id")
+    mapa_contratos = {c.id: c for c in locked_qs}
+
+    if contrato_origem_id not in mapa_contratos:
+        Contrato.objects.get(id=contrato_origem_id)
+    if contrato_destino_id not in mapa_contratos:
+        Contrato.objects.get(id=contrato_destino_id)
+
+    return mapa_contratos[contrato_origem_id], mapa_contratos[contrato_destino_id]
+
+
+def _executar_transferencia_contabil_atomica(
+    contrato_origem: Contrato,
+    contrato_destino: Contrato,
+    quantidade: Decimal,
+    autor,
+    motivo: str,
+    descricao_envio: str = None,
+    descricao_recebimento: str = None,
+    ip_origem: str = None,
+    user_agent: str = None,
+) -> TransferenciaSaldo:
+    """
+    Executa a movimentação atômica no banco de dados:
+    - Persiste o registro de TransferenciaSaldo
+    - Atualiza os saldos dos contratos origem e destino
+    - Registra as duas entradas correlacionadas no HistoricoSaldo (Ledger)
+    """
+    desc_envio = descricao_envio or f"Transferência enviada para {contrato_destino.numero}: {motivo}"
+    desc_receb = descricao_recebimento or f"Transferência recebida de {contrato_origem.numero}: {motivo}"
+
+    transf = TransferenciaSaldo.objects.create(
+        contrato_origem=contrato_origem,
+        contrato_destino=contrato_destino,
+        quantidade=quantidade,
+        motivo=motivo,
+        autor=autor,
+    )
+
+    contrato_origem.saldo -= quantidade
+    contrato_origem.save(update_fields=["saldo", "atualizado_em"])
+    HistoricoSaldo.objects.create(
+        contrato=contrato_origem,
+        tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_ENVIO,
+        quantidade=-quantidade,
+        saldo_resultante=contrato_origem.saldo,
+        autor=autor,
+        descricao=desc_envio,
+        ip_origem=ip_origem,
+        user_agent=user_agent,
+    )
+
+    contrato_destino.saldo += quantidade
+    contrato_destino.save(update_fields=["saldo", "atualizado_em"])
+    HistoricoSaldo.objects.create(
+        contrato=contrato_destino,
+        tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_RECEBIMENTO,
+        quantidade=quantidade,
+        saldo_resultante=contrato_destino.saldo,
+        autor=autor,
+        descricao=desc_receb,
+        ip_origem=ip_origem,
+        user_agent=user_agent,
+    )
+
+    return transf
+
 
 class SaldoService:
     @staticmethod
@@ -46,8 +128,7 @@ class SaldoService:
         if quantidade <= 0:
             raise ValidationError("Quantidade deve ser maior que zero.")
 
-        c_origem = Contrato.objects.select_for_update().get(id=contrato_origem_id)
-        c_destino = Contrato.objects.select_for_update().get(id=contrato_destino_id)
+        c_origem, c_destino = _obter_par_contratos_com_lock_ordenado(contrato_origem_id, contrato_destino_id)
 
         if c_origem.cliente_id != c_destino.cliente_id:
             raise ValidationError("Transferência permitida apenas entre contratos do mesmo cliente.")
@@ -55,37 +136,13 @@ class SaldoService:
         if c_origem.saldo < quantidade:
             raise ValidationError("Saldo insuficiente no contrato de origem.")
 
-        transf = TransferenciaSaldo.objects.create(
+        return _executar_transferencia_contabil_atomica(
             contrato_origem=c_origem,
             contrato_destino=c_destino,
             quantidade=quantidade,
+            autor=autor,
             motivo=motivo,
-            autor=autor,
         )
-
-        c_origem.saldo -= quantidade
-        c_origem.save(update_fields=["saldo", "atualizado_em"])
-        HistoricoSaldo.objects.create(
-            contrato=c_origem,
-            tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_ENVIO,
-            quantidade=-quantidade,
-            saldo_resultante=c_origem.saldo,
-            autor=autor,
-            descricao=f"Transferência enviada para {c_destino.numero}: {motivo}",
-        )
-
-        c_destino.saldo += quantidade
-        c_destino.save(update_fields=["saldo", "atualizado_em"])
-        HistoricoSaldo.objects.create(
-            contrato=c_destino,
-            tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_RECEBIMENTO,
-            quantidade=quantidade,
-            saldo_resultante=c_destino.saldo,
-            autor=autor,
-            descricao=f"Transferência recebida de {c_origem.numero}: {motivo}",
-        )
-
-        return transf
 
     @staticmethod
     @transaction.atomic
@@ -127,8 +184,7 @@ class SaldoService:
     ) -> dict:
         from apps.contratos.models import ContratoAuditLog, TipoEventoContratoAudit
 
-        c_origem = Contrato.objects.select_for_update().get(id=contrato_origem_id)
-        c_destino = Contrato.objects.select_for_update().get(id=contrato_destino_id)
+        c_origem, c_destino = _obter_par_contratos_com_lock_ordenado(contrato_origem_id, contrato_destino_id)
 
         if c_origem.cliente_id != c_destino.cliente_id:
             raise ValidationError("Transferência permitida apenas entre contratos do mesmo cliente.")
@@ -145,102 +201,28 @@ class SaldoService:
 
         motivo_final = motivo or f"Aproveitamento e migração de saldo remanescente do contrato encerrado {c_origem.numero}"
 
-        transf = TransferenciaSaldo.objects.create(
+        transf = _executar_transferencia_contabil_atomica(
             contrato_origem=c_origem,
             contrato_destino=c_destino,
             quantidade=qtd_migrar,
+            autor=autor,
             motivo=motivo_final,
-            autor=autor,
-        )
-
-        c_origem.saldo -= qtd_migrar
-        c_origem.save(update_fields=["saldo", "atualizado_em"])
-        HistoricoSaldo.objects.create(
-            contrato=c_origem,
-            tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_ENVIO,
-            quantidade=-qtd_migrar,
-            saldo_resultante=c_origem.saldo,
-            autor=autor,
-            descricao=f"Migração de saldo de contrato encerrado enviada para {c_destino.numero}: {motivo_final}",
+            descricao_envio=f"Migração de saldo de contrato encerrado enviada para {c_destino.numero}: {motivo_final}",
+            descricao_recebimento=f"Migração de saldo de contrato encerrado recebida de {c_origem.numero}: {motivo_final}",
             ip_origem=ip_origem,
             user_agent=user_agent,
         )
 
-        c_destino.saldo += qtd_migrar
-        c_destino.save(update_fields=["saldo", "atualizado_em"])
-        HistoricoSaldo.objects.create(
-            contrato=c_destino,
-            tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_RECEBIMENTO,
+        # Auditoria e Notificações Contratuais Desacopladas
+        ContratoService.notificar_e_auditar_migracao_saldo(
+            contrato_origem=c_origem,
+            contrato_destino=c_destino,
             quantidade=qtd_migrar,
-            saldo_resultante=c_destino.saldo,
             autor=autor,
-            descricao=f"Migração de saldo de contrato encerrado recebida de {c_origem.numero}: {motivo_final}",
+            motivo=motivo_final,
             ip_origem=ip_origem,
             user_agent=user_agent,
         )
-
-        # Registros de Auditoria Contratual Dupla
-        usuario_str = (autor.get_full_name() or autor.username) if autor else "Administrador"
-        ContratoAuditLog.objects.create(
-            contrato=c_origem,
-            tipo_evento=TipoEventoContratoAudit.ALTERACAO,
-            descricao=f"Migração/aproveitamento de {qtd_migrar:.2f}h para o contrato {c_destino.numero} formalizada por {usuario_str}.",
-            justificativa=motivo_final,
-            usuario=autor,
-            ip_origem=ip_origem,
-            user_agent=user_agent,
-        )
-        ContratoAuditLog.objects.create(
-            contrato=c_destino,
-            tipo_evento=TipoEventoContratoAudit.ALTERACAO,
-            descricao=f"Recebimento de migração/aproveitamento de {qtd_migrar:.2f}h do contrato encerrado {c_origem.numero} formalizada por {usuario_str}.",
-            justificativa=motivo_final,
-            usuario=autor,
-            ip_origem=ip_origem,
-            user_agent=user_agent,
-        )
-
-        # Disparo de e-mail de notificação e transparência contratual
-        try:
-            from apps.contratos.email_service import ContratoEmailNotificacaoService
-            ContratoEmailNotificacaoService.enviar_email_migracao_saldo(
-                contrato_origem=c_origem,
-                contrato_destino=c_destino,
-                quantidade=qtd_migrar,
-                autor=autor,
-                motivo=motivo_final,
-            )
-        except Exception:
-            pass
-
-        # Notificações In-App no sistema para gestores do cliente e administradores
-        try:
-            from apps.notificacoes.models import Notification
-            from apps.accounts.models import User, UserRole
-
-            dest_users = set()
-            cli = c_origem.cliente or c_destino.cliente
-            if cli:
-                for u in User.objects.filter(cliente=cli, role=UserRole.CLIENTE_GERENTE, is_active=True):
-                    dest_users.add(u)
-            for a in User.objects.filter(role=UserRole.EMPRESA_ADMIN, is_active=True):
-                dest_users.add(a)
-            if autor:
-                dest_users.discard(autor)
-
-            notifs = [
-                Notification(
-                    usuario=u,
-                    titulo=f"⚡ Aproveitamento de Saldo: {qtd_migrar:.1f}h",
-                    mensagem=f"{qtd_migrar:.1f}h do contrato encerrado {c_origem.numero} foram aproveitadas no contrato {c_destino.numero}.",
-                    url=f"/contratos/{c_destino.id}/extrato",
-                )
-                for u in dest_users
-            ]
-            if notifs:
-                Notification.objects.bulk_create(notifs)
-        except Exception:
-            pass
 
         return {
             "transferencia": transf,
@@ -260,8 +242,7 @@ class SaldoService:
         ip_origem: str = "",
         user_agent: str = "",
     ):
-        c_novo = Contrato.objects.select_for_update().get(id=contrato_novo_id)
-        c_devedor = Contrato.objects.select_for_update().get(id=contrato_devedor_id)
+        c_novo, c_devedor = _obter_par_contratos_com_lock_ordenado(contrato_novo_id, contrato_devedor_id)
 
         if c_novo.cliente_id != c_devedor.cliente_id:
             raise ValidationError("A compensação de débito é permitida apenas entre contratos do mesmo cliente.")
@@ -285,102 +266,28 @@ class SaldoService:
 
         motivo_final = motivo or f"Compensação e quitação de saldo devedor do contrato {c_devedor.numero} com horas da franquia do contrato {c_novo.numero}."
 
-        transf = TransferenciaSaldo.objects.create(
+        transf = _executar_transferencia_contabil_atomica(
             contrato_origem=c_novo,
             contrato_destino=c_devedor,
             quantidade=quantidade,
+            autor=autor,
             motivo=motivo_final,
-            autor=autor,
-        )
-
-        c_novo.saldo -= quantidade
-        c_novo.save(update_fields=["saldo", "atualizado_em"])
-        HistoricoSaldo.objects.create(
-            contrato=c_novo,
-            tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_ENVIO,
-            quantidade=-quantidade,
-            saldo_resultante=c_novo.saldo,
-            autor=autor,
-            descricao=f"Abatimento de franquia para quitação de débito do contrato {c_devedor.numero}",
+            descricao_envio=f"Abatimento de franquia para quitação de débito do contrato {c_devedor.numero}",
+            descricao_recebimento=f"Quitação de saldo devedor compensado pelo novo contrato {c_novo.numero}",
             ip_origem=ip_origem,
             user_agent=user_agent,
         )
 
-        c_devedor.saldo += quantidade
-        c_devedor.save(update_fields=["saldo", "atualizado_em"])
-        HistoricoSaldo.objects.create(
-            contrato=c_devedor,
-            tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_RECEBIMENTO,
+        # Auditoria e Notificações Contratuais Desacopladas
+        ContratoService.notificar_e_auditar_compensacao_debito(
+            contrato_novo=c_novo,
+            contrato_devedor=c_devedor,
             quantidade=quantidade,
-            saldo_resultante=c_devedor.saldo,
             autor=autor,
-            descricao=f"Quitação de saldo devedor compensado pelo novo contrato {c_novo.numero}",
+            motivo=motivo_final,
             ip_origem=ip_origem,
             user_agent=user_agent,
         )
-
-        # Auditoria Contratual Dupla
-        usuario_str = (autor.get_full_name() or autor.username) if autor else "Administrador"
-        ContratoAuditLog.objects.create(
-            contrato=c_novo,
-            tipo_evento=TipoEventoContratoAudit.ALTERACAO,
-            descricao=f"Abatimento de {quantidade:.2f}h da franquia inicial para quitação de saldo devedor do contrato {c_devedor.numero} por {usuario_str}.",
-            justificativa=motivo_final,
-            usuario=autor,
-            ip_origem=ip_origem,
-            user_agent=user_agent,
-        )
-        ContratoAuditLog.objects.create(
-            contrato=c_devedor,
-            tipo_evento=TipoEventoContratoAudit.ALTERACAO,
-            descricao=f"Quitação de saldo devedor de {quantidade:.2f}h através de compensação de horas do novo contrato {c_novo.numero} por {usuario_str}.",
-            justificativa=motivo_final,
-            usuario=autor,
-            ip_origem=ip_origem,
-            user_agent=user_agent,
-        )
-
-        # Disparo de e-mail de compensação
-        try:
-            from apps.contratos.email_service import ContratoEmailNotificacaoService
-            ContratoEmailNotificacaoService.enviar_email_compensacao_debito(
-                contrato_novo=c_novo,
-                contrato_devedor=c_devedor,
-                quantidade=quantidade,
-                autor=autor,
-                motivo=motivo_final,
-            )
-        except Exception:
-            pass
-
-        # Notificações In-App no sistema para gestores do cliente e administradores
-        try:
-            from apps.notificacoes.models import Notification
-            from apps.accounts.models import User, UserRole
-
-            dest_users = set()
-            cli = c_novo.cliente or c_devedor.cliente
-            if cli:
-                for u in User.objects.filter(cliente=cli, role=UserRole.CLIENTE_GERENTE, is_active=True):
-                    dest_users.add(u)
-            for a in User.objects.filter(role=UserRole.EMPRESA_ADMIN, is_active=True):
-                dest_users.add(a)
-            if autor:
-                dest_users.discard(autor)
-
-            notifs = [
-                Notification(
-                    usuario=u,
-                    titulo=f"⚖️ Compensação de Débito: {quantidade:.1f}h",
-                    mensagem=f"{quantidade:.1f}h foram abatidas do contrato {c_novo.numero} para quitação de saldo devedor do contrato {c_devedor.numero}.",
-                    url=f"/contratos/{c_novo.id}/extrato",
-                )
-                for u in dest_users
-            ]
-            if notifs:
-                Notification.objects.bulk_create(notifs)
-        except Exception:
-            pass
 
         return {
             "transferencia": transf,

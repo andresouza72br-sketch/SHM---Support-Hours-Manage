@@ -1,0 +1,149 @@
+--- /dev/null
++++ b/backend/apps/comunicacao/services.py
+@@ -0,0 +1,59 @@
++import logging
++from decimal import Decimal
++from django.db import transaction
++from apps.comunicacao.models import Comentario, ReacaoComentario
++from apps.tarefas.models import Tarefa, StatusTarefa
++
++logger = logging.getLogger(__name__)
++
++
++class ComentarioService:
++    """Camada de serviço isolada para operações de comunicação e comentários."""
++
++    @staticmethod
++    def criar_comentario(serializer, autor):
++        """Salva o comentário associando o autor e despacha notificações de forma resiliente."""
++        comentario = serializer.save(autor=autor)
++        try:
++            from apps.notificacoes.services import NotificacaoService
++            NotificacaoService.notificar_novo_comentario(comentario)
++        except Exception:
++            logger.warning(
++                "Falha ao despachar notificação para comentário %s",
++                comentario.id,
++                exc_info=True,
++            )
++        return comentario
++
++    @staticmethod
++    def toggle_reacao(comentario, autor, tipo="like"):
++        """Toggle idempotente de reação (cria ou remove). Retorna tupla (acao, tipo, total_reacoes, reagiu)."""
++        reacao, created = ReacaoComentario.objects.get_or_create(
++            comentario=comentario,
++            autor=autor,
++            tipo=tipo,
++        )
++        if not created:
++            reacao.delete()
++            acao = "removida"
++            user_reacted = False
++        else:
++            acao = "adicionada"
++            user_reacted = True
++
++        total_reacoes = comentario.reacoes.count()
++        return acao, tipo, total_reacoes, user_reacted
++
++    @staticmethod
++    def converter_em_tarefa(comentario, operador, descricao=None, horas_estimadas=None):
++        """Converte um comentário vinculado a um ciclo em Tarefa técnica de forma atômica."""
++        if not comentario.ciclo:
++            raise ValueError("Comentário deve estar vinculado a um ciclo.")
++
++        if horas_estimadas is None:
++            horas = Decimal("1.00")
++        elif isinstance(horas_estimadas, Decimal):
++            horas = horas_estimadas
++        else:
++            horas = Decimal(str(horas_estimadas))
++
++        desc = descricao or comentario.texto
++
++        with transaction.atomic():
++            tarefa = Tarefa.objects.create(
++                ciclo=comentario.ciclo,
++                descricao=desc,
++                horas_estimadas=horas,
++                status=StatusTarefa.PREVISTA,
++                operador=operador,
++            )
++            comentario.tarefa_convertida = tarefa
++            comentario.save(update_fields=["tarefa_convertida", "atualizado_em"])
++
++        return tarefa
+--- a/backend/apps/comunicacao/views.py
++++ b/backend/apps/comunicacao/views.py
+@@ -1,11 +1,9 @@
+-from decimal import Decimal
+-from django.db import transaction
+ from rest_framework import viewsets, permissions, status
+ from rest_framework.decorators import action
+ from rest_framework.response import Response
+-from apps.comunicacao.models import Comentario, ReacaoComentario
++from apps.comunicacao.models import Comentario
+ from apps.comunicacao.serializers import ComentarioSerializer
+-from apps.tarefas.models import Tarefa, StatusTarefa
++from apps.comunicacao.services import ComentarioService
+ from apps.core.permissions import IsEmpresaUser
+@@ -58,7 +56,3 @@ class ComentarioViewSet(viewsets.ModelViewSet):
+     def perform_create(self, serializer):
+-        comentario = serializer.save(autor=self.request.user)
+-        try:
+-            from apps.notificacoes.services import NotificacaoService
+-            NotificacaoService.notificar_novo_comentario(comentario)
+-        except Exception:
+-            pass
++        ComentarioService.criar_comentario(serializer, self.request.user)
+@@ -69,13 +63,7 @@ class ComentarioViewSet(viewsets.ModelViewSet):
+         comentario = self.get_object()
+         tipo = request.data.get("tipo", "like")
+-        reacao, created = ReacaoComentario.objects.get_or_create(
+-            comentario=comentario,
+-            autor=request.user,
+-            tipo=tipo,
+-        )
+-        if not created:
+-            reacao.delete()
+-            acao = "removida"
+-        else:
+-            acao = "adicionada"
++        acao, tipo, total_reacoes, user_reacted = ComentarioService.toggle_reacao(
++            comentario=comentario,
++            autor=request.user,
++            tipo=tipo,
++        )
+         return Response({
+             "acao": acao,
+             "tipo": tipo,
+-            "reacoes_count": comentario.reacoes.count(),
+-            "user_reacted": created,
++            "reacoes_count": total_reacoes,
++            "user_reacted": user_reacted,
+         })
+@@ -89,18 +77,10 @@ class ComentarioViewSet(viewsets.ModelViewSet):
+         if not comentario.ciclo:
+             return Response({"detail": "Comentário deve estar vinculado a um ciclo."}, status=status.HTTP_400_BAD_REQUEST)
+ 
+-        horas_estimadas = Decimal(str(request.data.get("horas_estimadas", "1.00")))
+-        descricao = request.data.get("descricao") or comentario.texto
+-
+-        with transaction.atomic():
+-            tarefa = Tarefa.objects.create(
+-                ciclo=comentario.ciclo,
+-                descricao=descricao,
+-                horas_estimadas=horas_estimadas,
+-                status=StatusTarefa.PREVISTA,
+-                operador=request.user,
+-            )
+-            comentario.tarefa_convertida = tarefa
+-            comentario.save(update_fields=["tarefa_convertida", "atualizado_em"])
++        tarefa = ComentarioService.converter_em_tarefa(
++            comentario=comentario,
++            operador=request.user,
++            descricao=request.data.get("descricao"),
++            horas_estimadas=request.data.get("horas_estimadas", "1.00"),
+         )
+         return Response({"detail": "Comentário convertido em tarefa com sucesso.", "tarefa_id": tarefa.id})

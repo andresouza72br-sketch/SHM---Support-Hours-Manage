@@ -1,0 +1,82 @@
+--- a/backend/apps/contratos/services.py
++++ b/backend/apps/contratos/services.py
+@@ -449,2 +449,55 @@ class ContratoService:
++
++    @staticmethod
++    def obter_dados_extrato(contrato: Contrato) -> dict:
++        """
++        Retorna os dados consolidados de extrato do contrato:
++        histórico de ciclos aceitos e apuração/conciliação financeira de saldo.
++        """
++        from apps.ciclos.models import Ciclo, StatusCiclo
++        from apps.saldo.models import HistoricoSaldo, TipoOperacaoSaldo
++        from django.db.models import Sum
++
++        ciclos_aceitos = (
++            Ciclo.objects.filter(pedido__contrato=contrato, status=StatusCiclo.ACEITO)
++            .select_related("pedido")
++            .order_by("-aceito_em")
++        )
++
++        ciclos_data = [
++            {
++                "id": c.id,
++                "pedido_protocolo": c.pedido.protocolo,
++                "tipo": c.get_tipo_display(),
++                "contexto": c.contexto,
++                "horas_realizadas": float(c.horas_realizadas),
++                "aceito_em": c.aceito_em,
++            }
++            for c in ciclos_aceitos
++        ]
++
++        qs_saldo = HistoricoSaldo.objects.filter(contrato=contrato)
++        creditos_migrados = float(
++            qs_saldo.filter(
++                tipo_operacao__in=[TipoOperacaoSaldo.TRANSFERENCIA_RECEBIMENTO, TipoOperacaoSaldo.REABASTECIMENTO]
++            ).aggregate(total=Sum("quantidade"))["total"]
++            or 0
++        )
++        debitos_compensados = float(
++            abs(qs_saldo.filter(tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_ENVIO).aggregate(total=Sum("quantidade"))["total"] or 0)
++        )
++
++        conciliacao = {
++            "franquia_contratada": float(contrato.horas_contratadas),
++            "creditos_migrados": creditos_migrados,
++            "debitos_compensados": debitos_compensados,
++            "consumo_acumulado": float(contrato.horas_consumidas),
++            "saldo_disponivel": float(contrato.saldo),
++            "tem_ajustes": bool(creditos_migrados > 0 or debitos_compensados > 0),
++        }
++
++        return {
++            "historico_ciclos": ciclos_data,
++            "conciliacao": conciliacao,
++        }
+--- a/backend/apps/contratos/views.py
++++ b/backend/apps/contratos/views.py
+@@ -528,34 +528,10 @@ class ContratoViewSet(viewsets.ModelViewSet):
+         contrato = self.get_object()
+         serializer = self.get_serializer(contrato)
+-        # Resumo de histórico de ciclos aceitos vinculados
+-        from apps.ciclos.models import Ciclo, StatusCiclo
+-        ...
+-        # Apuração / conciliação financeira de horas (créditos migrados / débitos compensados)
+-        from apps.saldo.models import HistoricoSaldo, TipoOperacaoSaldo
+-        ...
++        auditoria_completa = ContratoAuditLogSerializer(
++            contrato.auditoria.select_related("usuario").order_by("-timestamp"),
++            many=True,
++        ).data
++
++        extrato_dados = ContratoService.obter_dados_extrato(contrato)
++
+         return Response({
+             "contrato": serializer.data,
+-            "historico_ciclos": ciclos_data,
++            "historico_ciclos": extrato_dados["historico_ciclos"],
+             "auditoria": auditoria_completa,
+-            "conciliacao": conciliacao,
++            "conciliacao": extrato_dados["conciliacao"],
+         })

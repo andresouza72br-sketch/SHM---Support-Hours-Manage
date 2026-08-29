@@ -1,0 +1,257 @@
+--- a/backend/apps/ciclos/services.py
++++ b/backend/apps/ciclos/services.py
+@@ -397,2 +397,213 @@ class CicloService:
++
++
++class CicloMagicLinkService:
++    @staticmethod
++    def resolver_magic_link(token: str) -> CicloMagicLink:
++        import uuid
++        from django.db.models import Q
++        token_str = str(token).strip()
++        token_uuid = None
++        try:
++            token_uuid = uuid.UUID(token_str)
++        except (ValueError, TypeError):
++            pass
++
++        # 1. Busca no modelo CicloMagicLink
++        q_magic = Q(token=token_str)
++        if token_uuid:
++            q_magic |= Q(token=token_uuid) | Q(token=token_uuid.hex) | Q(token=str(token_uuid))
++
++        magic_link = CicloMagicLink.objects.select_related(
++            "ciclo__pedido__cliente",
++            "ciclo__pedido__contrato",
++            "ciclo__operador",
++        ).prefetch_related("ciclo__tarefas").filter(q_magic).first()
++
++        if magic_link:
++            return magic_link
++
++        # 2. Retrocompatibilidade com token_acesso legado no Ciclo
++        q_ciclo = Q(token_acesso=token_str)
++        if token_uuid:
++            q_ciclo |= Q(token_acesso=token_uuid) | Q(token_acesso=token_uuid.hex) | Q(token_acesso=str(token_uuid))
++
++        ciclo = Ciclo.objects.select_related(
++            "pedido__cliente",
++            "pedido__contrato",
++            "operador",
++        ).prefetch_related("tarefas").filter(q_ciclo).first()
++
++        if ciclo:
++            tipo_acao = (
++                TipoAcaoMagicLink.APROVACAO_ORCAMENTO
++                if ciclo.status in [StatusCiclo.ORCADO, StatusCiclo.AGUARDANDO_APROVACAO, StatusCiclo.APROVADO]
++                else TipoAcaoMagicLink.ACEITE_CICLO
++            )
++            return CicloMagicLink.objects.create(
++                ciclo=ciclo,
++                tipo_acao=tipo_acao,
++                token=ciclo.token_acesso,
++                expira_em=timezone.now() + timedelta(days=7),
++                usado=(ciclo.status in [StatusCiclo.APROVADO, StatusCiclo.EM_EXECUCAO, StatusCiclo.ACEITO]),
++                usado_em=ciclo.aprovado_em or ciclo.aceito_em,
++            )
++        return None
++
++    @staticmethod
++    def obter_dados_visualizacao(magic_link: CicloMagicLink) -> dict:
++        ciclo = magic_link.ciclo
++        expirado = timezone.now() > magic_link.expira_em
++        contrato = ciclo.pedido.contrato if (ciclo.pedido and ciclo.pedido.contrato) else None
++        contrato_num = contrato.numero if contrato else "Contrato Vinculado"
++        cliente = ciclo.pedido.cliente if (ciclo.pedido and ciclo.pedido.cliente) else None
++        cliente_nome = (
++            cliente.nome_fantasia if (cliente and cliente.nome_fantasia) else (
++                cliente.razao_social if (cliente and cliente.razao_social) else "Cliente"
++            )
++        )
++        saldo_atual = float(contrato.saldo) if contrato else 0.0
++
++        horas_estimadas = float(ciclo.horas_estimadas) if ciclo.horas_estimadas else 0.0
++        horas_realizadas = float(ciclo.horas_realizadas) if ciclo.horas_realizadas else 0.0
++        limite_tolerancia = round(horas_estimadas * 1.30, 2)
++        excede_tolerancia = horas_estimadas > 0 and horas_realizadas > limite_tolerancia
++
++        return {
++            "ciclo": ciclo,
++            "pedido_protocolo": ciclo.pedido.protocolo if ciclo.pedido else "",
++            "pedido_assunto": ciclo.pedido.assunto if ciclo.pedido else "",
++            "cliente_nome": cliente_nome,
++            "contrato_numero": contrato_num,
++            "contrato_saldo": saldo_atual,
++            "tipo_acao": magic_link.tipo_acao,
++            "excede_tolerancia": excede_tolerancia,
++            "limite_tolerancia": limite_tolerancia,
++            "expirado": expirado,
++            "expira_em": magic_link.expira_em.isoformat(),
++            "usado": magic_link.usado,
++            "usado_em": magic_link.usado_em.isoformat() if magic_link.usado_em else None,
++        }
++
++    @staticmethod
++    @transaction.atomic
++    def processar_acao(
++        magic_link: CicloMagicLink,
++        acao: str,
++        dados: dict = None,
++        usuario=None,
++        ip_origem: str = "",
++        user_agent: str = "",
++    ) -> dict:
++        dados = dados or {}
++
++        if acao in ["rejeitar", "recusar"]:
++            return {
++                "sucesso": False,
++                "status_code": 403,
++                "mensagem": "Operação não permitida via Magic Link. A recusa com justificativa técnica deve ser realizada exclusivamente via app/plataforma.",
++            }
++
++        if magic_link.usado:
++            data_formatada = magic_link.usado_em.strftime("%d/%m/%Y às %H:%M") if magic_link.usado_em else "data anterior"
++            return {
++                "sucesso": False,
++                "status_code": 409,
++                "mensagem": f"Este link seguro de uso único já foi consumido em {data_formatada}.",
++            }
++
++        if timezone.now() > magic_link.expira_em:
++            data_expira = magic_link.expira_em.strftime("%d/%m/%Y às %H:%M")
++            return {
++                "sucesso": False,
++                "status_code": 410,
++                "mensagem": f"Este link seguro expirou em {data_expira} (validade de 7 dias). Solicite um novo link ou acesse o app.",
++            }
++
++        ciclo = magic_link.ciclo
++        pedido = ciclo.pedido
++        contrato = pedido.contrato if (pedido and pedido.contrato) else None
++        contrato_num = contrato.numero if contrato else "Contrato Vinculado"
++        cliente = pedido.cliente if (pedido and pedido.cliente) else None
++        cliente_nome = (
++            cliente.nome_fantasia if (cliente and cliente.nome_fantasia) else (
++                cliente.razao_social if (cliente and cliente.razao_social) else "Cliente"
++            )
++        )
++
++        if acao == "aprovar":
++            CicloService.aprovar_orcamento(
++                ciclo=ciclo,
++                usuario=usuario,
++                ip_origem=ip_origem,
++                user_agent=user_agent,
++                metodo="MAGIC_LINK",
++            )
++            msg = f"Orçamento de {float(ciclo.horas_estimadas):.1f}h do Pedido {pedido.protocolo} ({cliente_nome} / Contrato {contrato_num}) aprovado com sucesso via Magic Link."
++        elif acao == "aceitar":
++            justificativa_excedente = dados.get("justificativa_excedente", "")
++            try:
++                CicloService.aceitar_ciclo(
++                    ciclo=ciclo,
++                    usuario=usuario,
++                    ip_origem=ip_origem,
++                    user_agent=user_agent,
++                    metodo="MAGIC_LINK",
++                    justificativa_excedente=justificativa_excedente,
++                )
++            except ValidationError as e:
++                return {
++                    "sucesso": False,
++                    "status_code": 400,
++                    "mensagem": str(e.message if hasattr(e, "message") else e),
++                }
++
++            if contrato:
++                contrato.refresh_from_db()
++                saldo_restante = float(contrato.saldo)
++            else:
++                saldo_restante = 0.0
++            msg = f"Aceite final concedido com sucesso! Foram debitadas {float(ciclo.horas_realizadas):.1f}h do Contrato {contrato_num} da empresa {cliente_nome}. Saldo restante: {saldo_restante:.1f}h."
++        elif acao == "avaliar":
++            res_av = CicloService.registrar_avaliacao(
++                ciclo=ciclo,
++                nota=dados.get("nota"),
++                comentario=dados.get("comentario", ""),
++                usuario=usuario,
++                ip_origem=ip_origem,
++                user_agent=user_agent,
++                via_magic_link=True,
++            )
++            if not res_av["sucesso"]:
++                return {
++                    "sucesso": False,
++                    "status_code": 400,
++                    "mensagem": res_av["mensagem"],
++                }
++            msg = res_av["mensagem"]
++        else:
++            return {
++                "sucesso": False,
++                "status_code": 400,
++                "mensagem": "Ação inválida para o Magic Link.",
++            }
++
++        # Marca token como consumido (Single-Use)
++        magic_link.usado = True
++        magic_link.usado_em = timezone.now()
++        magic_link.usado_ip = ip_origem
++        magic_link.usado_user_agent = user_agent
++        magic_link.save(update_fields=["usado", "usado_em", "usado_ip", "usado_user_agent", "atualizado_em"])
++
++        return {
++            "sucesso": True,
++            "status_code": 200,
++            "payload": {
++                "detail": msg,
++                "contrato_numero": contrato_num,
++                "cliente_nome": cliente_nome,
++                "usado_em": magic_link.usado_em.isoformat(),
++                "ip_origem": ip_origem,
++                "metodo": "MAGIC_LINK",
++            },
++        }
+--- a/backend/apps/ciclos/views.py
++++ b/backend/apps/ciclos/views.py
+@@ -11,2 +11,2 @@
+-from apps.ciclos.services import CicloService
++from apps.ciclos.services import CicloService, CicloMagicLinkService
+@@ -114,98 +114,35 @@ class MagicLinkCicloView(APIView):
+     def get(self, request, token):
+-        magic_link = self._get_magic_link_or_fallback(token)
++        magic_link = CicloMagicLinkService.resolver_magic_link(token)
+         if not magic_link:
+             return Response({"detail": "Token inválido ou não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+ 
+-        ciclo = magic_link.ciclo
+-        ...
++        dados = CicloMagicLinkService.obter_dados_visualizacao(magic_link)
++        serializer = CicloSerializer(dados["ciclo"])
++        payload = {**dados, "ciclo": serializer.data}
++        return Response(payload)
+ 
+     def post(self, request, token):
+-        magic_link = self._get_magic_link_or_fallback(token)
++        magic_link = CicloMagicLinkService.resolver_magic_link(token)
+         if not magic_link:
+             return Response({"detail": "Token inválido."}, status=status.HTTP_404_NOT_FOUND)
+ 
+         acao = request.data.get("acao")
+         user = request.user if (hasattr(request.user, "is_authenticated") and request.user.is_authenticated) else None
+         ip_origem = get_client_ip(request)
+         user_agent = get_client_user_agent(request)
+-        ...
++        res = CicloMagicLinkService.processar_acao(
++            magic_link=magic_link,
++            acao=acao,
++            dados=request.data,
++            usuario=user,
++            ip_origem=ip_origem,
++            user_agent=user_agent,
++        )
++        if not res["sucesso"]:
++            return Response({"detail": res["mensagem"]}, status=res["status_code"])
++
++        return Response(res["payload"], status=res["status_code"])

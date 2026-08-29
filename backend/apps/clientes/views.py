@@ -49,84 +49,29 @@ class ClienteViewSet(viewsets.ModelViewSet):
         return self._executar_exclusao_cliente(request, cliente)
 
     def _executar_exclusao_cliente(self, request, cliente):
-        # 1. Regra Fundamental de Negócio: Cliente não pode ter contratos no sistema
-        total_contratos = cliente.contratos.count() if hasattr(cliente, "contratos") else 0
-        if total_contratos > 0:
-            raise ValidationError({
-                "detail": f"Não é possível excluir o cliente '{cliente.display_name}' pois ele possui {total_contratos} contrato(s) no sistema. Clientes com contratos vinculados não podem ser excluídos para preservação da integridade jurídica e histórico contábil."
-            })
+        from apps.clientes.services import ClienteService
 
-        # 2. Verificar pedidos vinculados (se houver)
-        total_pedidos = cliente.pedidos.count() if hasattr(cliente, "pedidos") else 0
-        if total_pedidos > 0:
-            raise ValidationError({
-                "detail": f"Não é possível excluir o cliente '{cliente.display_name}' pois ele possui {total_pedidos} pedido(s) vinculado(s) no sistema."
-            })
-
-        # 3. Justificativa obrigatória (mínimo 5 caracteres)
         justificativa = ""
         if isinstance(request.data, dict):
             justificativa = request.data.get("justificativa") or ""
         if not justificativa:
             justificativa = request.query_params.get("justificativa") or ""
-        justificativa = justificativa.strip()
 
-        if not justificativa or len(justificativa) < 5:
-            raise ValidationError({
-                "justificativa": "A justificativa de exclusão é obrigatória e deve conter no mínimo 5 caracteres."
-            })
-
-        # 4. Captura de Auditoria Forense
         ip = get_client_ip(request)
         ua = get_client_user_agent(request)
-        nome_cliente = cliente.display_name
-        doc_cliente = cliente.cnpj if cliente.tipo == "PJ" else (cliente.cpf or "")
-        cliente_id = cliente.id
-        usuario_nome = request.user.get_full_name() or request.user.username
-        usuario_role = request.user.get_role_display() if hasattr(request.user, "get_role_display") else str(request.user.role)
 
-        # Grava registro permanente de auditoria forense
-        ClienteAuditLog.objects.create(
-            cliente_id=cliente_id,
-            cliente_nome=nome_cliente,
-            cliente_documento=doc_cliente,
-            tipo_evento=TipoEventoClienteAudit.EXCLUSAO,
-            descricao=f"Cliente '{nome_cliente}' ({doc_cliente or 'Sem documento'}) excluído definitivamente por {usuario_nome} ({usuario_role}).",
+        nome_cliente, justificativa_limpa = ClienteService.excluir_cliente(
+            cliente=cliente,
             justificativa=justificativa,
             usuario=request.user,
-            usuario_nome=usuario_nome,
-            usuario_email=request.user.email,
-            usuario_role=usuario_role,
-            ip_origem=ip,
+            ip=ip,
             user_agent=ua,
         )
-
-        # 5. Notificar Administradores da Empresa sobre a exclusão
-        empresa_admins = User.objects.filter(
-            role=UserRole.EMPRESA_ADMIN,
-            is_active=True,
-        ).exclude(id=request.user.id)
-        
-        notifs = [
-            Notification(
-                usuario=admin_u,
-                titulo=f"Cliente Excluído: {nome_cliente}",
-                mensagem=f"O cliente '{nome_cliente}' foi excluído por {usuario_nome}. Justificativa: \"{justificativa}\"",
-                url="/clientes",
-                lida=False,
-            )
-            for admin_u in empresa_admins
-        ]
-        if notifs:
-            Notification.objects.bulk_create(notifs)
-
-        # 6. Excluir o registro do cliente
-        cliente.delete()
 
         return Response({
             "detail": f"Cliente '{nome_cliente}' excluído com sucesso e registrado na auditoria forense.",
             "cliente_nome": nome_cliente,
-            "justificativa": justificativa,
+            "justificativa": justificativa_limpa,
         }, status=status.HTTP_200_OK)
 
     def perform_create(self, serializer):
@@ -157,21 +102,10 @@ class ClienteViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], permission_classes=[IsEmpresaAdmin], url_path="reenviar_aprovacao")
     def reenviar_aprovacao(self, request, pk=None):
+        from apps.clientes.services import ClienteService
+
         cliente = self.get_object()
-
-        # Buscar link existente não expirado ou criar novo com 7 dias
-        aceite_link = cliente.aceite_links.filter(usado=False, data_expiracao__gt=timezone.now()).order_by("-criado_em").first()
-        if not aceite_link:
-            aceite_link = ClienteAceiteLink.objects.create(
-                cliente=cliente,
-                data_expiracao=timezone.now() + timedelta(days=7),
-            )
-
-        email_enviado = ClienteUsuarioEmailService.enviar_email_aprovacao_cliente(
-            cliente=cliente,
-            aceite_link=aceite_link,
-            request=request,
-        )
+        aceite_link, email_enviado = ClienteService.reenviar_aprovacao_cliente(cliente=cliente, request=request)
 
         if not email_enviado:
             raise ValidationError({
@@ -247,55 +181,22 @@ class ClienteViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
 
         # POST: Cadastrar novo colaborador do cliente e disparar convite
+        from apps.clientes.services import ClienteService
+
         self._check_cliente_gerente_access(request, cliente)
         create_serializer = ClienteUserCreateSerializer(data=request.data)
         create_serializer.is_valid(raise_exception=True)
 
         data = create_serializer.validated_data
-        email = data["email"]
-        first_name = data["first_name"]
-        last_name = data.get("last_name", "")
         role = data.get("role", UserRole.CLIENTE_ANALISTA)
-        telefone = data.get("telefone", "")
 
         # Anti-privilege escalation
         if not request.user.is_empresa and role not in (UserRole.CLIENTE_GERENTE, UserRole.CLIENTE_ANALISTA):
             raise PermissionDenied("Você só pode criar usuários com perfil de Gerente ou Analista.")
 
-        # Criação do User
-        username_base = email.split("@")[0].lower().replace(".", "_").replace("-", "_")
-        username = username_base
-        counter = 1
-        while User.objects.filter(username=username).exists():
-            username = f"{username_base}_{counter}"
-            counter += 1
-
-        senha_temp = secrets.token_urlsafe(12)
-        novo_user = User.objects.create(
-            username=username,
-            email=email,
-            first_name=first_name,
-            last_name=last_name,
-            role=role,
-            telefone=telefone,
+        novo_user, token_obj, email_enviado = ClienteService.criar_colaborador_com_convite(
             cliente=cliente,
-            is_active=True,
-        )
-        novo_user.set_password(senha_temp)
-        novo_user.save()
-
-        # Gera token de 48h para primeiro acesso sem senha
-        expira_em = timezone.now() + timedelta(hours=48)
-        token_obj = PasswordlessLoginToken.objects.create(
-            user=novo_user,
-            expira_em=expira_em,
-            usado=False,
-        )
-
-        # Envia e-mail de boas-vindas com Magic Link
-        email_enviado = ClienteUsuarioEmailService.enviar_convite_usuario(
-            user=novo_user,
-            token_obj=token_obj,
+            dados=data,
             convidador=request.user,
         )
 
@@ -343,6 +244,8 @@ class ClienteViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path=r"usuarios/(?P<user_id>[^/.]+)/reenviar_convite")
     def reenviar_convite(self, request, pk=None, user_id=None):
+        from apps.clientes.services import ClienteService
+
         cliente = self.get_object()
         self._check_cliente_gerente_access(request, cliente)
 
@@ -350,17 +253,8 @@ class ClienteViewSet(viewsets.ModelViewSet):
         if not target_user:
             raise ValidationError({"detail": "Usuário não encontrado neste cliente."})
 
-        # Cria novo token de 48h
-        expira_em = timezone.now() + timedelta(hours=48)
-        token_obj = PasswordlessLoginToken.objects.create(
-            user=target_user,
-            expira_em=expira_em,
-            usado=False,
-        )
-
-        email_enviado = ClienteUsuarioEmailService.enviar_convite_usuario(
-            user=target_user,
-            token_obj=token_obj,
+        token_obj, email_enviado = ClienteService.reenviar_convite_usuario(
+            target_user=target_user,
             convidador=request.user,
         )
 
@@ -424,86 +318,25 @@ class AceiteClienteView(APIView):
 
     def post(self, request, token):
         from apps.core.utils import get_client_ip, get_client_user_agent
-        from apps.notificacoes.models import Notification
-        from apps.accounts.models import User, UserRole
-
-        link = ClienteAceiteLink.objects.select_related("cliente").filter(token=token).first()
-        if not link:
-            return Response(
-                {"detail": "Link de aprovação não encontrado ou inválido."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        if link.usado:
-            data_formatada = link.usado_em.strftime("%d/%m/%Y às %H:%M") if link.usado_em else "data anterior"
-            return Response(
-                {"detail": f"Este cadastro já teve sua aprovação e validação formalizadas em {data_formatada}."},
-                status=status.HTTP_409_CONFLICT,
-            )
-
-        if timezone.now() > link.data_expiracao:
-            data_expira = link.data_expiracao.strftime("%d/%m/%Y às %H:%M")
-            return Response(
-                {"detail": f"O prazo de 7 dias para aprovação deste cadastro expirou em {data_expira}."},
-                status=status.HTTP_410_GONE,
-            )
+        from apps.clientes.services import ClienteService
 
         ip = get_client_ip(request)
         ua = get_client_user_agent(request)
-        agora = timezone.now()
 
-        # Marcar link como usado
-        link.usado = True
-        link.usado_em = agora
-        link.usado_ip = ip
-        link.usado_user_agent = ua
-        link.save(update_fields=["usado", "usado_em", "usado_ip", "usado_user_agent", "atualizado_em"])
-
-        # Atualizar cliente: status ATIVO, aprovado_em e email_verificado em uma única ação
-        cliente = link.cliente
-        cliente.status = StatusCliente.ATIVO
-        cliente.aprovado_em = agora
-        cliente.aprovado_por_nome = cliente.pessoa_contato or (cliente.nome_completo if cliente.tipo == "PF" else "Gestor Responsável")
-        cliente.aprovado_por_email = cliente.email_contato
-        cliente.aprovado_ip = ip
-        cliente.aprovado_user_agent = ua
-        cliente.email_verificado = True
-        cliente.email_verificado_em = agora
-        cliente.save(update_fields=[
-            "status",
-            "aprovado_em",
-            "aprovado_por_nome",
-            "aprovado_por_email",
-            "aprovado_ip",
-            "aprovado_user_agent",
-            "email_verificado",
-            "email_verificado_em",
-            "atualizado_em",
-        ])
-
-        # Notificações internas para a equipe da empresa
-        empresa_users = User.objects.filter(
-            role__in=[UserRole.EMPRESA_ADMIN, UserRole.EMPRESA_TECNICO],
-            is_active=True,
+        cliente, link, status_code, msg = ClienteService.formalizar_aceite(
+            token=token,
+            ip=ip,
+            user_agent=ua,
         )
-        notifs = [
-            Notification(
-                usuario=u,
-                titulo=f"Cadastro Aprovado: {cliente.display_name}",
-                mensagem=f"O gestor responsável formalizou a aprovação do cadastro de '{cliente.display_name}' via Magic Link. E-mail '{cliente.email_contato}' verificado com sucesso.",
-                url="/clientes",
-                lida=False,
-            )
-            for u in empresa_users
-        ]
-        if notifs:
-            Notification.objects.bulk_create(notifs)
+
+        if status_code != 200:
+            return Response({"detail": msg}, status=status_code)
 
         serializer = ClienteAprovacaoDetailSerializer(cliente, context={"request": request})
         return Response({
-            "detail": f"Cadastro de '{cliente.display_name}' aprovado com sucesso! O e-mail '{cliente.email_contato}' foi validado automaticamente e a conta está ativa.",
+            "detail": msg,
             "cliente": serializer.data,
             "data_aprovacao": cliente.aprovado_em.isoformat(),
             "email_verificado": True,
             "ip_origem": ip,
-        })
+        }, status=status.HTTP_200_OK)

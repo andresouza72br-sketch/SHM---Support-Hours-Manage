@@ -52,16 +52,7 @@ class SaldoViewSet(viewsets.ReadOnlyModelViewSet):
         if not cliente_id:
             raise ValidationError({"cliente_id": "Parâmetro obrigatório."})
 
-        hoje = timezone.localdate()
-        qs = Contrato.objects.filter(
-            cliente_id=cliente_id,
-            saldo__gt=0,
-        ).filter(
-            models.Q(status__in=[StatusContrato.EXPIRADO, StatusContrato.CONCLUIDO])
-            | models.Q(data_termino__lt=hoje)
-        )
-        if destino_id:
-            qs = qs.exclude(id=destino_id)
+        qs = Contrato.objects.elegiveis_para_migracao(cliente_id=cliente_id, destino_id=destino_id)
 
         dados = [
             {
@@ -77,7 +68,7 @@ class SaldoViewSet(viewsets.ReadOnlyModelViewSet):
                 "data_fim_carencia": c.data_fim_carencia.isoformat() if c.data_fim_carencia else None,
                 "em_carencia": c.em_carencia,
             }
-            for c in qs.order_by("-data_termino", "-criado_em")
+            for c in qs
         ]
         return Response(dados)
 
@@ -123,10 +114,7 @@ class SaldoViewSet(viewsets.ReadOnlyModelViewSet):
         if not cliente_id:
             raise ValidationError({"cliente_id": "Parâmetro obrigatório."})
 
-        qs = Contrato.objects.filter(
-            cliente_id=cliente_id,
-            saldo__lt=0,
-        )
+        qs = Contrato.objects.devedores(cliente_id=cliente_id)
 
         dados = [
             {
@@ -142,7 +130,7 @@ class SaldoViewSet(viewsets.ReadOnlyModelViewSet):
                 "data_termino": c.data_termino.isoformat() if c.data_termino else None,
                 "descricao_servicos": c.descricao_servicos,
             }
-            for c in qs.order_by("saldo", "-criado_em")
+            for c in qs
         ]
         return Response(dados)
 

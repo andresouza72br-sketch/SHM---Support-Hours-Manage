@@ -342,5 +342,48 @@ class TestComentariosEPermissoes:
         assert self.tecnico.email in destinatarios_ciclo_aceito
         assert self.analista_mktdnb.email not in destinatarios_ciclo_aceito
 
+    def test_converter_comentario_em_tarefa_e_permissoes(self):
+        from apps.tarefas.models import Tarefa, StatusTarefa
+
+        # 1. Cria comentário no ciclo
+        comentario = Comentario.objects.create(
+            ciclo=self.ciclo,
+            autor=self.gerente_mktdnb,
+            texto="Necessário ajustar rota de callback do webhook.",
+        )
+
+        # 2. Cliente tenta converter -> 403 Forbidden
+        self.client.force_authenticate(user=self.gerente_mktdnb)
+        res_negado = self.client.post(f"/api/v1/comunicacao/comentarios/{comentario.id}/converter_em_tarefa/")
+        assert res_negado.status_code == 403
+
+        # 3. Técnico converte comentário sem ciclo -> 400 Bad Request
+        comentario_sem_ciclo = Comentario.objects.create(
+            autor=self.gerente_mktdnb,
+            texto="Comentário isolado sem ciclo.",
+        )
+        self.client.force_authenticate(user=self.tecnico)
+        res_sem_ciclo = self.client.post(f"/api/v1/comunicacao/comentarios/{comentario_sem_ciclo.id}/converter_em_tarefa/")
+        assert res_sem_ciclo.status_code == 400
+        assert res_sem_ciclo.data["detail"] == "Comentário deve estar vinculado a um ciclo."
+
+        # 4. Técnico converte com sucesso -> 200 OK
+        res_sucesso = self.client.post(f"/api/v1/comunicacao/comentarios/{comentario.id}/converter_em_tarefa/", {
+            "descricao": "Tarefa gerada a partir do feedback do cliente",
+            "horas_estimadas": "2.50",
+        })
+        assert res_sucesso.status_code == 200
+        tarefa_id = res_sucesso.data["tarefa_id"]
+
+        comentario.refresh_from_db()
+        assert comentario.tarefa_convertida_id == tarefa_id
+
+        tarefa = Tarefa.objects.get(id=tarefa_id)
+        assert tarefa.descricao == "Tarefa gerada a partir do feedback do cliente"
+        assert tarefa.horas_estimadas == Decimal("2.50")
+        assert tarefa.status == StatusTarefa.PREVISTA
+        assert tarefa.operador == self.tecnico
+        assert tarefa.ciclo == self.ciclo
+
 
 

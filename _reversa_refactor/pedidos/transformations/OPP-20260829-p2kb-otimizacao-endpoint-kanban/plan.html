@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plano de Otimização - OPP-20260829-p2kb</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --green: #4ade80;
+      --amber: #fbbf24;
+      --red: #f87171;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 2rem;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.8rem;
+      color: var(--text);
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    pre {
+      background: #090d16;
+      border: 1px solid var(--border);
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">Reversa Optimize (Serialização em Lote)</span>
+      <h1>OPP-20260829-p2kb: Serialização em Lote no Endpoint Kanban</h1>
+      <p style="color: var(--muted); margin: 0;">Contexto: <strong>pedidos</strong> | Alvo: <code>backend/apps/pedidos/views.py</code> (<code>PedidoViewSet.kanban</code>)</p>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2>1. Ineficiência Identificada</h2>
+        <p>A view <code>kanban</code> iterava sobre todos os pedidos retornados instanciando um <code>PedidoListSerializer(pedido)</code> individual para cada elemento, gerando alto overhead de CPU e GC.</p>
+      </div>
+
+      <div class="card">
+        <h2>2. Otimização Proposta</h2>
+        <p>Executar <code>PedidoListSerializer(qs, many=True).data</code> de forma única e vetorizada pelo DRF, particionando os dicionários serializados nas colunas do Kanban em $O(N)$.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 2rem;">
+      <h2>3. Rede de Segurança e Preservação</h2>
+      <p>Estrutura de payload JSON preservada integralmente, validada pelos 73 testes verdes da suíte geral.</p>
+    </div>
+  </div>
+</body>
+</html>
