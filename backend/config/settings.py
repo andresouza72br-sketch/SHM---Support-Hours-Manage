@@ -176,19 +176,17 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 # E-mail Configuration
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes")
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "1025"))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "False").lower() in ("true", "1", "yes")
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").lower() in ("true", "1", "yes")
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", os.getenv("EMAIL_HOST_USER", "SHM Suporte <suporte@shm.com>"))
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "SHM Suporte <suporte@shm.com>")
 
 import sys
 IS_TESTING = "pytest" in sys.modules or any("test" in arg for arg in sys.argv) or os.getenv("TESTING", "").lower() in ("true", "1")
 
 if IS_TESTING:
     EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
-elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-else:
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
