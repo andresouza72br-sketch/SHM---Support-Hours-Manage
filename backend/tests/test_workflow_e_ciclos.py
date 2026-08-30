@@ -16,11 +16,13 @@ class TestWorkflowCiclosESaldo:
     def setup_method(self):
         self.admin = User.objects.create_user(
             username="admin_test",
+            email="admin@empresa.com",
             role=UserRole.EMPRESA_ADMIN,
             is_staff=True,
         )
         self.tecnico = User.objects.create_user(
             username="tecnico_test",
+            email="tecnico@empresa.com",
             role=UserRole.EMPRESA_TECNICO,
         )
         self.cliente = Cliente.objects.create(
@@ -31,6 +33,7 @@ class TestWorkflowCiclosESaldo:
         )
         self.gerente_cliente = User.objects.create_user(
             username="gerente_test",
+            email="gerente@teste.com",
             role=UserRole.CLIENTE_GERENTE,
             cliente=self.cliente,
         )
@@ -295,3 +298,187 @@ class TestWorkflowCiclosESaldo:
         ).first()
         assert audit is not None
         assert "Aceite de exceção formalizado" in audit.descricao
+
+    def test_reenvio_magic_link_ciclo_aprovacao_e_aceite(self):
+        """Testa reenvio de magic link para ciclos em aguardando_aprovacao e aguardando_aceite."""
+        from django.core import mail
+        from django.core.exceptions import ValidationError
+        from apps.ciclos.models import TipoAcaoMagicLink
+
+        mail.outbox.clear()
+        pedido = Pedido.objects.create(
+            protocolo="OS2026089004",
+            cliente=self.cliente,
+            contrato=self.contrato,
+            assunto="Demanda Reenvio Magic Link",
+            descricao="Teste de reenvio de links seguros",
+            criado_por=self.gerente_cliente,
+        )
+        ciclo = CicloService.criar_ciclo(
+            pedido_id=pedido.id,
+            tipo=TipoCiclo.CORRETIVA,
+            contexto="Correção com reenvio",
+            operador=self.tecnico,
+            horas_estimadas=Decimal("6.00"),
+        )
+        # 1. Bloqueado em status ORCADO
+        with pytest.raises(ValidationError):
+            CicloService.reenviar_magic_link(ciclo, self.tecnico)
+
+        # 2. Apresenta orçamento -> AGUARDANDO_APROVACAO
+        CicloService.apresentar_orcamento(ciclo, Decimal("6.00"))
+        ciclo.refresh_from_db()
+        token_antigo = ciclo.token_acesso
+
+        # Reenvia Magic Link de Orçamento
+        mail.outbox.clear()
+        ciclo_renovado, link_renovado = CicloService.reenviar_magic_link(ciclo, self.tecnico)
+        assert link_renovado.tipo_acao == TipoAcaoMagicLink.APROVACAO_ORCAMENTO
+        assert link_renovado.token == ciclo_renovado.token_acesso
+        assert link_renovado.token != token_antigo
+        assert len(mail.outbox) >= 1
+        assert "Orçamento Apresentado" in mail.outbox[-1].subject
+
+        # 3. Aprova e Inicia Execução -> Bloqueado em EM_EXECUCAO
+        CicloService.aprovar_orcamento(ciclo, self.gerente_cliente)
+        CicloService.iniciar_execucao(ciclo)
+        ciclo.refresh_from_db()
+        with pytest.raises(ValidationError):
+            CicloService.reenviar_magic_link(ciclo, self.tecnico)
+
+        # 4. Solicita aceite -> AGUARDANDO_ACEITE
+        CicloService.solicitar_aceite(ciclo)
+        ciclo.refresh_from_db()
+        token_aceite_antigo = ciclo.token_acesso
+
+        # Reenvia Magic Link de Aceite
+        mail.outbox.clear()
+        ciclo_aceite_renovado, link_aceite_renovado = CicloService.reenviar_magic_link(ciclo, self.tecnico)
+        assert link_aceite_renovado.tipo_acao == TipoAcaoMagicLink.ACEITE_CICLO
+        assert link_aceite_renovado.token == ciclo_aceite_renovado.token_acesso
+        assert link_aceite_renovado.token != token_aceite_antigo
+        assert len(mail.outbox) >= 1
+        assert "Aceite Solicitado" in mail.outbox[-1].subject
+
+    def test_api_endpoint_reenviar_magic_link(self):
+        """Testa o endpoint POST /api/v1/ciclos/{id}/reenviar_magic_link/ via REST API."""
+        from rest_framework.test import APIClient
+        from django.core import mail
+
+        mail.outbox.clear()
+        client = APIClient()
+        client.force_authenticate(user=self.admin)
+
+        pedido = Pedido.objects.create(
+            protocolo="OS2026089005",
+            cliente=self.cliente,
+            contrato=self.contrato,
+            assunto="Demanda API Reenvio",
+            descricao="Teste endpoint REST",
+            criado_por=self.gerente_cliente,
+        )
+        ciclo = CicloService.criar_ciclo(
+            pedido_id=pedido.id,
+            tipo=TipoCiclo.ANALISE,
+            contexto="Análise técnica",
+            operador=self.tecnico,
+            horas_estimadas=Decimal("5.00"),
+        )
+        CicloService.apresentar_orcamento(ciclo, Decimal("5.00"))
+
+        response = client.post(f"/api/v1/ciclos/{ciclo.id}/reenviar_magic_link/")
+        assert response.status_code == 200
+        data = response.json()
+        assert "magic_link_token" in data
+        assert "expira_em" in data
+        assert data["ciclo"]["id"] == ciclo.id
+
+    def test_disparo_email_passwordless_login(self):
+        """Testa disparo de e-mail transacional no login passwordless avulso."""
+        from rest_framework.test import APIClient
+        from django.core import mail
+
+        mail.outbox.clear()
+        client = APIClient()
+        response = client.post("/api/v1/auth/magic-link/request/", {"email": self.gerente_cliente.email})
+        assert response.status_code == 200
+        assert len(mail.outbox) == 1
+
+        email_enviado = mail.outbox[0]
+        assert "Link de Acesso" in email_enviado.subject
+        assert self.gerente_cliente.email in email_enviado.to
+        assert "/magic-link/" in email_enviado.body
+
+    def test_fallback_email_contato_quando_cliente_sem_gerente(self):
+        """Testa fallback para Cliente.email_contato quando não há usuário CLIENTE_GERENTE ativo."""
+        from django.core import mail
+
+        mail.outbox.clear()
+        cliente_sem_gerente = Cliente.objects.create(
+            tipo=TipoCliente.PJ,
+            razao_social="Empresa Sem Gerente Cadastrado LTDA",
+            cnpj="99888777000166",
+            email_contato="contato.diretoria@semgerente.com.br",
+        )
+        contrato2 = Contrato.objects.create(
+            numero="CT-2026-0998",
+            cliente=cliente_sem_gerente,
+            data_inicio=timezone.localdate(),
+            horas_contratadas=Decimal("50.00"),
+            saldo=Decimal("50.00"),
+            status=StatusContrato.ATIVO,
+            criado_por=self.admin,
+        )
+        pedido = Pedido.objects.create(
+            protocolo="OS2026089006",
+            cliente=cliente_sem_gerente,
+            contrato=contrato2,
+            assunto="Demanda Sem Gerente",
+            descricao="Fallback email contato",
+            criado_por=self.admin,
+        )
+        ciclo = CicloService.criar_ciclo(
+            pedido_id=pedido.id,
+            tipo=TipoCiclo.PREVENTIVA,
+            contexto="Manutenção preventiva",
+            operador=self.tecnico,
+            horas_estimadas=Decimal("4.00"),
+        )
+        CicloService.apresentar_orcamento(ciclo, Decimal("4.00"))
+
+        assert len(mail.outbox) >= 1
+        ultimo_email = mail.outbox[-1]
+        assert "contato.diretoria@semgerente.com.br" in ultimo_email.to
+
+    def test_copia_cc_emails_notificacao_padrao_cliente(self):
+        """Testa envio de e-mails em cópia (CC) cadastrados em emails_notificacao_padrao."""
+        from django.core import mail
+
+        mail.outbox.clear()
+        self.cliente.emails_notificacao_padrao = [
+            "fiscal@cliente.com",
+            "diretoria@cliente.com",
+        ]
+        self.cliente.save(update_fields=["emails_notificacao_padrao"])
+
+        pedido = Pedido.objects.create(
+            protocolo="OS2026089007",
+            cliente=self.cliente,
+            contrato=self.contrato,
+            assunto="Demanda com CC Padrão",
+            descricao="Teste envio CC",
+            criado_por=self.gerente_cliente,
+        )
+        ciclo = CicloService.criar_ciclo(
+            pedido_id=pedido.id,
+            tipo=TipoCiclo.CORRETIVA,
+            contexto="Correção com CC",
+            operador=self.tecnico,
+            horas_estimadas=Decimal("3.00"),
+        )
+        CicloService.apresentar_orcamento(ciclo, Decimal("3.00"))
+
+        assert len(mail.outbox) >= 1
+        ultimo_email = mail.outbox[-1]
+        assert "fiscal@cliente.com" in ultimo_email.cc
+        assert "diretoria@cliente.com" in ultimo_email.cc

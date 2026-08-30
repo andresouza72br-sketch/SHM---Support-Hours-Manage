@@ -171,6 +171,46 @@ class CicloService:
         return ciclo
 
     @staticmethod
+    @transaction.atomic
+    def reenviar_magic_link(ciclo: Ciclo, usuario=None) -> tuple[Ciclo, CicloMagicLink]:
+        """
+        Reenvia o Magic Link de 7 dias para o ciclo que esteja aguardando aprovação ou aguardando aceite,
+        redisparando a notificação e o e-mail transacional correspondente.
+        """
+        if ciclo.status == StatusCiclo.AGUARDANDO_APROVACAO:
+            magic_link = CicloService.gerar_magic_link(ciclo, TipoAcaoMagicLink.APROVACAO_ORCAMENTO)
+            try:
+                from apps.notificacoes.services import NotificacaoService
+                autor = usuario or ciclo.operador
+                NotificacaoService.notificar_evento_ciclo(
+                    ciclo,
+                    "orcamento_apresentado",
+                    usuario_autor=autor,
+                    token_magic_link=magic_link,
+                )
+            except Exception as e:
+                logger.warning("Falha ao redisparar notificação de 'orcamento_apresentado' para Ciclo #%s: %s", ciclo.id, e, exc_info=True)
+            return ciclo, magic_link
+        elif ciclo.status == StatusCiclo.AGUARDANDO_ACEITE:
+            magic_link = CicloService.gerar_magic_link(ciclo, TipoAcaoMagicLink.ACEITE_CICLO)
+            try:
+                from apps.notificacoes.services import NotificacaoService
+                autor = usuario or ciclo.operador
+                NotificacaoService.notificar_evento_ciclo(
+                    ciclo,
+                    "aceite_solicitado",
+                    usuario_autor=autor,
+                    token_magic_link=magic_link,
+                )
+            except Exception as e:
+                logger.warning("Falha ao redisparar notificação de 'aceite_solicitado' para Ciclo #%s: %s", ciclo.id, e, exc_info=True)
+            return ciclo, magic_link
+        else:
+            raise ValidationError(
+                "O reenvio de Magic Link só é permitido para ciclos com status 'Aguardando Aprovação' ou 'Aguardando Aceite'."
+            )
+
+    @staticmethod
     def validar_tolerancia_horas(
         horas_estimadas: Decimal,
         horas_realizadas: Decimal,

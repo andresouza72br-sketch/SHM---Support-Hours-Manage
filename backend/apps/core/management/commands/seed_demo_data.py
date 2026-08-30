@@ -108,7 +108,7 @@ class Command(BaseCommand):
 
         # 3. Usuários Clientes
         gerente_acme, _ = User.objects.get_or_create(
-            username="proj_eng_sw",
+            username="cligerente",
             defaults={
                 "email": "proj.eng.sw@gmail.com",
                 "first_name": "AcmeGer",
@@ -123,7 +123,7 @@ class Command(BaseCommand):
         gerente_acme.save()
 
         analista_acme, _ = User.objects.get_or_create(
-            username="andresouza_consultorialinux",
+            username="clianalista",
             defaults={
                 "email": "andresouza.consultorialinux@gmail.com",
                 "first_name": "AcmeAna",

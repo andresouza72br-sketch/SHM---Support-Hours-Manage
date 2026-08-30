@@ -1,9 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { Layers, X, MessageSquare, FileText, Building2, CheckCircle2, Flame, AlertTriangle, Play, Inbox, Clock, CheckCheck, Sparkles, ArrowDown, ArrowUp } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Layers, X, MessageSquare, FileText, Building2, CheckCircle2, Flame, AlertTriangle, Play, Inbox, Clock, CheckCheck, Sparkles, ArrowDown, ArrowUp, Send, Loader2 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
+import { useToast } from '../contexts/ToastContext'
 import type { Contrato, Pedido } from '../types'
 
 const STATUS_WEIGHT: Record<string, number> = {
@@ -140,6 +141,8 @@ function getStatusRowStyle(status: string) {
 
 export function AdminDashboardPage() {
   const navigate = useNavigate()
+  const toast = useToast()
+  const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const contratoParam = searchParams.get('contrato')
   
@@ -156,6 +159,19 @@ export function AdminDashboardPage() {
   const contratosRef = useRef<HTMLDivElement>(null)
   const filaRef = useRef<HTMLDivElement>(null)
   const [buttonMode, setButtonMode] = useState<'down' | 'up' | null>('down')
+
+  const reenviarMagicLinkMutation = useMutation({
+    mutationFn: (cicloId: number) => clientService.ciclos.reenviarMagicLink(cicloId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['pedidos'] })
+      queryClient.invalidateQueries({ queryKey: ['contratos'] })
+      toast.success(data.detail || 'Magic Link reenviado com sucesso por e-mail!', 'Link Reenviado')
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || 'Erro ao reenviar Magic Link.'
+      toast.error(msg, 'Falha no Reenvio')
+    },
+  })
 
   useEffect(() => {
     const checkVisibility = () => {
@@ -698,7 +714,35 @@ export function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    {(() => {
+                      const cicloAguardando = (p.status === 'aguardando_aprovacao' || p.status === 'aguardando_aceite')
+                        ? (p.ciclos_resumo?.find((c) => c.status === p.status) || p.ciclos_resumo?.[0])
+                        : null
+
+                      if (!cicloAguardando) return null
+
+                      return (
+                        <button
+                          disabled={reenviarMagicLinkMutation.isPending}
+                          onClick={() => reenviarMagicLinkMutation.mutate(cicloAguardando.id)}
+                          className="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs px-3.5 py-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800 transition duration-150 cursor-pointer shadow-2xs disabled:opacity-75 disabled:cursor-wait"
+                          title={`Reenviar Magic Link (${p.status_display})`}
+                        >
+                          {reenviarMagicLinkMutation.isPending && (reenviarMagicLinkMutation.variables as any) === cicloAguardando.id ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Reenviando...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-3.5 h-3.5" />
+                              <span>Reenviar Magic Link</span>
+                            </>
+                          )}
+                        </button>
+                      )
+                    })()}
                     <button
                       onClick={() => navigate(`/pedidos/${p.id}`)}
                       className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black text-xs px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 transition duration-150 cursor-pointer shadow-2xs"

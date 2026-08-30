@@ -1,0 +1,85 @@
+param(
+    [switch]$NoPause = $false
+)
+
+Write-Host "==================================================================" -ForegroundColor Cyan
+Write-Host "  SHM 2.4 -- Reset Completo e Semeadura de Base de Testes Limpa" -ForegroundColor Cyan
+Write-Host "==================================================================" -ForegroundColor Cyan
+
+# 1. Localizacao do Python (.venv ou global)
+$rootDir = (Get-Item $PSScriptRoot).Parent.FullName
+$pyExe = Join-Path $rootDir ".venv\Scripts\python.exe"
+if (-not (Test-Path $pyExe)) {
+    $pyExe = "python.exe"
+}
+
+# 2. Interromper processos na porta 8000 para liberar o arquivo db.sqlite3
+Write-Host ""
+Write-Host "[1/4] Verificando e liberando locks no banco SQLite..." -ForegroundColor Yellow
+$port8000 = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue
+if ($port8000) {
+    foreach ($conn in $port8000) {
+        $procId = $conn.OwningProcess
+        Write-Host "  -> Encerrando processo no lock da porta 8000 [PID $procId]..." -ForegroundColor DarkYellow
+        Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+    }
+    Start-Sleep -Milliseconds 800
+}
+
+# 3. Remover arquivos fisicos do SQLite e midias de teste
+Write-Host ""
+Write-Host "[2/4] Removendo banco fisico anterior e midias antigas..." -ForegroundColor Yellow
+$backendDir = Join-Path $rootDir "backend"
+Get-ChildItem -Path $backendDir -Filter "db.sqlite3*" -Force -ErrorAction SilentlyContinue | ForEach-Object {
+    $fileName = $_.Name
+    Remove-Item -Path $_.FullName -Force -ErrorAction SilentlyContinue
+    Write-Host "  -> Removido: $fileName" -ForegroundColor Gray
+}
+
+$mediaDir = Join-Path $rootDir "backend\media"
+if (Test-Path $mediaDir) {
+    Get-ChildItem -Path $mediaDir -Exclude ".gitkeep" -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Host "  -> Pasta de midias e anexos limpa." -ForegroundColor Gray
+}
+
+# 4. Executar Migracoes Django do Zero
+Write-Host ""
+Write-Host "[3/4] Aplicando migracoes DDL limpas do Django..." -ForegroundColor Yellow
+$managePy = Join-Path $rootDir "backend\manage.py"
+& $pyExe $managePy migrate --no-input
+if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "[ERRO] Falha ao aplicar as migracoes do banco de dados!" -ForegroundColor Red
+    exit 1
+}
+
+# 5. Executar Script de Semeadura Deterministica
+Write-Host ""
+Write-Host "[4/4] Executando semeadura deterministica de dados..." -ForegroundColor Yellow
+$seedScript = Join-Path $PSScriptRoot "seed_base_limpa.py"
+& $pyExe $seedScript
+if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "[ERRO] Falha ao semear os dados de teste!" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host ""
+Write-Host "==================================================================" -ForegroundColor Green
+Write-Host "  BASE DE DADOS ZERADA E RECONSTRUIDA COM SUCESSO!" -ForegroundColor Green
+Write-Host "==================================================================" -ForegroundColor Green
+
+Write-Host ""
+Write-Host "CREDENCIAIS OFICIAIS DE TESTE (1-CLIQUE / GOOGLE MOCK):" -ForegroundColor Cyan
+Write-Host "  * Empresa Admin:   admin / admin123        [andresouza72br@gmail.com]" -ForegroundColor White
+Write-Host "  * Empresa Tecnico: tecnico / tecnico123      [workspace.icb@gmail.com]" -ForegroundColor White
+Write-Host "  * Cliente Gerente: cligerente / cliente123   [proj.eng.sw@gmail.com]" -ForegroundColor White
+Write-Host "  * Cliente Analista: clianalista / cliente123 [andresouza.consultorialinux@gmail.com]" -ForegroundColor White
+
+Write-Host ""
+Write-Host "CENARIOS DE TESTE PREPARADOS NA BASE:" -ForegroundColor Cyan
+Write-Host "  - Contrato: CT-2026-0001 (Acme Corp | Franquia: 100.00h | SHA-256 Validado)" -ForegroundColor Gray
+Write-Host "  - OS 01: [AGUARDANDO_ACEITE]    -> Pronto para Aceite Final (A3 / Debito de 6h)" -ForegroundColor Gray
+Write-Host "  - OS 02: [AGUARDANDO_APROVACAO] -> Pronto para Aprovar Orcamento (A2 / 8h)" -ForegroundColor Gray
+Write-Host "  - OS 03: [ABERTO]               -> Novo chamado pronto para triagem tecnica" -ForegroundColor Gray
+Write-Host ""

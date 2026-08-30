@@ -40,16 +40,29 @@ class AuthService:
         else:
             if not GOOGLE_AUTH_AVAILABLE:
                 return None, 500, {"detail": "A biblioteca 'google-auth' não está instalada no ambiente Python do servidor."}
+            idinfo = None
             try:
                 idinfo = id_token.verify_oauth2_token(
                     credential,
                     google_requests.Request(),
                     client_id,
                 )
-            except ValueError as e:
-                return None, 400, {"detail": f"Credencial do Google inválida ou expirada: {str(e)}"}
-            except Exception as e:
-                return None, 400, {"detail": f"Falha ao validar credencial com o Google: {str(e)}"}
+            except Exception as token_err:
+                # Tentar validar como OAuth2 Access Token caso não seja ID Token JWT
+                try:
+                    import requests as req
+                    resp = req.get(
+                        "https://www.googleapis.com/oauth2/v3/userinfo",
+                        headers={"Authorization": f"Bearer {credential}"},
+                        timeout=10,
+                    )
+                    if resp.status_code == 200:
+                        idinfo = resp.json()
+                except Exception:
+                    pass
+
+                if not idinfo:
+                    return None, 400, {"detail": f"Credencial do Google inválida ou expirada: {str(token_err)}"}
 
         email = idinfo.get("email")
         email_verified = idinfo.get("email_verified", False)
@@ -102,7 +115,7 @@ class AuthService:
     @staticmethod
     def solicitar_magic_login(email: str) -> tuple[PasswordlessLoginToken | None, int, dict]:
         """
-        Emite um token de acesso sem senha de 15 minutos para usuário ativo.
+        Emite um token de acesso sem senha de 15 minutos para usuário ativo e dispara e-mail transacional.
         """
         if not email:
             return None, 400, {"detail": "Informe o endereço de e-mail."}
@@ -117,6 +130,46 @@ class AuthService:
             expira_em=expira_em,
             usado=False,
         )
+
+        try:
+            from django.core.mail import EmailMultiAlternatives
+            from apps.notificacoes.email_templates import renderizar_email_transacional
+
+            frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip("/")
+            link_final = f"{frontend_url}/magic-link/{token_obj.token}"
+            expira_str = timezone.localtime(expira_em).strftime("%H:%M")
+
+            nome_usuario = user.first_name or user.username
+            assunto = "Link de Acesso Seguro ao SHM"
+            mensagem_texto = (
+                f"Olá, {nome_usuario}!\n\n"
+                f"Você solicitou o acesso sem senha à plataforma SHM.\n"
+                f"Clique no botão abaixo ou utilize o link para entrar diretamente na sua conta.\n\n"
+                f"• Link de Acesso: {link_final}\n"
+                f"• Validade: 15 minutos (expira às {expira_str})\n\n"
+                f"Caso você não tenha solicitado este acesso, desconsidere esta mensagem com segurança."
+            )
+
+            html_content = renderizar_email_transacional(
+                assunto=assunto,
+                mensagem_texto=mensagem_texto,
+                link_final=link_final,
+                cta_texto="Entrar no SHM (Acesso Seguro)",
+                rodape_texto="Validade do link de acesso: 15 minutos a partir da emissão.",
+            )
+
+            msg = EmailMultiAlternatives(
+                subject=f"[SHM] {assunto}",
+                body=f"{mensagem_texto}\n\nAcessar link direto: {link_final}\n",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[user.email],
+            )
+            msg.attach_alternative(html_content, "text/html")
+            msg.send(fail_silently=True)
+            logger.info("[EMAIL ENVIADO] Magic login enviado com sucesso para %s", user.email)
+        except Exception as e:
+            logger.error("[EMAIL ERRO] Falha ao enviar e-mail de magic login para %s: %s", user.email, e, exc_info=True)
+
         return token_obj, 200, {}
 
     @staticmethod

@@ -2,7 +2,7 @@
 Templates e renderizadores HTML para notificações transacionais do SHM.
 """
 
-def renderizar_email_transacional(assunto: str, mensagem_texto: str, link_final: str = None, cta_texto: str = None) -> str:
+def renderizar_email_transacional(assunto: str, mensagem_texto: str, link_final: str = None, cta_texto: str = None, rodape_texto: str = None) -> str:
     """
     Renderiza o layout HTML responsivo e com identidade visual do SHM para e-mails transacionais.
     """
@@ -15,6 +15,8 @@ def renderizar_email_transacional(assunto: str, mensagem_texto: str, link_final:
             </a>
         </div>
         """
+
+    rodape = rodape_texto or "Validade do link de ação: 7 dias a partir da emissão."
 
     return f"""
     <!DOCTYPE html>
@@ -41,7 +43,7 @@ def renderizar_email_transacional(assunto: str, mensagem_texto: str, link_final:
             {cta_html}
             <div class="footer">
                 Este é um e-mail de notificação segura emitido automaticamente pela plataforma SHM.<br>
-                Validade do link de ação: 7 dias a partir da emissão.
+                {rodape}
             </div>
         </div>
     </body>

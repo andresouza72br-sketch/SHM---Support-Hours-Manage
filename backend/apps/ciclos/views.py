@@ -61,6 +61,20 @@ class CicloViewSet(viewsets.ModelViewSet):
         ciclo = CicloService.solicitar_aceite(ciclo, usuario=request.user)
         return Response(self.get_serializer(ciclo).data)
 
+    @action(detail=True, methods=["post"], permission_classes=[IsEmpresaUser])
+    def reenviar_magic_link(self, request, pk=None):
+        ciclo = self.get_object()
+        try:
+            ciclo, magic_link = CicloService.reenviar_magic_link(ciclo, usuario=request.user)
+            return Response({
+                "detail": f"Magic link de {ciclo.get_status_display().lower()} reenviado com sucesso por e-mail.",
+                "magic_link_token": str(magic_link.token),
+                "expira_em": magic_link.expira_em.isoformat(),
+                "ciclo": self.get_serializer(ciclo).data,
+            }, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            return Response({"detail": str(e.message if hasattr(e, "message") else e)}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=True, methods=["post"], permission_classes=[IsClienteGerente])
     def aceitar(self, request, pk=None):
         ciclo = self.get_object()

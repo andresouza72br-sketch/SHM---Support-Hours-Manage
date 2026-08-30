@@ -116,7 +116,7 @@ export function LoginPage() {
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="ex: proj_eng_sw ou admin"
+              placeholder="ex: cligerente ou admin"
               className="w-full text-sm bg-slate-50 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700/80 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition font-bold shadow-2xs"
             />
           </div>
@@ -160,16 +160,16 @@ export function LoginPage() {
             <button
               type="button"
               disabled={loading}
-              onClick={() => quickLogin('proj_eng_sw', 'cliente123')}
+              onClick={() => quickLogin('cligerente', 'cliente123')}
               className="text-left p-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-900 border border-slate-300 dark:border-slate-800 hover:border-indigo-500/50 rounded-xl transition duration-150 group cursor-pointer disabled:opacity-50 disabled:cursor-wait shadow-2xs"
             >
               <div className="flex items-center gap-1.5 text-indigo-700 dark:text-indigo-400 font-black text-xs group-hover:text-indigo-600 dark:group-hover:text-indigo-300">
-                {quickLoggingInUser === 'proj_eng_sw' ? (
+                {quickLoggingInUser === 'cligerente' ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   <UserCheck className="w-3.5 h-3.5" />
                 )}
-                <span>{quickLoggingInUser === 'proj_eng_sw' ? 'Entrando...' : 'Gerente (Acme)'}</span>
+                <span>{quickLoggingInUser === 'cligerente' ? 'Entrando...' : 'Gerente (Acme)'}</span>
               </div>
               <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 font-medium truncate" title="proj.eng.sw@gmail.com">proj.eng.sw@gmail.com</div>
             </button>
@@ -177,16 +177,16 @@ export function LoginPage() {
             <button
               type="button"
               disabled={loading}
-              onClick={() => quickLogin('andresouza_consultorialinux', 'cliente123')}
+              onClick={() => quickLogin('clianalista', 'cliente123')}
               className="text-left p-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-900 border border-slate-300 dark:border-slate-800 hover:border-indigo-500/50 rounded-xl transition duration-150 group cursor-pointer disabled:opacity-50 disabled:cursor-wait shadow-2xs"
             >
               <div className="flex items-center gap-1.5 text-sky-700 dark:text-sky-400 font-black text-xs group-hover:text-sky-600 dark:group-hover:text-sky-300">
-                {quickLoggingInUser === 'andresouza_consultorialinux' ? (
+                {quickLoggingInUser === 'clianalista' ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   <UserCheck className="w-3.5 h-3.5" />
                 )}
-                <span>{quickLoggingInUser === 'andresouza_consultorialinux' ? 'Entrando...' : 'Analista (Acme)'}</span>
+                <span>{quickLoggingInUser === 'clianalista' ? 'Entrando...' : 'Analista (Acme)'}</span>
               </div>
               <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 font-medium truncate" title="andresouza.consultorialinux@gmail.com">andresouza.consultorialinux@gmail.com</div>
             </button>
