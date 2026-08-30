@@ -1,5 +1,7 @@
+import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
 
 class UserRole(models.TextChoices):
     EMPRESA_ADMIN = "EMPRESA_ADMIN", "Empresa — Gerente / Administrador"
@@ -48,7 +50,6 @@ class User(AbstractUser):
         return self.role == UserRole.CLIENTE_GERENTE or self.is_superuser
 
 class PasswordlessLoginToken(models.Model):
-    import uuid
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="magic_login_tokens", verbose_name="usuário")
     token = models.UUIDField("token de acesso", default=uuid.uuid4, unique=True, db_index=True, editable=False)
@@ -66,7 +67,6 @@ class PasswordlessLoginToken(models.Model):
         verbose_name_plural = "tokens de login sem senha"
 
     def esta_expirado(self) -> bool:
-        from django.utils import timezone
         return timezone.now() > self.expira_em
 
     def __str__(self):

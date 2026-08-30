@@ -1,0 +1,35 @@
+--- a/backend/apps/contratos/services.py
++++ b/backend/apps/contratos/services.py
+@@ -19,18 +19,24 @@ class ContratoService:
+         import re
+         ano = ano or timezone.localdate().year
+         prefixo = f"CT-{ano}-"
+-        numeros = Contrato.objects.filter(numero__startswith=prefixo).values_list("numero", flat=True)
+-        max_seq = 0
+         pattern = re.compile(rf"^{re.escape(prefixo)}(\d+)$")
+-        for num_str in numeros:
+-            match = pattern.match(num_str)
++
++        ultimo_numero = (
++            Contrato.objects.filter(numero__startswith=prefixo)
++            .order_by("-numero")
++            .values_list("numero", flat=True)
++            .first()
++        )
++
++        max_seq = 0
++        if ultimo_numero:
++            match = pattern.match(ultimo_numero)
+             if match:
+                 try:
+-                    num = int(match.group(1))
+-                    if num > max_seq:
+-                        max_seq = num
++                    max_seq = int(match.group(1))
+                 except ValueError:
+-                    continue
++                    max_seq = 0
++
+         seq = max_seq + 1
+         candidato = f"{prefixo}{seq:04d}"
+         while Contrato.objects.filter(numero=candidato).exists():

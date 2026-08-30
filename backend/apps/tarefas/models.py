@@ -1,5 +1,5 @@
 from decimal import Decimal
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
 from apps.core.models import TimeStampedModel
 
@@ -34,18 +34,17 @@ class Tarefa(TimeStampedModel):
         verbose_name_plural = "tarefas"
 
     def __str__(self):
-        return f"Tarefa #{self.id} ({self.horas_realizadas}h) — {self.descricao[:40]}"
+        return f"Tarefa #{self.id} ({self.horas_realizadas}h) - {self.descricao[:40]}"
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        # Recalcula horas realizadas do ciclo (as horas estimadas do ciclo são fixas e aprovadas)
-        total_realizadas = sum(t.horas_realizadas for t in self.ciclo.tarefas.filter(status=StatusTarefa.REALIZADA))
-        self.ciclo.horas_realizadas = total_realizadas
-        self.ciclo.save(update_fields=["horas_realizadas", "atualizado_em"])
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            from apps.tarefas.services import TarefaService
+            TarefaService.recalcular_horas_ciclo(self.ciclo)
 
     def delete(self, *args, **kwargs):
-        ciclo = self.ciclo
-        super().delete(*args, **kwargs)
-        total_realizadas = sum(t.horas_realizadas for t in ciclo.tarefas.filter(status=StatusTarefa.REALIZADA))
-        ciclo.horas_realizadas = total_realizadas
-        ciclo.save(update_fields=["horas_realizadas", "atualizado_em"])
+        with transaction.atomic():
+            ciclo = self.ciclo
+            super().delete(*args, **kwargs)
+            from apps.tarefas.services import TarefaService
+            TarefaService.recalcular_horas_ciclo(ciclo)

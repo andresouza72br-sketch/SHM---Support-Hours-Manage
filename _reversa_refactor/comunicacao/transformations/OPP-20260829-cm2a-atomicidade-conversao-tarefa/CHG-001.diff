@@ -1,0 +1,33 @@
+--- a/backend/apps/comunicacao/views.py
++++ b/backend/apps/comunicacao/views.py
+@@ -1,4 +1,5 @@
+ from decimal import Decimal
++from django.db import transaction
+ from rest_framework import viewsets, permissions, status
+ from rest_framework.decorators import action
+ from rest_framework.response import Response
+@@ -93,13 +94,14 @@ class ComentarioViewSet(viewsets.ModelViewSet):
+         horas_estimadas = Decimal(str(request.data.get("horas_estimadas", "1.00")))
+         descricao = request.data.get("descricao") or comentario.texto
+ 
+-        tarefa = Tarefa.objects.create(
+-            ciclo=comentario.ciclo,
+-            descricao=descricao,
+-            horas_estimadas=horas_estimadas,
+-            status=StatusTarefa.PREVISTA,
+-            operador=request.user,
+-        )
+-        comentario.tarefa_convertida = tarefa
+-        comentario.save(update_fields=["tarefa_convertida", "atualizado_em"])
++        with transaction.atomic():
++            tarefa = Tarefa.objects.create(
++                ciclo=comentario.ciclo,
++                descricao=descricao,
++                horas_estimadas=horas_estimadas,
++                status=StatusTarefa.PREVISTA,
++                operador=request.user,
++            )
++            comentario.tarefa_convertida = tarefa
++            comentario.save(update_fields=["tarefa_convertida", "atualizado_em"])
+ 
+         return Response({"detail": "Comentário convertido em tarefa com sucesso.", "tarefa_id": tarefa.id})

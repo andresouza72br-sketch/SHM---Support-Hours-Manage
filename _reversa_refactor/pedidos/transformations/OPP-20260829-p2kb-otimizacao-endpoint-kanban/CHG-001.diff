@@ -1,0 +1,22 @@
+--- a/backend/apps/pedidos/views.py
++++ b/backend/apps/pedidos/views.py
+@@ -82,14 +82,14 @@ class PedidoViewSet(viewsets.ModelViewSet):
+         kanban_data = {
+             "aberto": [],
+             "em_orcamento": [],
+             "aguardando_aprovacao": [],
+             "em_execucao": [],
+             "aguardando_aceite": [],
+             "concluido": [],
+         }
+-        for pedido in qs:
+-            serializer = PedidoListSerializer(pedido)
+-            st = pedido.status
+-            if st in kanban_data:
+-                kanban_data[st].append(serializer.data)
++        serialized_pedidos = PedidoListSerializer(qs, many=True).data
++        for item in serialized_pedidos:
++            st = item.get("status")
++            if st in kanban_data:
++                kanban_data[st].append(item)
+         return Response(kanban_data)

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <title>Plano de Simplificação: OPP-20260829-nt3s</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 24px; }
+        .card { background: #1e293b; border-radius: 12px; padding: 24px; max-width: 800px; margin: 0 auto; border: 1px solid #334155; }
+        h1 { color: #38bdf8; font-size: 20px; }
+        .tag { background: #059669; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+        th, td { border: 1px solid #475569; padding: 8px 12px; text-align: left; }
+        th { background: #334155; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <span class="tag">simplify</span>
+        <h1>OPP-20260829-nt3s: Unificação de Helpers de Autor, Origem e Destinatários</h1>
+        <p><strong>Contexto:</strong> notificacoes | <strong>Alvo:</strong> backend/apps/notificacoes/services.py</p>
+        
+        <h3>Diagnóstico da Complexidade Acidental</h3>
+        <p>Código repetido 3 vezes nos métodos <code>notificar_novo_pedido</code>, <code>notificar_novo_comentario</code> e <code>notificar_evento_ciclo</code> para resolver strings de remetente e buscar destinatários no banco.</p>
+
+        <h3>Prova de Equivalência</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Entrada (Autor / Cliente / Ciclo)</th>
+                    <th>Comportamento Anterior</th>
+                    <th>Comportamento Simplificado</th>
+                    <th>Equivalência</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Autor Empresa, Cliente com Fantasia</td>
+                    <td>origem = "Empresa", autor_nome formatado</td>
+                    <td>_obter_info_autor_e_origem -> ("Nome", "Empresa")</td>
+                    <td>🟢 Idêntico</td>
+                </tr>
+                <tr>
+                    <td>Autor Cliente, Cliente com Razão Social</td>
+                    <td>origem = cliente.razao_social</td>
+                    <td>_obter_info_autor_e_origem -> ("Nome", "Razão")</td>
+                    <td>🟢 Idêntico</td>
+                </tr>
+                <tr>
+                    <td>Coleta de Destinatários do Pedido</td>
+                    <td>Set com Cliente + Empresa - Autor</td>
+                    <td>_obter_destinatarios_envolvidos</td>
+                    <td>🟢 Idêntico</td>
+                </tr>
+                <tr>
+                    <td>Coleta com Operador do Ciclo</td>
+                    <td>Set com Cliente + Empresa + Operador - Autor</td>
+                    <td>_obter_destinatarios_envolvidos(..., ciclo=ciclo)</td>
+                    <td>🟢 Idêntico</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

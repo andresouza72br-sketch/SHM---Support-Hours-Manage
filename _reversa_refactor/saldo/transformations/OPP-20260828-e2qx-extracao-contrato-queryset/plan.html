@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plano de Reestruturação - OPP-20260828-e2qx</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --green: #4ade80;
+      --amber: #fbbf24;
+      --red: #f87171;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 2rem;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.8rem;
+      color: var(--text);
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    pre {
+      background: #090d16;
+      border: 1px solid var(--border);
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.75rem;
+      text-align: left;
+    }
+    th {
+      background: #182234;
+      color: var(--muted);
+    }
+    .gain-tag {
+      color: var(--green);
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">Reversa Restructure (Separação de Camadas)</span>
+      <h1>OPP-20260828-e2qx: Encapsulamento de Regras de Consulta em ContratoQuerySet</h1>
+      <p style="color: var(--muted); margin: 0;">Contexto: <strong>saldo</strong> | Alvos: <code>backend/apps/saldo/views.py</code>, <code>backend/apps/contratos/models.py</code></p>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2>1. Code Smell Identificado</h2>
+        <p><strong>Vazamento de Regras de Consulta na View:</strong> Os endpoints <code>contratos_elegiveis</code> e <code>contratos_devedores</code> em <code>SaldoViewSet</code> constroem queries ORM detalhadas com operadores <code>Q</code>, limites de data e status contratuais diretamente na camada HTTP/DRF.</p>
+      </div>
+
+      <div class="card">
+        <h2>2. Refatoração Proposta</h2>
+        <p><strong>Move Method / Encapsulate Query:</strong> Definir <code>ContratoQuerySet</code> no módulo de contratos com os métodos semânticos <code>elegiveis_para_migracao()</code> e <code>devedores()</code>.</p>
+        <p>A View passa a consumir diretamente a API de domínio do modelo.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 2rem;">
+      <h2>3. Comparação Antes vs Depois</h2>
+      <pre><code># ANTES (em SaldoViewSet):
+qs = Contrato.objects.filter(cliente_id=cliente_id, saldo__gt=0).filter(
+    models.Q(status__in=[StatusContrato.EXPIRADO, StatusContrato.CONCLUIDO])
+    | models.Q(data_termino__lt=hoje)
+)
+
+# DEPOIS:
+qs = Contrato.objects.elegiveis_para_migracao(cliente_id=cliente_id, destino_id=destino_id)</code></pre>
+    </div>
+
+    <div class="card">
+      <h2>4. Rede de Segurança e Preservação</h2>
+      <p>Coberto por <code>test_migracao_saldo.py::test_contratos_elegiveis_endpoint</code> e demais testes da suíte de 73 testes.</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <title>Plano de Reestruturação: OPP-20260829-nt1m</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 24px; }
+        .card { background: #1e293b; border-radius: 12px; padding: 24px; max-width: 800px; margin: 0 auto; border: 1px solid #334155; }
+        h1 { color: #38bdf8; font-size: 20px; }
+        .tag { background: #3b82f6; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+        ul { line-height: 1.8; }
+        .step { background: #0f172a; border-left: 4px solid #38bdf8; padding: 12px; margin: 12px 0; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <span class="tag">restructure</span>
+        <h1>OPP-20260829-nt1m: Decomposição do Orquestrador de Ciclo de Vida</h1>
+        <p><strong>Contexto:</strong> notificacoes | <strong>Alvo:</strong> backend/apps/notificacoes/services.py</p>
+        
+        <h3>Refatorações Fowler Aplicadas</h3>
+        
+        <div class="step">
+            <h4>1. Extract Method: <code>_montar_payload_evento_ciclo</code></h4>
+            <p>Isola a montagem de strings, títulos, descrições de timeline e botões de CTA dos 8 tipos de evento em um método dedicado de mapeamento.</p>
+        </div>
+
+        <div class="step">
+            <h4>2. Extract Method: <code>_obter_destinatarios_email_por_grupo</code></h4>
+            <p>Isola as regras de governança B2B de e-mail (Aprovadores do Cliente vs Equipe Técnica vs Acompanhamento) em método especializado.</p>
+        </div>
+
+        <div class="step">
+            <h4>3. Decompose Conditional / Linear Orchestration: <code>notificar_evento_ciclo</code></h4>
+            <p>Reduz o orquestrador para um fluxo linear de 35 linhas: resolução de payload -> auditoria na timeline -> persistência in-app -> despacho SMTP.</p>
+        </div>
+    </div>
+</body>
+</html>

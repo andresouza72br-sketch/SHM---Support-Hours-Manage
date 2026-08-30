@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Plano de Desacoplamento - OPP-20260829-cm1d</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #1e293b; max-width: 900px; margin: 40px auto; padding: 0 20px; }
+    h1, h2, h3 { color: #0f172a; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; background: #e0f2fe; color: #0369a1; }
+    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { padding: 12px; border: 1px solid #cbd5e1; text-align: left; }
+    th { background: #f1f5f9; }
+    pre { background: #0f172a; color: #f8fafc; padding: 15px; border-radius: 6px; overflow-x: auto; font-family: "Fira Code", monospace; font-size: 0.88rem; }
+  </style>
+</head>
+<body>
+  <h1>Plano de Desacoplamento <span class="badge">OPP-20260829-cm1d</span></h1>
+  <p><strong>Contexto:</strong> comunicacao | <strong>Verbo:</strong> decouple | <strong>Confiança:</strong> 🟢 Alta</p>
+
+  <div class="card">
+    <h3>1. Medição do Acoplamento Antes (Baseline)</h3>
+    <p>A classe <code>ComentarioViewSet</code> em <code>views.py</code> possui <strong>7 dependências diretas de domínio e infraestrutura</strong>:</p>
+    <ul>
+      <li><code>Comentario</code></li>
+      <li><code>ReacaoComentario</code></li>
+      <li><code>Tarefa</code></li>
+      <li><code>StatusTarefa</code></li>
+      <li><code>NotificacaoService</code> (acoplamento dinâmico inline)</li>
+      <li><code>django.db.transaction</code></li>
+      <li><code>decimal.Decimal</code></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>2. Costura Proposta (Seam / Inversão de Dependência)</h3>
+    <ol>
+      <li><strong>Extract Service Class:</strong> Criar <code>backend/apps/comunicacao/services.py</code> com a classe <code>ComentarioService</code>.</li>
+      <li><strong>Encapsulate Domain Operations:</strong>
+        <ul>
+          <li><code>criar_comentario(serializer, autor)</code>: Persistência com despacho seguro de notificações.</li>
+          <li><code>toggle_reacao(comentario, autor, tipo)</code>: Lógica pura de reação e apuração de totais.</li>
+          <li><code>converter_em_tarefa(comentario, operador, descricao, horas_estimadas)</code>: Transação atômica e criação de tarefas.</li>
+        </ul>
+      </li>
+      <li><strong>Delegate View Layer:</strong> A view HTTP <code>ComentarioViewSet</code> passa a orquestrar apenas status HTTP e delegar operações ao <code>ComentarioService</code>.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h3>3. Acoplamento Esperado Depois (Medição)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Camada / Componente</th>
+          <th>Acoplamento Eferente Antes</th>
+          <th>Acoplamento Eferente Depois</th>
+          <th>Redução</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>ComentarioViewSet</code> (HTTP Layer)</td>
+          <td>7 dependências de domínio/infra</td>
+          <td>1 dependência de serviço (<code>ComentarioService</code>)</td>
+          <td><strong>-85% de acoplamento direto</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

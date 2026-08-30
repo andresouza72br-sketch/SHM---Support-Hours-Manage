@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plano de Simplificação - OPP-20260829-cl5v</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --green: #4ade80;
+      --amber: #fbbf24;
+      --red: #f87171;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 2rem;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.8rem;
+      color: var(--text);
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    pre {
+      background: #090d16;
+      border: 1px solid var(--border);
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .gain-tag {
+      color: var(--green);
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">Reversa Simplify (Integridade de Modelos & Validações)</span>
+      <h1>OPP-20260829-cl5v: Centralização e Padronização dos Validadores de CPF e CNPJ</h1>
+      <p style="color: var(--muted); margin: 0;">Contexto: <strong>clientes</strong> | Alvos: <code>backend/apps/clientes/models.py</code>, <code>backend/apps/clientes/serializers.py</code></p>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2>1. Inconsistência Identificada</h2>
+        <p><strong>Validação Ausente no Model Clean:</strong> As funções de validação matemática de dígitos verificadores de CPF e CNPJ estavam definidas em <code>models.py</code> mas não eram invocadas no método <code>Cliente.clean()</code>, dependendo exclusivamente da validação manual em <code>ClienteSerializer.validate()</code>.</p>
+      </div>
+
+      <div class="card">
+        <h2>2. Simplificação Proposta</h2>
+        <p><strong>Model-Level Validation:</strong> Integrar a validação matemática de <code>validar_cnpj</code> e <code>validar_cpf</code> diretamente no método <code>Cliente.clean()</code> do Django, garantindo integridade de dados uniforme em todas as operações (API, Admin, ORM e migrações).</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 2rem;">
+      <h2>3. Comparação de Código</h2>
+      <pre><code># ANTES (em Cliente.clean):
+if not self.cnpj:
+    raise ValidationError({"cnpj": "CNPJ é obrigatório para Pessoa Jurídica."})
+# (sem validação matemática dos dígitos)
+
+# DEPOIS:
+if not self.cnpj:
+    raise ValidationError({"cnpj": "CNPJ é obrigatório para Pessoa Jurídica."})
+if not validar_cnpj(self.cnpj):
+    raise ValidationError({"cnpj": "O CNPJ informado é inválido."})</code></pre>
+    </div>
+
+    <div class="card">
+      <h2>4. Rede de Segurança e Preservação</h2>
+      <p>Coberto por <code>test_bloqueio_cnpj_invalido</code> e todos os 15 testes de <code>test_clientes_e_usuarios.py</code>.</p>
+    </div>
+  </div>
+</body>
+</html>

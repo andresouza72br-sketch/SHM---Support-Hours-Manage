@@ -37,20 +37,16 @@ class PedidoViewSet(viewsets.ModelViewSet):
         return PedidoListSerializer
 
     def perform_create(self, serializer):
-        protocolo = PedidoService.gerar_protocolo()
         user = self.request.user
-        contrato = serializer.validated_data.get("contrato")
-        cliente = user.cliente if (hasattr(user, "is_cliente") and user.is_cliente and user.cliente) else (contrato.cliente if contrato else None)
-        pedido = serializer.save(
-            protocolo=protocolo,
-            criado_por=user,
-            cliente=cliente,
+        validated_data = serializer.validated_data
+        pedido = PedidoService.criar_pedido(
+            contrato=validated_data.get("contrato"),
+            assunto=validated_data.get("assunto", ""),
+            descricao=validated_data.get("descricao", ""),
+            usuario=user,
+            prioridade=validated_data.get("prioridade", "media"),
         )
-        try:
-            from apps.notificacoes.services import NotificacaoService
-            NotificacaoService.notificar_novo_pedido(pedido)
-        except Exception:
-            pass
+        serializer.instance = pedido
 
     def get_queryset(self):
         user = self.request.user
@@ -87,9 +83,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
             "aguardando_aceite": [],
             "concluido": [],
         }
-        for pedido in qs:
-            serializer = PedidoListSerializer(pedido)
-            st = pedido.status
+        serialized_pedidos = PedidoListSerializer(qs, many=True).data
+        for item in serialized_pedidos:
+            st = item.get("status")
             if st in kanban_data:
-                kanban_data[st].append(serializer.data)
+                kanban_data[st].append(item)
         return Response(kanban_data)

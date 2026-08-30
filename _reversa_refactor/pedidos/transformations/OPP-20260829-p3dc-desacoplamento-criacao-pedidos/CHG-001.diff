@@ -1,0 +1,74 @@
+--- a/backend/apps/pedidos/services.py
++++ b/backend/apps/pedidos/services.py
+@@ -28,2 +28,44 @@ class PedidoService:
+         return candidato
++
++    @staticmethod
++    def resolver_cliente_para_pedido(usuario, contrato=None):
++        """Resolve o cliente titular do pedido a partir do usuário ou contrato."""
++        if hasattr(usuario, "is_cliente") and usuario.is_cliente and getattr(usuario, "cliente", None):
++            return usuario.cliente
++        if contrato and hasattr(contrato, "cliente") and contrato.cliente:
++            return contrato.cliente
++        return None
++
++    @staticmethod
++    @transaction.atomic
++    def criar_pedido(
++        contrato,
++        assunto: str,
++        descricao: str,
++        usuario,
++        prioridade: str = "media",
++        cliente=None,
++    ) -> Pedido:
++        """
++        Cria um novo pedido de suporte com protocolo sequencial OSYYYYMMNNNN,
++        vincula o cliente correto e dispara o evento de notificação.
++        """
++        if not cliente:
++            cliente = PedidoService.resolver_cliente_para_pedido(usuario, contrato)
++
++        protocolo = PedidoService.gerar_protocolo()
++        pedido = Pedido.objects.create(
++            protocolo=protocolo,
++            contrato=contrato,
++            cliente=cliente,
++            assunto=assunto,
++            descricao=descricao,
++            prioridade=prioridade,
++            criado_por=usuario,
++            status=StatusPedido.ABERTO,
++        )
++        try:
++            from apps.notificacoes.services import NotificacaoService
++            NotificacaoService.notificar_novo_pedido(pedido)
++        except Exception:
++            pass
++        return pedido
+--- a/backend/apps/pedidos/views.py
++++ b/backend/apps/pedidos/views.py
+@@ -39,15 +39,12 @@ class PedidoViewSet(viewsets.ModelViewSet):
+     def perform_create(self, serializer):
+-        protocolo = PedidoService.gerar_protocolo()
+         user = self.request.user
+-        contrato = serializer.validated_data.get("contrato")
+-        cliente = user.cliente if (hasattr(user, "is_cliente") and user.is_cliente and user.cliente) else (contrato.cliente if contrato else None)
+-        pedido = serializer.save(
+-            protocolo=protocolo,
+-            criado_por=user,
+-            cliente=cliente,
++        validated_data = serializer.validated_data
++        pedido = PedidoService.criar_pedido(
++            contrato=validated_data.get("contrato"),
++            assunto=validated_data.get("assunto", ""),
++            descricao=validated_data.get("descricao", ""),
++            usuario=user,
++            prioridade=validated_data.get("prioridade", "media"),
+         )
+-        try:
+-            from apps.notificacoes.services import NotificacaoService
+-            NotificacaoService.notificar_novo_pedido(pedido)
+-        except Exception:
+-            pass
++        serializer.instance = pedido

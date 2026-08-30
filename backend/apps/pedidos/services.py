@@ -1,31 +1,76 @@
+import logging
 from django.db import transaction
 from django.utils import timezone
 from apps.pedidos.models import Pedido, StatusPedido
 
+logger = logging.getLogger(__name__)
+
 class PedidoService:
     @staticmethod
     def gerar_protocolo() -> str:
-        import re
         hoje = timezone.localdate()
         prefixo = f"OS{hoje.year}{hoje.month:02d}"
-        protocolos = Pedido.objects.filter(protocolo__startswith=prefixo).values_list("protocolo", flat=True)
-        max_seq = 0
-        pattern = re.compile(rf"^{re.escape(prefixo)}(\d+)$")
-        for prot in protocolos:
-            match = pattern.match(prot)
-            if match:
-                try:
-                    num = int(match.group(1))
-                    if num > max_seq:
-                        max_seq = num
-                except ValueError:
-                    continue
-        seq = max_seq + 1
+        ultimo_protocolo = (
+            Pedido.objects.filter(protocolo__startswith=prefixo)
+            .order_by("-protocolo")
+            .values_list("protocolo", flat=True)
+            .first()
+        )
+        seq = 1
+        if ultimo_protocolo and len(ultimo_protocolo) > len(prefixo):
+            sufixo = ultimo_protocolo[len(prefixo):]
+            if sufixo.isdigit():
+                seq = int(sufixo) + 1
+
         candidato = f"{prefixo}{seq:04d}"
         while Pedido.objects.filter(protocolo=candidato).exists():
             seq += 1
             candidato = f"{prefixo}{seq:04d}"
         return candidato
+
+    @staticmethod
+    def resolver_cliente_para_pedido(usuario, contrato=None):
+        """Resolve o cliente titular do pedido a partir do usuário ou contrato."""
+        if hasattr(usuario, "is_cliente") and usuario.is_cliente and getattr(usuario, "cliente", None):
+            return usuario.cliente
+        if contrato and hasattr(contrato, "cliente") and contrato.cliente:
+            return contrato.cliente
+        return None
+
+    @staticmethod
+    @transaction.atomic
+    def criar_pedido(
+        contrato,
+        assunto: str,
+        descricao: str,
+        usuario,
+        prioridade: str = "media",
+        cliente=None,
+    ) -> Pedido:
+        """
+        Cria um novo pedido de suporte com protocolo sequencial OSYYYYMMNNNN,
+        vincula o cliente correto e dispara o evento de notificação.
+        """
+        if not cliente:
+            cliente = PedidoService.resolver_cliente_para_pedido(usuario, contrato)
+
+        protocolo = PedidoService.gerar_protocolo()
+        pedido = Pedido.objects.create(
+            protocolo=protocolo,
+            contrato=contrato,
+            cliente=cliente,
+            assunto=assunto,
+            descricao=descricao,
+            prioridade=prioridade,
+            criado_por=usuario,
+            status=StatusPedido.ABERTO,
+        )
+        try:
+            from apps.notificacoes.services import NotificacaoService
+            NotificacaoService.notificar_novo_pedido(pedido)
+        except Exception as e:
+            logger.warning("Falha ao disparar notificação de novo pedido #%s: %s", pedido.protocolo, e, exc_info=True)
+        return pedido
 
     @staticmethod
     @transaction.atomic

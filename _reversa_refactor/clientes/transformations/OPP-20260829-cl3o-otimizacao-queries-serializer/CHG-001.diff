@@ -1,0 +1,56 @@
+diff --git a/backend/apps/clientes/serializers.py b/backend/apps/clientes/serializers.py
+index cc86c85..9ead3ff 100644
+--- a/backend/apps/clientes/serializers.py
++++ b/backend/apps/clientes/serializers.py
+@@ -95,31 +95,48 @@ class ClienteSerializer(serializers.ModelSerializer):
+             return obj.logo.url
+         return None
+ 
++    def _get_ultimo_aceite_link(self, obj):
++        if not hasattr(obj, "_cached_ultimo_aceite_link"):
++            if hasattr(obj, "_prefetched_objects_cache") and "aceite_links" in obj._prefetched_objects_cache:
++                links = sorted(obj.aceite_links.all(), key=lambda l: l.criado_em, reverse=True)
++                obj._cached_ultimo_aceite_link = links[0] if links else None
++            else:
++                obj._cached_ultimo_aceite_link = obj.aceite_links.order_by("-criado_em").first()
++        return obj._cached_ultimo_aceite_link
++
+     def get_total_contratos(self, obj) -> int:
++        if hasattr(obj, "_prefetched_objects_cache") and "contratos" in obj._prefetched_objects_cache:
++            return len(obj.contratos.all())
+         return obj.contratos.count() if hasattr(obj, "contratos") else 0
+ 
+     def get_contratos_ativos(self, obj) -> int:
++        if hasattr(obj, "_prefetched_objects_cache") and "contratos" in obj._prefetched_objects_cache:
++            return sum(1 for c in obj.contratos.all() if c.status == "ativo")
+         return obj.contratos.filter(status="ativo").count() if hasattr(obj, "contratos") else 0
+ 
+     def get_total_usuarios(self, obj) -> int:
++        if hasattr(obj, "_prefetched_objects_cache") and "usuarios" in obj._prefetched_objects_cache:
++            return sum(1 for u in obj.usuarios.all() if u.is_active)
+         return obj.usuarios.filter(is_active=True).count() if hasattr(obj, "usuarios") else 0
+ 
+     def get_saldo_total_horas(self, obj) -> float:
++        if hasattr(obj, "_prefetched_objects_cache") and "contratos" in obj._prefetched_objects_cache:
++            return float(sum(c.saldo for c in obj.contratos.all() if c.status == "ativo"))
+         if hasattr(obj, "contratos"):
+             res = obj.contratos.filter(status="ativo").aggregate(total=Sum("saldo"))
+             return float(res["total"] or 0)
+         return 0.0
+ 
+     def get_aceite_token(self, obj):
+-        link = obj.aceite_links.order_by("-criado_em").first()
++        link = self._get_ultimo_aceite_link(obj)
+         return str(link.token) if link else None
+ 
+     def get_aceite_expira_em(self, obj):
+-        link = obj.aceite_links.order_by("-criado_em").first()
++        link = self._get_ultimo_aceite_link(obj)
+         return link.data_expiracao.isoformat() if link else None
+ 
+     def get_aceite_usado(self, obj):
+-        link = obj.aceite_links.order_by("-criado_em").first()
++        link = self._get_ultimo_aceite_link(obj)
+         return link.usado if link else False
+ 
+     def validate(self, attrs):

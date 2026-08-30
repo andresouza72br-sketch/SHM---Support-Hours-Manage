@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Plano de Refatoração Estrutural - OPP-20260829-ac1g</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #1e293b; max-width: 900px; margin: 40px auto; padding: 0 20px; }
+    h1, h2, h3 { color: #0f172a; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; background: #e0f2fe; color: #0369a1; }
+    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { padding: 12px; border: 1px solid #cbd5e1; text-align: left; }
+    th { background: #f1f5f9; }
+    pre { background: #0f172a; color: #f8fafc; padding: 15px; border-radius: 6px; overflow-x: auto; font-family: "Fira Code", monospace; font-size: 0.88rem; }
+  </style>
+</head>
+<body>
+  <h1>Plano de Refatoração Estrutural <span class="badge">OPP-20260829-ac1g</span></h1>
+  <p><strong>Contexto:</strong> accounts | <strong>Verbo:</strong> restructure | <strong>Confiança:</strong> 🟢 Alta</p>
+
+  <div class="card">
+    <h3>1. Diagnóstico do Code Smell</h3>
+    <p>O método <code>GoogleAuthView.post</code> em <code>backend/apps/accounts/views.py</code> acumula mais de 100 linhas e mistura responsabilidades da camada HTTP com integração externa (Google SDK), regras de negócio B2B e persistência de dados.</p>
+  </div>
+
+  <div class="card">
+    <h3>2. Passos de Refatoração Nomeados (Catálogo Fowler)</h3>
+    <ol>
+      <li><strong>Extract Class / Module:</strong> Criação de <code>backend/apps/accounts/services.py</code> com a classe <code>AuthService</code>.</li>
+      <li><strong>Extract Method / Move Method:</strong> Extração da lógica de validação de token, resolução B2B, sincronização de perfil e minting JWT para <code>AuthService.autenticar_google</code>.</li>
+      <li><strong>Inline Delegation:</strong> Redução de <code>GoogleAuthView.post</code> para delegar ao serviço e formatar a resposta HTTP (200, 400, 403, 500).</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h3>3. Preservação de Comportamento e Compatibilidade</h3>
+    <p>A assinatura de retorno e compatibilidade com os mocks da suíte de testes <code>test_google_auth.py</code> (7 testes) serão 100% preservadas.</p>
+  </div>
+</body>
+</html>

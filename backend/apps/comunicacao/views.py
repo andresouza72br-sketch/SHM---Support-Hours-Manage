@@ -1,10 +1,9 @@
-from decimal import Decimal
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from apps.comunicacao.models import Comentario, ReacaoComentario
+from apps.comunicacao.models import Comentario
 from apps.comunicacao.serializers import ComentarioSerializer
-from apps.tarefas.models import Tarefa, StatusTarefa
+from apps.comunicacao.services import ComentarioService
 from apps.core.permissions import IsEmpresaUser
 
 
@@ -55,33 +54,23 @@ class ComentarioViewSet(viewsets.ModelViewSet):
         return ctx
 
     def perform_create(self, serializer):
-        comentario = serializer.save(autor=self.request.user)
-        try:
-            from apps.notificacoes.services import NotificacaoService
-            NotificacaoService.notificar_novo_comentario(comentario)
-        except Exception:
-            pass
+        ComentarioService.criar_comentario(serializer, self.request.user)
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
     def reagir(self, request, pk=None):
         """Toggle like em um comentário. Cria se não existe, deleta se já existe (idempotente)."""
         comentario = self.get_object()
         tipo = request.data.get("tipo", "like")
-        reacao, created = ReacaoComentario.objects.get_or_create(
+        acao, tipo, total_reacoes, user_reacted = ComentarioService.toggle_reacao(
             comentario=comentario,
             autor=request.user,
             tipo=tipo,
         )
-        if not created:
-            reacao.delete()
-            acao = "removida"
-        else:
-            acao = "adicionada"
         return Response({
             "acao": acao,
             "tipo": tipo,
-            "reacoes_count": comentario.reacoes.count(),
-            "user_reacted": created,
+            "reacoes_count": total_reacoes,
+            "user_reacted": user_reacted,
         })
 
     @action(detail=True, methods=["post"], permission_classes=[IsEmpresaUser])
@@ -90,17 +79,10 @@ class ComentarioViewSet(viewsets.ModelViewSet):
         if not comentario.ciclo:
             return Response({"detail": "Comentário deve estar vinculado a um ciclo."}, status=status.HTTP_400_BAD_REQUEST)
 
-        horas_estimadas = Decimal(str(request.data.get("horas_estimadas", "1.00")))
-        descricao = request.data.get("descricao") or comentario.texto
-
-        tarefa = Tarefa.objects.create(
-            ciclo=comentario.ciclo,
-            descricao=descricao,
-            horas_estimadas=horas_estimadas,
-            status=StatusTarefa.PREVISTA,
+        tarefa = ComentarioService.converter_em_tarefa(
+            comentario=comentario,
             operador=request.user,
+            descricao=request.data.get("descricao"),
+            horas_estimadas=request.data.get("horas_estimadas", "1.00"),
         )
-        comentario.tarefa_convertida = tarefa
-        comentario.save(update_fields=["tarefa_convertida", "atualizado_em"])
-
         return Response({"detail": "Comentário convertido em tarefa com sucesso.", "tarefa_id": tarefa.id})
