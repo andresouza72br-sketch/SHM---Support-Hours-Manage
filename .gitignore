@@ -79,6 +79,10 @@ frontend/dist/
 *.xls
 *.ods
 
+# Binary documentation & generated PDFs
+*.pdf
+
 # Local Sanitization Backup
 backup-higienizacao/
+
 
