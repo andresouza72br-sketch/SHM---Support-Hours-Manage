@@ -22,7 +22,7 @@ import markdown
 from playwright.sync_api import sync_playwright
 from pypdf import PdfReader
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="pt-BR">
@@ -744,7 +744,6 @@ def main():
     
     # 1. Manifesto
     manifesto_pdf_main = BASE_DIR / "Manifesto" / "Manifesto-SHM-Engenharia-vs-Vibe-Coding.pdf"
-    manifesto_pdf_copy = BASE_DIR / "Manifesto" / "manifesto.pdf"
     
     generate_single_pdf(
         md_file=manifesto_md,
@@ -756,13 +755,9 @@ def main():
         line_height="1.44",
         is_manifesto=True
     )
-    shutil.copyfile(manifesto_pdf_main, manifesto_pdf_copy)
-    print(f"[COPIA] Criada copia: {manifesto_pdf_copy}")
 
     # 2. README / Documentacao Oficial
     doc_pdf_main = BASE_DIR / "docs" / "SHM-Documentacao-Oficial.pdf"
-    doc_pdf_readme = BASE_DIR / "README.pdf"
-    doc_pdf_docs_readme = BASE_DIR / "docs" / "README.pdf"
     
     generate_single_pdf(
         md_file=readme_md,
@@ -774,11 +769,6 @@ def main():
         line_height="1.42",
         is_manifesto=False
     )
-    shutil.copyfile(doc_pdf_main, doc_pdf_readme)
-    print(f"[COPIA] Criada copia: {doc_pdf_readme}")
-    if doc_pdf_docs_readme.parent.exists():
-        shutil.copyfile(doc_pdf_main, doc_pdf_docs_readme)
-        print(f"[COPIA] Criada copia: {doc_pdf_docs_readme}")
 
     # 3. Validacao rigorosa
     print("\n" + "="*50)

@@ -8,7 +8,8 @@ Servidor SMTP local + Painel Web em tempo real para testes de notificações e e
 - Web UI: http://localhost:8025
 
 Como rodar:
-    python backend/dev_mail_server.py
+    python tools/mail-server/dev_mail_server.py
+    ou: python backend/manage.py run_mail_server
 """
 
 import asyncio

@@ -10,7 +10,7 @@
 [![Django](https://img.shields.io/badge/Django-5.2-092E20?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![React](https://img.shields.io/badge/React-19.0-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Pytest](https://img.shields.io/badge/Pytest-73%20Passing-brightgreen?style=for-the-badge&logo=pytest&logoColor=white)](https://docs.pytest.org/)
+[![Pytest](https://img.shields.io/badge/Pytest-79%20Passing-brightgreen?style=for-the-badge&logo=pytest&logoColor=white)](https://docs.pytest.org/)
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](http://localhost:8000/api/docs/)
 [![Reversa](https://img.shields.io/badge/Framework-Reversa%20SDD-7c3aed?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sandeco)
 
@@ -52,7 +52,7 @@ flowchart TD
     
     subgraph SHM["⚡ Engenharia com IA no SHM (7 Dias de Rigor)"]
         direction LR
-        S1["Requisitos & SDD<br><b>(Contratos Claros)</b>"] --> S2["TDD, GoF & 73+ Testes<br><b>(Agent Harness)</b>"] --> S3["💎 Produto Sólido em 7 Dias<br><b>(Sustentável por Design)</b>"]
+        S1["Requisitos & SDD<br><b>(Contratos Claros)</b>"] --> S2["TDD, GoF & 79+ Testes<br><b>(Agent Harness)</b>"] --> S3["💎 Produto Sólido em 7 Dias<br><b>(Sustentável por Design)</b>"]
     end
 ```
 
@@ -62,7 +62,7 @@ flowchart TD
 | **Requisitos** | Alucinados pela IA ou baseados em intuições voláteis. | Levantados com precisão para resolver o problema real do negócio. |
 | **Processo** | Acúmulo caótico de prompts sem rastro técnico ou testes. | Abordagem sistemática, disciplinada e quantificável (**SDD + TDD**). |
 | **Sustentabilidade** | Custo de mudança cresce de forma exponencial até o colapso. | Custo de evolução mantém-se linear, previsível e escalável. |
-| **Qualidade** | Funciona por coincidência (*protótipo frágil*). | Funciona por design, contratos formais e 73+ testes (*produto robusto*). |
+| **Qualidade** | Funciona por coincidência (*protótipo frágil*). | Funciona por design, contratos formais e 79+ testes (*produto robusto*). |
 
 ---
 
@@ -169,7 +169,7 @@ projeto-SHM/
 │   │   ├── notificacoes/     # Notificações in-app e eventos de timeline
 │   │   └── core/             # Middlewares, permissions e comando seed_demo_data
 │   ├── config/               # Settings, JWT, URLs e OpenAPI Swagger
-│   └── tests/                # Suíte de 73 testes unitários e de integração
+│   └── tests/                # Suíte de 79 testes unitários e de integração
 │
 ├── frontend/                 # React 19 + TypeScript 5.7 + Vite 6.1 + Tailwind CSS
 │   └── src/
@@ -183,6 +183,12 @@ projeto-SHM/
 │       ├── pages/            # Extrato Oficial (com conciliação ∑), Login, Dashboards
 │       └── types/            # Tipos e interfaces estritas TypeScript
 │
+├── tools/                    # Utilitários de desenvolvimento, banco, testes e automação
+│   ├── mail-server/          # Servidor SMTP local para captura de e-mails em dev
+│   ├── database/             # Scripts de reset e seed determinístico (base limpa)
+│   ├── scripts/              # Utilitários de automação, gerador de PDFs e git-hooks
+│   └── docs-testing/         # Roteiro oficial de testes manuais e documentação de QA
+│
 └── docs/                     # Documentação de API, Workflow e Guias
 ```
 
@@ -190,12 +196,37 @@ projeto-SHM/
 
 ## 🚀 Como Executar
 
-### 1. Pré-requisitos
+### ⚡ Modo Rápido: Orquestrador CLI (`dev.ps1`)
+
+Para maior comodidade, utilize o script de orquestração unificada no PowerShell:
+
+```powershell
+# 1. Iniciar toda a stack (Backend + Frontend + Mail Server SMTP)
+.\dev.ps1 start
+
+# 2. Verificar status dos serviços e portas ativas
+.\dev.ps1 status
+
+# 3. Resetar banco SQLite com base limpa determinística (tools/database)
+.\dev.ps1 reset-db
+
+# 4. Executar a suíte de 79 testes automatizados
+.\dev.ps1 test
+
+# 5. Parar todos os serviços
+.\dev.ps1 stop
+```
+
+---
+
+### 🛠️ Modo Manual: Passo a Passo
+
+#### 1. Pré-requisitos
 * **Python 3.11+**
 * **Node.js 20+** ou **Bun 1.2+**
 * **Git**
 
-### 2. Backend (API REST)
+#### 2. Backend (API REST)
 ```bash
 # 1. Crie e ative o ambiente virtual
 uv venv .venv
@@ -219,7 +250,7 @@ uv pip install -r backend/requirements.txt --python .venv\Scripts\python.exe
 
 ---
 
-### 3. Frontend (Web App)
+#### 3. Frontend (Web App)
 ```bash
 # 1. Acesse a pasta do frontend
 cd frontend
@@ -236,18 +267,18 @@ npm run dev   # ou bun run dev
 
 ## 🔑 Credenciais de Demonstração
 
-| Perfil | Usuário | Senha | Papel no Sistema |
-| :--- | :--- | :--- | :--- |
-| **Cliente Gerente** | `gerente.acme` | `cliente123` | Tomador da Acme Corp. Aprova orçamentos e concede aceites finais. |
-| **Cliente Analista** | `analista.acme` | `cliente123` | Usuário solicitante da Acme Corp. Abre pedidos e acompanha kanban. |
-| **Empresa Admin** | `admin` | `admin123` | Administrador prestador. Gestão geral de contratos, saldos e clientes. |
-| **Empresa Técnico** | `tecnico` | `tecnico123` | Operador técnico. Triagem, estimativa de ciclos e apontamento de tarefas. |
+| Perfil | Usuário | E-mail Corporativo Modelo | Senha | Papel no Sistema |
+| :--- | :--- | :--- | :--- | :--- |
+| **Cliente Gerente** | `cligerente` | `gerente@acme.com` | `cliente123` | Tomador da Acme Corp. Aprova orçamentos e concede aceites finais. |
+| **Cliente Analista** | `clianalista` | `analista@acme.com` | `cliente123` | Usuário solicitante da Acme Corp. Abre pedidos e acompanha kanban. |
+| **Empresa Admin** | `admin` | `admin@shm.local` | `admin123` | Administrador prestador. Gestão geral de contratos, saldos e clientes. |
+| **Empresa Técnico** | `tecnico` | `tecnico@shm.local` | `tecnico123` | Operador técnico. Triagem, estimativa de ciclos e apontamento de tarefas. |
 
 ---
 
 ## 🧪 Testes Automatizados
 
-### Backend (Pytest — 73 Testes)
+### Backend (Pytest — 79 Testes)
 ```bash
 uv run --with-requirements backend/requirements.txt pytest
 ```

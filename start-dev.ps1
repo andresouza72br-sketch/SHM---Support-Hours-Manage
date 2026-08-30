@@ -74,7 +74,19 @@ if ($port8000) {
 
 if ($port5173) {
     Write-Host "  -> Frontend:    http://localhost:5173 (ONLINE - PID $($port5173[0].OwningProcess))" -ForegroundColor Green
-    Write-Host "  -> Tailscale:   http://100.126.72.23:5173" -ForegroundColor Cyan
+    $tailscaleIp = $env:TAILSCALE_IP
+    if (-not $tailscaleIp -and (Test-Path "$PSScriptRoot\.env")) {
+        $envLines = Get-Content "$PSScriptRoot\.env" -ErrorAction SilentlyContinue
+        foreach ($line in $envLines) {
+            if ($line -match '^\s*TAILSCALE_IP\s*=\s*(.+)$') {
+                $tailscaleIp = $matches[1].Trim().Trim('"').Trim("'")
+                break
+            }
+        }
+    }
+    if ($tailscaleIp) {
+        Write-Host "  -> Tailscale:   http://${tailscaleIp}:5173" -ForegroundColor Cyan
+    }
 } else {
     Write-Host "  -> Frontend:    Inicializando... (execute '.\dev.ps1 status' para checar)" -ForegroundColor Yellow
 }

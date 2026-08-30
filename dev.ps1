@@ -11,7 +11,7 @@ param(
 
 switch ($Action) {
     "reset-db" {
-        & "$PSScriptRoot\base_DB_testes\reset_db.ps1"
+        & "$PSScriptRoot\tools\database\reset_db.ps1"
     }
     "stop" {
         & "$PSScriptRoot\stop-dev.ps1"
@@ -49,7 +49,20 @@ switch ($Action) {
         if ($port5173) {
             $pid5173 = $port5173[0].OwningProcess
             Write-Host " [ONLINE]  Frontend Vite   -> http://localhost:5173 (PID: $pid5173)" -ForegroundColor Green
-            Write-Host "           Tailscale IP    -> http://100.126.72.23:5173" -ForegroundColor Cyan
+            
+            $tailscaleIp = $env:TAILSCALE_IP
+            if (-not $tailscaleIp -and (Test-Path "$PSScriptRoot\.env")) {
+                $envLines = Get-Content "$PSScriptRoot\.env" -ErrorAction SilentlyContinue
+                foreach ($line in $envLines) {
+                    if ($line -match '^\s*TAILSCALE_IP\s*=\s*(.+)$') {
+                        $tailscaleIp = $matches[1].Trim().Trim('"').Trim("'")
+                        break
+                    }
+                }
+            }
+            if ($tailscaleIp) {
+                Write-Host "           Tailscale IP    -> http://${tailscaleIp}:5173" -ForegroundColor Cyan
+            }
         } else {
             Write-Host " [OFFLINE] Frontend Vite   -> Porta 5173 livre" -ForegroundColor Red
         }

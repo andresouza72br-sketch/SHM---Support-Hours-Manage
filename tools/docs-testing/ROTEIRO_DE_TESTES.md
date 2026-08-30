@@ -10,10 +10,10 @@ Este documento consolida o roteiro passo a passo para testes funcionais e valida
 
 | Perfil | Usuário / E-mail | Senha | Papel no Sistema |
 | :--- | :--- | :--- | :--- |
-| 👔 **Cliente — Gerente** | `cligerente`<br>*(proj.eng.sw@gmail.com)* | `cliente123` | Abre chamados, **aprova orçamentos**, **concede aceite final** e audita o extrato. |
-| 🧑‍💻 **Cliente — Analista** | `clianalista`<br>*(andresouza.consultorialinux@gmail.com)* | `cliente123` | Abre solicitações e acompanha o status no Kanban. |
-| 🏢 **Empresa — Admin** | `admin`<br>*(andresouza72br@gmail.com)* | `admin123` | Gestão de contratos, triagem operacional, criação de ciclos e orçamentação. |
-| 🛠️ **Empresa — Técnico** | `tecnico`<br>*(workspace.icb@gmail.com)* | `tecnico123` | Execução técnica, lançamento de tarefas/horas e solicitação de aceite. |
+| 👔 **Cliente — Gerente** | `cligerente`<br>*(gerente@acme.com)* | `cliente123` | Abre chamados, **aprova orçamentos**, **concede aceite final** e audita o extrato. |
+| 🧑‍💻 **Cliente — Analista** | `clianalista`<br>*(analista@acme.com)* | `cliente123` | Abre solicitações e acompanha o status no Kanban. |
+| 🏢 **Empresa — Admin** | `admin`<br>*(admin@shm.local)* | `admin123` | Gestão de contratos, triagem operacional, criação de ciclos e orçamentação. |
+| 🛠️ **Empresa — Técnico** | `tecnico`<br>*(tecnico@shm.local)* | `tecnico123` | Execução técnica, lançamento de tarefas/horas e solicitação de aceite. |
 
 ### 🌐 Endereços dos Serviços Locais
 

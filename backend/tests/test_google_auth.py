@@ -17,14 +17,14 @@ class TestGoogleAuthentication:
         )
         self.admin_user = User.objects.create_user(
             username="admin",
-            email="andresouza72br@gmail.com",
+            email="admin@shm.local",
             first_name="Carlos",
             last_name="Diretor",
             role=UserRole.EMPRESA_ADMIN,
         )
         self.gerente_mktdnb = User.objects.create_user(
             username="gerente.mktdnb",
-            email="workspace.icb@gmail.com",
+            email="gerente@mktdnb.local",
             first_name="Marcelo",
             last_name="Ribeiro",
             role=UserRole.CLIENTE_GERENTE,
@@ -40,7 +40,7 @@ class TestGoogleAuthentication:
     @patch("apps.accounts.views.id_token.verify_oauth2_token")
     def test_google_login_empresa_admin_success(self, mock_verify):
         mock_verify.return_value = {
-            "email": "andresouza72br@gmail.com",
+            "email": "admin@shm.local",
             "email_verified": True,
             "given_name": "Carlos",
             "family_name": "Diretor",
@@ -50,7 +50,7 @@ class TestGoogleAuthentication:
         assert res.status_code == status.HTTP_200_OK
         assert "access" in res.data
         assert "refresh" in res.data
-        assert res.data["user"]["email"] == "andresouza72br@gmail.com"
+        assert res.data["user"]["email"] == "admin@shm.local"
         assert res.data["user"]["role"] == UserRole.EMPRESA_ADMIN
         assert res.data["user"]["is_empresa"] is True
         assert res.data["user"]["avatar_url"] == "https://lh3.googleusercontent.com/a/admin-photo-url"
@@ -60,7 +60,7 @@ class TestGoogleAuthentication:
     @patch("apps.accounts.views.id_token.verify_oauth2_token")
     def test_google_login_cliente_gerente_mktdnb_success(self, mock_verify):
         mock_verify.return_value = {
-            "email": "workspace.icb@gmail.com",
+            "email": "gerente@mktdnb.local",
             "email_verified": True,
             "given_name": "Marcelo",
             "family_name": "Ribeiro",
@@ -69,7 +69,7 @@ class TestGoogleAuthentication:
         assert res.status_code == status.HTTP_200_OK
         assert "access" in res.data
         assert "refresh" in res.data
-        assert res.data["user"]["email"] == "workspace.icb@gmail.com"
+        assert res.data["user"]["email"] == "gerente@mktdnb.local"
         assert res.data["user"]["role"] == UserRole.CLIENTE_GERENTE
         assert res.data["user"]["is_cliente"] is True
         assert res.data["user"]["cliente_nome"] == "mkt-dnb"
@@ -101,7 +101,7 @@ class TestGoogleAuthentication:
     @patch("apps.accounts.views.id_token.verify_oauth2_token")
     def test_google_login_unverified_email_blocked(self, mock_verify):
         mock_verify.return_value = {
-            "email": "andresouza72br@gmail.com",
+            "email": "admin@shm.local",
             "email_verified": False,
         }
         res = self.client.post("/api/v1/auth/google/", {"credential": "fake_unverified_token"})
