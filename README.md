@@ -14,7 +14,7 @@
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](http://localhost:8000/api/docs/)
 [![Reversa](https://img.shields.io/badge/Framework-Reversa%20SDD-7c3aed?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sandeco)
 
-[📜 Manifesto de Engenharia](#-manifesto-de-engenharia-da-programação-por-impulso-ao-software-de-verdade) • [🎓 Autoria & Mentoria](#-origem-mentoria--créditos-acadêmicos) • [🎯 O Que o SHM Resolve](#-o-que-o-shm-resolve-a-engenharia-a-serviço-do-negócio) • [🌟 5 Pilares do Produto](#-os-5-pilares-de-diferenciação-do-shm) • [🏛️ Arquitetura](#-arquitetura-do-sistema) • [🚀 Como Executar](#-como-executar) • [📚 Especificações SDD](#-especificações-vivas-sdd--documentação-do-reversa)
+[📜 Manifesto de Engenharia](#-manifesto-de-engenharia-da-programação-por-impulso-ao-software-de-verdade) • [🎓 Autoria & Mentoria](#-origem-mentoria--créditos-acadêmicos) • [🎯 O Que o SHM Resolve](#-o-que-o-shm-resolve-a-engenharia-a-serviço-do-negócio) • [🌟 5 Pilares do Produto](#-os-5-pilares-de-diferenciação-do-shm) • [🏛️ Arquitetura](#-arquitetura-do-sistema) • [⚖️ Racional da Stack](#-racional-da-stack-tecnológica--análise-de-custo-benefício) • [🚀 Como Executar](#-como-executar) • [📚 Especificações SDD](#-especificações-vivas-sdd--documentação-do-reversa)
 
 ---
 
@@ -39,7 +39,7 @@
 ### ⚡ A Ilusão do *Vibe Coding* e o Ponto de Inversão
 O termo **"Vibe Coding"** (Karpathy, 2025) descreve a codificação por impulso onde o desenvolvedor aceita sugestões de IAs sem questionamento crítico, gerando um "software descartável" sem espinha dorsal arquitetural.
 
-Estudos e métricas comprovam que projetos sem processo atingem o **Ponto de Inversão por volta dos 8.2 meses**: momento em que o juro do débito técnico torna cada alteração mais cara do que reconstruir o sistema do zero.
+Na ausência de processo e método, projetos baseados em geração desgovernada de código colapsam rapidamente sob o peso do débito técnico: o **Ponto de Inversão**, momento em que o juro do débito acumulado torna cada nova alteração mais cara e arriscada do que reconstruir o sistema do zero.
 
 O **SHM quebrou esse paradigma:** foi projetado, arquitetado, testado e documentado em **apenas 7 dias de trabalho real de engenharia**, provando que a IA, quando contida por método e arquitetura, gera software de alta integridade em tempo recorde.
 
@@ -47,7 +47,7 @@ O **SHM quebrou esse paradigma:** foi projetado, arquitetado, testado e document
 flowchart TD
     subgraph Vibe["❌ O Ciclo Vicioso do Vibe Coding (Mercado)"]
         direction LR
-        V1["Impulso Inicial<br><b>(Velocidade Ilusória)</b>"] --> V2["Acúmulo de Débito Técnico<br><b>(Sem Arquitetura)</b>"] --> V3["🚨 Ponto de Inversão (~8.2m)<br><b>(Colapso / Inviável)</b>"]
+        V1["Impulso Inicial<br><b>(Velocidade Ilusória)</b>"] --> V2["Acúmulo de Débito Técnico<br><b>(Sem Arquitetura)</b>"] --> V3["🚨 Ponto de Inversão<br><b>(Colapso do Débito Técnico)</b>"]
     end
     
     subgraph SHM["⚡ Engenharia com IA no SHM (7 Dias de Rigor)"]
@@ -191,6 +191,55 @@ projeto-SHM/
 │
 └── docs/                     # Documentação de API, Workflow e Guias
 ```
+
+---
+
+## ⚖️ Racional da Stack Tecnológica & Análise de Custo-Benefício
+
+> *"A tecnologia é efêmera, mas o rigor é eterno. Em engenharia de verdade, nenhuma biblioteca é escolhida por modismo ou 'hype': cada peça da arquitetura é um compromisso consciente entre custo de adoção, velocidade de entrega e o custo de manutenção a longo prazo."* — [**Manifesto de Engenharia SHM**](Manifesto/manifesto.md)
+
+O **SWEBOK (*Software Engineering Body of Knowledge*)** estabelece que a manutenção consome até **80% do custo total do ciclo de vida** de um software. No paradigma da Engenharia de Software com IA, a stack tecnológica não serve apenas para executar código: ela atua como um **Agent Harness (gaiola de contenção)** que impõe fronteiras cognitivas rígidas, impedindo alucinações dos LLMs e blindando o sistema contra o colapso do débito técnico.
+
+Abaixo, detalhamos o racional técnico, os trade-offs e o retorno sobre o investimento (ROI) de cada camada da stack:
+
+```mermaid
+flowchart TD
+    subgraph Metodologia["1. Governança & Agent Harness (Prevenção de Débito Técnico)"]
+        direction LR
+        M1["<b>Reversa (SDD)</b><br>Especificações Vivas & C4"] --- M2["<b>Impeccable</b><br>Craft de UI/UX & Heurísticas"] --- M3["<b>Pytest (79 Testes)</b><br>TDD & Portão de Qualidade"]
+    end
+
+    subgraph Core["2. Núcleo Backend & Transacionalidade ACID (Integridade Forense)"]
+        direction LR
+        B1["<b>Django 5.2 + DRF</b><br>ORM, RBAC & @transaction.atomic"] --- B2["<b>Astral uv</b><br>Gestão de Pacotes Ultrarrápida"] --- B3["<b>SQLite / PostgreSQL</b><br>Dev Ágil vs Prod Escalável"]
+    end
+
+    subgraph Client["3. Frontend SPA & Tipagem Estrita (Isolamento Cognitivo)"]
+        direction LR
+        F1["<b>React 19 + TypeScript 5.7</b><br>Contratos Formais no Client"] --- F2["<b>Vite 6 + Tailwind CSS</b><br>HMR <50ms & Design Tokens"] --- F3["<b>Lucide Icons</b><br>Linguagem Visual Unificada"]
+    end
+
+    subgraph Tools["4. Ferramental Dev & Automação Local (Zero Fricção & Apoio a Testes)"]
+        direction LR
+        T1["<b>Mail Server Local</b><br>SMTP + Web GUI para Testes"] --- T2["<b>CLI dev.ps1</b><br>Orquestrador em 1 Clique"] --- T3["<b>SHA-256 Engine</b><br>Integridade Criptográfica"]
+    end
+
+    Metodologia --> Core --> Client --> Tools
+```
+
+### 📊 Matriz de Trade-offs e Retorno sobre o Investimento (ROI)
+
+| Camada | Tecnologia | Custo / Trade-off | Benefício Real de Engenharia (ROI & Governança) | Conexão com o Manifesto |
+| :--- | :--- | :--- | :--- | :--- |
+| **Metodologia IA** | **Reversa (SDD)** | Exige disciplina de especificação e modelagem antes de digitar código. | **Elimina o "Vibe Coding" e o retrabalho em ~80%.** Cria limites claros de contexto para agentes de IA atuarem com zero alucinação de regras de negócio. | *"Especificação é o novo código."* |
+| **Craft UI/UX** | **Impeccable** | Curva de refinamento visual e aplicação rigorosa de heurísticas. | **Elimina a dívida técnica estética (*AI slop*).** Entrega interfaces com acabamento de nível diretor de arte, acessibilidade nativa (a11y) e design tokens consistentes. | *"Manutenibilidade é a métrica da verdade."* |
+| **Backend & ORM** | **Python 3.11 + Django 5.2 + DRF** | Estrutura opinativa mais densa que microframeworks como Flask/FastAPI. | **Integridade ACID e Governança Forense nativa.** O `@transaction.atomic` blinda o Livro-Razão (`HistoricoSaldo`), enquanto o ORM, as migrações automáticas e o RBAC evitam que a IA reinvente regras de segurança. | *"GoF e DDD como Contratos de Isolamento Cognitivo."* |
+| **Package Manager** | **Astral `uv`** | Introduz uma ferramenta externa escrita em Rust no ecossistema Python. | **Resolução e instalação 10x a 100x mais rápida que o `pip`.** Reduz drasticamente o tempo de build, testes em CI e inicialização do ambiente local. | *"Velocidade com determinismo e sem atrito."* |
+| **Testes Automatizados** | **Pytest + Faker (79 Testes)** | Tempo de escrita e manutenção contínua de fixtures e cenários de borda. | **Portão de qualidade inegociável (*Gatekeeper*).** Garante que refatorações de agentes de IA nunca introduzam regressões no cálculo contábil de horas (+30%), compensação de saldo ou hashes SHA-256. | *"TDD: o contrato de sucesso entre Humano e Agente."* |
+| **Frontend & Type Safety** | **React 19 + TypeScript 5.7** | Tipagem estrita exige código mais verboso na definição de interfaces. | **Contratos formais no Client-Side.** O compilador (`tsc`) atua como oráculo de validação instantânea para a IA: qualquer desalinhamento de API é detectado no build, antes do runtime. | *"Redução do erro humano e de IA antes do deploy."* |
+| **Build & Estilização** | **Vite 6 + Tailwind CSS** | Estilização por classes utilitárias no JSX em vez de arquivos CSS clássicos. | **HMR instantâneo (<50ms) e bundle enxuto (~800KB).** Elimina conflitos de escopo global de CSS e garante consistência visual imediata em modo Claro e Escuro. | *"Eficiência de runtime e agilidade de feedback."* |
+| **Apoio a Testes de E-mail** | **SMTP Server Local (`tools/mail-server`)** | Microserviço utilitário dedicado exclusivamente ao apoio de testes manuais e desenvolvimento. | **Custo zero com provedores de terceiros (SendGrid/Mailgun)** e risco zero de disparo indevido em dev. Permite testar o fluxo completo de Magic Links 100% offline e com privacidade total. | *"Privacidade, soberania de dados e testes realistas."* |
+| **Orquestração Dev** | **CLI `dev.ps1`** | Manutenção de scripts PowerShell para automação local. | **Onboarding instantâneo de 1 comando.** Inicializa toda a stack (Backend, Frontend, SMTP Server) e reseta o banco determinístico em menos de 10 segundos. | *"O processo precede a ação: eliminação da fricção operacional."* |
 
 ---
 

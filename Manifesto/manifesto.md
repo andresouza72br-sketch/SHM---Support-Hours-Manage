@@ -45,12 +45,12 @@ O termo **"Vibe Coding"**, cunhado por Andrej Karpathy em 2025, descreve o perig
 flowchart TD
     subgraph Vibe["❌ O Ciclo Vicioso do Vibe Coding (Mercado)"]
         direction LR
-        V1["Impulso Inicial<br><b>(Velocidade Ilusória)</b>"] --> V2["Acúmulo de Débito Técnico<br><b>(Sem Arquitetura)</b>"] --> V3["🚨 Ponto de Inversão (~8.2m)<br><b>(Colapso / Inviável)</b>"]
+        V1["Impulso Inicial<br><b>(Velocidade Ilusória)</b>"] --> V2["Acúmulo de Débito Técnico<br><b>(Sem Arquitetura)</b>"] --> V3["🚨 Ponto de Inversão<br><b>(Colapso do Débito Técnico)</b>"]
     end
     
     subgraph SHM["⚡ Engenharia com IA no SHM (7 Dias de Rigor)"]
         direction LR
-        S1["Requisitos & SDD<br><b>(Contratos Claros)</b>"] --> S2["TDD, GoF & 73+ Testes<br><b>(Agent Harness)</b>"] --> S3["💎 Produto Sólido em 7 Dias<br><b>(Sustentável por Design)</b>"]
+        S1["Requisitos & SDD<br><b>(Contratos Claros)</b>"] --> S2["TDD, GoF & 79+ Testes<br><b>(Agent Harness)</b>"] --> S3["💎 Produto Sólido em 7 Dias<br><b>(Sustentável por Design)</b>"]
     end
 ```
 
@@ -60,10 +60,10 @@ flowchart TD
 | **Requisitos** | Alucinados pela IA ou baseados em intuições voláteis. | Levantados com rigor para resolver o problema real do negócio. |
 | **Processo** | Acúmulo caótico de prompts sem rastro técnico ou testes. | Abordagem sistemática, disciplinada e quantificável (**SDD + TDD**). |
 | **Sustentabilidade** | Custo de mudança cresce de forma exponencial até o colapso. | Custo de evolução mantém-se linear, previsível e escalável. |
-| **Qualidade** | Funciona por coincidência (*protótipo frágil*). | Funciona por design, contratos formais e 73+ testes (*produto robusto*). |
+| **Qualidade** | Funciona por coincidência (*protótipo frágil*). | Funciona por design, contratos formais e 79+ testes (*produto robusto*). |
 
 > [!WARNING]
-> **O Ponto de Inversão Crítico:** A experiência do mercado nos ensina que o "juro" do débito técnico não perdoa. Projetos gerados por impulso sem processo costumam atingir o **Ponto de Inversão por volta dos 8.2 meses** de vida: a taxa de juros do débito acumulado torna-se impagável, onde cada nova funcionalidade custa mais do que se o projeto fosse reiniciado do zero.
+> **O Ponto de Inversão Crítico:** A experiência do desenvolvimento de software nos ensina que o "juro" do débito técnico não perdoa. Projetos gerados por impulso sem processo atingem rapidamente o **Ponto de Inversão**: o momento em que a taxa de juros do débito acumulado torna-se impagável, onde qualquer nova funcionalidade custa mais caro e traz mais riscos do que se o projeto fosse reiniciado do zero.
 > 
 > O **SHM quebrou esse paradigma:** foi projetado, arquitetado, testado e documentado em **apenas 7 dias de trabalho real de engenharia**, provando que a IA, quando contida por método e arquitetura, gera software de alta integridade em tempo recorde.
 
@@ -99,7 +99,7 @@ O **AI Engineer** não escreve código; ele governa processos. No SHM, adotamos 
 flowchart LR
     A["👨‍💻 <b>Humano: SDD</b><br>Spec & Teste Red"] -->|Contrato| B["🔴 <b>Red</b><br>Teste Falha"]
     B -->|Agent Harness| C["🟢 <b>Green</b><br>IA Gera Código"]
-    C -->|Contratos GoF| D{"<b>Passou 73+<br>Testes?</b>"}
+    C -->|Contratos GoF| D{"<b>Passou 79+<br>Testes?</b>"}
     D -- "Não" --> C
     D -- "Sim" --> E["♻️ <b>Refactor</b><br>Limpeza de Código"]
     E --> F["🚀 <b>Deploy Seguro</b><br>Rastreável"]
