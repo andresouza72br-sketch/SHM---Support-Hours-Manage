@@ -32,7 +32,7 @@ class Command(BaseCommand):
         admin_user, _ = User.objects.get_or_create(
             username="admin",
             defaults={
-                "email": "andresouza72br@gmail.com",
+                "email": "admin@shm.local",
                 "first_name": "Carlos",
                 "last_name": "Diretor",
                 "role": UserRole.EMPRESA_ADMIN,
@@ -40,23 +40,23 @@ class Command(BaseCommand):
                 "is_superuser": True,
             }
         )
-        admin_user.email = "andresouza72br@gmail.com"
-        admin_user.avatar_url = "https://api.dicebear.com/7.x/avataaars/svg?seed=andresouza72br@gmail.com"
+        admin_user.email = "admin@shm.local"
+        admin_user.avatar_url = "https://api.dicebear.com/7.x/avataaars/svg?seed=admin@shm.local"
         admin_user.set_password("admin123")
         admin_user.save()
 
         tecnico_user, _ = User.objects.get_or_create(
             username="tecnico",
             defaults={
-                "email": "workspace.icb@gmail.com",
+                "email": "tecnico@shm.local",
                 "first_name": "Marcos",
                 "last_name": "Técnico Especialista",
                 "role": UserRole.EMPRESA_TECNICO,
                 "is_staff": False,
             }
         )
-        tecnico_user.email = "workspace.icb@gmail.com"
-        tecnico_user.avatar_url = "https://api.dicebear.com/7.x/avataaars/svg?seed=workspace.icb@gmail.com"
+        tecnico_user.email = "tecnico@shm.local"
+        tecnico_user.avatar_url = "https://api.dicebear.com/7.x/avataaars/svg?seed=tecnico@shm.local"
         tecnico_user.set_password("tecnico123")
         tecnico_user.save()
 
@@ -110,14 +110,14 @@ class Command(BaseCommand):
         gerente_acme, _ = User.objects.get_or_create(
             username="cligerente",
             defaults={
-                "email": "proj.eng.sw@gmail.com",
+                "email": "gerente@acme.com",
                 "first_name": "AcmeGer",
                 "last_name": "Germano",
                 "role": UserRole.CLIENTE_GERENTE,
                 "cliente": cliente_acme,
             }
         )
-        gerente_acme.email = "proj.eng.sw@gmail.com"
+        gerente_acme.email = "gerente@acme.com"
         gerente_acme.set_password("cliente123")
         gerente_acme.is_active = True
         gerente_acme.save()
@@ -125,14 +125,14 @@ class Command(BaseCommand):
         analista_acme, _ = User.objects.get_or_create(
             username="clianalista",
             defaults={
-                "email": "andresouza.consultorialinux@gmail.com",
+                "email": "analista@acme.com",
                 "first_name": "AcmeAna",
                 "last_name": "Ana Paula",
                 "role": UserRole.CLIENTE_ANALISTA,
                 "cliente": cliente_acme,
             }
         )
-        analista_acme.email = "andresouza.consultorialinux@gmail.com"
+        analista_acme.email = "analista@acme.com"
         analista_acme.set_password("cliente123")
         analista_acme.is_active = True
         analista_acme.save()
@@ -316,7 +316,7 @@ class Command(BaseCommand):
                 "status": StatusContrato.CONCLUIDO,
                 "descricao_servicos": "Suporte e Manutenção Legada 2025 (Concluído)",
                 "gestor_nome": "Roberto Silva",
-                "gestor_email": "proj.eng.sw@gmail.com",
+                "gestor_email": "gerente@acme.com",
                 "gestor_telefone": "(11) 98765-4321",
                 "criado_por": admin_user,
             }

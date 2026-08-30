@@ -9,7 +9,7 @@
 Basta executar o script PowerShell em qualquer terminal:
 
 ```powershell
-.\base_DB_testes\reset_db.ps1
+.\tools\database\reset_db.ps1
 ```
 
 Ou através do comando principal do projeto:
@@ -31,12 +31,12 @@ Ou através do comando principal do projeto:
 
 A base contém estritamente os **4 usuários oficiais**, integrados aos botões de **Acesso Rápido (1-Clique)** e à **Simulação de Google OAuth2**:
 
-| Papel | Usuário | Senha | E-mail (@gmail) | Perfil & Responsabilidade |
+| Papel | Usuário | Senha | E-mail Oficial | Perfil & Responsabilidade |
 |---|---|---|---|---|
-| 🏢 **Empresa Admin** | `admin` | `admin123` | `andresouza72br@gmail.com` | Gestão de contratos, orçamentação e visualização global de clientes. |
-| 🛠️ **Empresa Técnico** | `tecnico` | `tecnico123` | `workspace.icb@gmail.com` | Execução técnica, lançamento de tarefas e solicitação de aceite. |
-| 👔 **Cliente Gerente** | `cligerente` | `cliente123` | `proj.eng.sw@gmail.com` | Gestor do contrato Acme Corp: **aprova orçamentos (A2)** e **concede aceite final com débito de horas (A3)**. |
-| 🧑‍💻 **Cliente Analista** | `clianalista` | `cliente123` | `andresouza.consultorialinux@gmail.com` | Operacional da Acme Corp: abre solicitações e acompanha Kanban. |
+| 🏢 **Empresa Admin** | `admin` | `admin123` | `admin@shm.local` | Gestão de contratos, orçamentação e visualização global de clientes. |
+| 🛠️ **Empresa Técnico** | `tecnico` | `tecnico123` | `tecnico@shm.local` | Execução técnica, lançamento de tarefas e solicitação de aceite. |
+| 👔 **Cliente Gerente** | `cligerente` | `cliente123` | `gerente@acme.com` | Gestor do contrato Acme Corp: **aprova orçamentos (A2)** e **concede aceite final com débito de horas (A3)**. |
+| 🧑‍💻 **Cliente Analista** | `clianalista` | `cliente123` | `analista@acme.com` | Operacional da Acme Corp: abre solicitações e acompanha Kanban. |
 
 ---
 
@@ -57,6 +57,6 @@ A base contém estritamente os **4 usuários oficiais**, integrados aos botões 
 
 | Protocolo | Status | Ciclo / Horas | Objetivo do Teste |
 |---|---|---|---|
-| **OS2026080001** | `AGUARDANDO_ACEITE` | Corretiva (8h estimadas / 6h realizadas) | **Fluxo A3:** Entrar como `proj.eng.sw@gmail.com` e testar o **Aceite Final** (via App ou Magic Link), confirmando o débito de 6h no saldo do contrato (`100h -> 94h`). |
-| **OS2026080002** | `AGUARDANDO_APROVACAO` | Evolutiva (8h estimadas / 0h realizadas) | **Fluxo A2:** Entrar como `proj.eng.sw@gmail.com` e testar a **Aprovação de Orçamento** (via App ou Magic Link), liberando o chamado para `EM_EXECUCAO`. |
+| **OS2026080001** | `AGUARDANDO_ACEITE` | Corretiva (8h estimadas / 6h realizadas) | **Fluxo A3:** Entrar como `gerente@acme.com` e testar o **Aceite Final** (via App ou Magic Link), confirmando o débito de 6h no saldo do contrato (`100h -> 94h`). |
+| **OS2026080002** | `AGUARDANDO_APROVACAO` | Evolutiva (8h estimadas / 0h realizadas) | **Fluxo A2:** Entrar como `gerente@acme.com` e testar a **Aprovação de Orçamento** (via App ou Magic Link), liberando o chamado para `EM_EXECUCAO`. |
 | **OS2026080003** | `ABERTO` | Sem ciclo ainda | **Fluxo Inicial:** Chamado novo recém-aberto pela analista, pronto para triagem e orçamentação pela equipe da empresa. |

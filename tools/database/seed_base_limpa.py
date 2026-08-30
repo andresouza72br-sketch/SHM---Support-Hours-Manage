@@ -5,7 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 
 # Configuração do caminho do Django
-BASE_DIR = Path(__file__).resolve().parent.parent / "backend"
+BASE_DIR = Path(__file__).resolve().parent.parent.parent / "backend"
 sys.path.insert(0, str(BASE_DIR))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
@@ -47,41 +47,41 @@ def seed_base_limpa():
     print("==================================================================")
 
     # -------------------------------------------------------------------------
-    # 1. USUARIOS DA EMPRESA & CLIENTES (4 E-mails @gmail Oficiais)
+    # 1. USUARIOS DA EMPRESA & CLIENTES (Perfis Corporativos Oficiais)
     # -------------------------------------------------------------------------
     print("\n[1/5] Criando 4 Usuarios Oficiais...")
 
     # Empresa Admin
     admin_user = User.objects.create(
         username="admin",
-        email="andresouza72br@gmail.com",
-        first_name="Andre",
-        last_name="Souza (Admin)",
+        email="admin@shm.local",
+        first_name="Admin",
+        last_name="SHM",
         role=UserRole.EMPRESA_ADMIN,
         is_staff=True,
         is_superuser=True,
         is_active=True,
-        avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=andresouza72br@gmail.com",
+        avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=admin@shm.local",
     )
     admin_user.set_password("admin123")
     admin_user.save()
-    print("  [OK] [EMPRESA_ADMIN]    admin / admin123 (andresouza72br@gmail.com)")
+    print("  [OK] [EMPRESA_ADMIN]    admin / admin123 (admin@shm.local)")
 
     # Empresa Tecnico
     tecnico_user = User.objects.create(
         username="tecnico",
-        email="workspace.icb@gmail.com",
-        first_name="Andre",
-        last_name="Souza (Tecnico)",
+        email="tecnico@shm.local",
+        first_name="Tecnico",
+        last_name="SHM",
         role=UserRole.EMPRESA_TECNICO,
         is_staff=False,
         is_superuser=False,
         is_active=True,
-        avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=workspace.icb@gmail.com",
+        avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=tecnico@shm.local",
     )
     tecnico_user.set_password("tecnico123")
     tecnico_user.save()
-    print("  [OK] [EMPRESA_TECNICO]  tecnico / tecnico123 (workspace.icb@gmail.com)")
+    print("  [OK] [EMPRESA_TECNICO]  tecnico / tecnico123 (tecnico@shm.local)")
 
     # -------------------------------------------------------------------------
     # 2. CLIENTE B2B
@@ -94,7 +94,7 @@ def seed_base_limpa():
         nome_fantasia="Acme Corp",
         email_contato="contato@acme.com",
         telefone="(11) 98765-4321",
-        pessoa_contato="Andre Souza (Gestor)",
+        pessoa_contato="Carlos Silva (Gestor)",
         cidade="Sao Paulo",
         estado="SP",
         status=StatusCliente.ATIVO,
@@ -104,36 +104,36 @@ def seed_base_limpa():
     # Cliente Gerente (Aprovador)
     gerente_acme = User.objects.create(
         username="cligerente",
-        email="proj.eng.sw@gmail.com",
-        first_name="Andre",
-        last_name="Souza (Gestor Acme)",
+        email="gerente@acme.com",
+        first_name="Carlos",
+        last_name="Silva (Gestor Acme)",
         role=UserRole.CLIENTE_GERENTE,
         cliente=cliente_acme,
         is_staff=False,
         is_superuser=False,
         is_active=True,
-        avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=proj.eng.sw@gmail.com",
+        avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=gerente@acme.com",
     )
     gerente_acme.set_password("cliente123")
     gerente_acme.save()
-    print("  [OK] [CLIENTE_GERENTE]  cligerente / cliente123 (proj.eng.sw@gmail.com)")
+    print("  [OK] [CLIENTE_GERENTE]  cligerente / cliente123 (gerente@acme.com)")
 
     # Cliente Analista (Operacional)
     analista_acme = User.objects.create(
         username="clianalista",
-        email="andresouza.consultorialinux@gmail.com",
-        first_name="Andre",
-        last_name="Souza (Analista Acme)",
+        email="analista@acme.com",
+        first_name="Mariana",
+        last_name="Lima (Analista Acme)",
         role=UserRole.CLIENTE_ANALISTA,
         cliente=cliente_acme,
         is_staff=False,
         is_superuser=False,
         is_active=True,
-        avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=andresouza.consultorialinux@gmail.com",
+        avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=analista@acme.com",
     )
     analista_acme.set_password("cliente123")
     analista_acme.save()
-    print("  [OK] [CLIENTE_ANALISTA] clianalista / cliente123 (andresouza.consultorialinux@gmail.com)")
+    print("  [OK] [CLIENTE_ANALISTA] clianalista / cliente123 (analista@acme.com)")
 
     # -------------------------------------------------------------------------
     # 3. CONTRATO ATIVO (100H) & INTEGRIDADE FORENSE SHA-256
@@ -153,12 +153,12 @@ def seed_base_limpa():
         descricao_servicos="Suporte N2/N3 especializado em Infraestrutura, Backend Python/Django e Banco de Dados.",
         valor_mensal=Decimal("5000.00"),
         dia_faturamento=10,
-        gestor_nome="Andre Souza (Gestor Acme)",
-        gestor_email="proj.eng.sw@gmail.com",
+        gestor_nome="Carlos Silva (Gestor Acme)",
+        gestor_email="gerente@acme.com",
         gestor_telefone="(11) 98765-4321",
         emails_notificacao=[
-            {"email": "proj.eng.sw@gmail.com", "nome": "Andre Souza (Gerente)", "ativo": True},
-            {"email": "andresouza.consultorialinux@gmail.com", "nome": "Andre Souza (Analista)", "ativo": True},
+            {"email": "gerente@acme.com", "nome": "Carlos Silva (Gerente)", "ativo": True},
+            {"email": "analista@acme.com", "nome": "Mariana Lima (Analista)", "ativo": True},
         ],
         criado_por=admin_user,
     )

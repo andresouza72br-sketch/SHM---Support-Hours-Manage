@@ -131,11 +131,18 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "http://100.126.72.23:5173",
-    "http://100.126.72.23:8000",
 ]
+
+# Suporte a origens adicionais e Tailscale via variáveis de ambiente
 if os.getenv("CSRF_TRUSTED_ORIGINS"):
     CSRF_TRUSTED_ORIGINS.extend([o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS").split(",") if o.strip()])
+
+_tailscale_ip = os.getenv("TAILSCALE_IP", "").strip()
+if _tailscale_ip:
+    CSRF_TRUSTED_ORIGINS.extend([
+        f"http://{_tailscale_ip}:5173",
+        f"http://{_tailscale_ip}:8000",
+    ])
 
 # Django REST Framework
 REST_FRAMEWORK = {

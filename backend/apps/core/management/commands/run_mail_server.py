@@ -1,5 +1,13 @@
-import asyncio
+import sys
+from pathlib import Path
 from django.core.management.base import BaseCommand
+from django.conf import settings
+
+# Importa o dev_mail_server a partir de tools/mail-server
+_mail_server_path = Path(settings.BASE_DIR).parent / "tools" / "mail-server"
+if str(_mail_server_path) not in sys.path:
+    sys.path.insert(0, str(_mail_server_path))
+
 from dev_mail_server import main as run_server
 
 

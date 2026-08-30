@@ -171,7 +171,7 @@ export function LoginPage() {
                 )}
                 <span>{quickLoggingInUser === 'cligerente' ? 'Entrando...' : 'Gerente (Acme)'}</span>
               </div>
-              <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 font-medium truncate" title="proj.eng.sw@gmail.com">proj.eng.sw@gmail.com</div>
+              <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 font-medium truncate" title="gerente@acme.com">gerente@acme.com</div>
             </button>
 
             <button
@@ -188,7 +188,7 @@ export function LoginPage() {
                 )}
                 <span>{quickLoggingInUser === 'clianalista' ? 'Entrando...' : 'Analista (Acme)'}</span>
               </div>
-              <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 font-medium truncate" title="andresouza.consultorialinux@gmail.com">andresouza.consultorialinux@gmail.com</div>
+              <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 font-medium truncate" title="analista@acme.com">analista@acme.com</div>
             </button>
 
             <button
@@ -205,7 +205,7 @@ export function LoginPage() {
                 )}
                 <span>{quickLoggingInUser === 'tecnico' ? 'Entrando...' : 'Técnico Empresa'}</span>
               </div>
-              <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 font-medium truncate" title="workspace.icb@gmail.com">workspace.icb@gmail.com</div>
+              <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 font-medium truncate" title="tecnico@shm.local">tecnico@shm.local</div>
             </button>
 
             <button
@@ -222,7 +222,7 @@ export function LoginPage() {
                 )}
                 <span>{quickLoggingInUser === 'admin' ? 'Entrando...' : 'Admin Empresa'}</span>
               </div>
-              <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 font-medium truncate" title="andresouza72br@gmail.com">andresouza72br@gmail.com</div>
+              <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5 font-medium truncate" title="admin@shm.local">admin@shm.local</div>
             </button>
           </div>
         </div>

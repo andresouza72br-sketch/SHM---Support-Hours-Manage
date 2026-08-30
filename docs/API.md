@@ -43,7 +43,7 @@ Autenticação via Google OAuth2 (Google Identity Services). Valida a assinatura
   "user": {
     "id": 1,
     "username": "admin",
-    "email": "andresouza72br@gmail.com",
+    "email": "admin@shm.local",
     "role": "EMPRESA_ADMIN",
     "is_empresa": true,
     "is_cliente": false

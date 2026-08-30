@@ -69,4 +69,16 @@ frontend/dist/
 .~lock.*
 .~lock.*#
 ~$*
+*.tmp
+*.bak
+
+# Data dumps & spreadsheets (PII protection)
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.ods
+
+# Local Sanitization Backup
+backup-higienizacao/
 

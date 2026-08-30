@@ -7,7 +7,7 @@ Write-Host "  SHM 2.4 -- Reset Completo e Semeadura de Base de Testes Limpa" -Fo
 Write-Host "==================================================================" -ForegroundColor Cyan
 
 # 1. Localizacao do Python (.venv ou global)
-$rootDir = (Get-Item $PSScriptRoot).Parent.FullName
+$rootDir = (Get-Item $PSScriptRoot).Parent.Parent.FullName
 $pyExe = Join-Path $rootDir ".venv\Scripts\python.exe"
 if (-not (Test-Path $pyExe)) {
     $pyExe = "python.exe"
@@ -71,10 +71,10 @@ Write-Host "==================================================================" 
 
 Write-Host ""
 Write-Host "CREDENCIAIS OFICIAIS DE TESTE (1-CLIQUE / GOOGLE MOCK):" -ForegroundColor Cyan
-Write-Host "  * Empresa Admin:   admin / admin123        [andresouza72br@gmail.com]" -ForegroundColor White
-Write-Host "  * Empresa Tecnico: tecnico / tecnico123      [workspace.icb@gmail.com]" -ForegroundColor White
-Write-Host "  * Cliente Gerente: cligerente / cliente123   [proj.eng.sw@gmail.com]" -ForegroundColor White
-Write-Host "  * Cliente Analista: clianalista / cliente123 [andresouza.consultorialinux@gmail.com]" -ForegroundColor White
+Write-Host "  * Empresa Admin:   admin / admin123        [admin@shm.local]" -ForegroundColor White
+Write-Host "  * Empresa Tecnico: tecnico / tecnico123      [tecnico@shm.local]" -ForegroundColor White
+Write-Host "  * Cliente Gerente: cligerente / cliente123   [gerente@acme.com]" -ForegroundColor White
+Write-Host "  * Cliente Analista: clianalista / cliente123 [analista@acme.com]" -ForegroundColor White
 
 Write-Host ""
 Write-Host "CENARIOS DE TESTE PREPARADOS NA BASE:" -ForegroundColor Cyan
