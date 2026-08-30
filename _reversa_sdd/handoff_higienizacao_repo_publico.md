@@ -17,9 +17,8 @@ Preparar o repositório do **Projeto SHM (Support Hours Manager)** para ser torn
 ### ✅ Etapa 1: Dados Críticos, PII e Binários Duplicados (Concluída)
 - Criada a pasta `backup-higienizacao/` e protegida no `.gitignore`.
 - Arquivo `historico_manutencoes_iate_clube.csv` excluído do Git e preservado no backup.
-- Eliminadas 3 cópias redundantes de PDFs (`README.pdf`, `docs/README.pdf`, `Manifesto/manifesto.pdf`), liberando ~6.86 MB.
-- Preservados os 2 PDFs canônicos: `docs/SHM-Documentacao-Oficial.pdf` e `Manifesto/Manifesto-SHM-Engenharia-vs-Vibe-Coding.pdf`.
-- `.gitignore` blindado contra planilhas (`*.csv`, `*.tsv`, `*.xlsx`, `*.xls`, `*.ods`), locks (`.~lock.*#`, `~$*`), temporários (`*.tmp`, `*.bak`) e `backup-higienizacao/`.
+- Eliminados 100% dos arquivos PDF do repositório (~13.7 MB liberados), preservando toda a documentação exclusivamente em formato nativo Markdown (`.md`).
+- `.gitignore` blindado contra binários (`*.pdf`), planilhas (`*.csv`, `*.tsv`, `*.xlsx`, `*.xls`, `*.ods`), locks (`.~lock.*#`, `~$*`), temporários (`*.tmp`, `*.bak`) e `backup-higienizacao/`.
 
 ### ✅ Etapa 2: Sanitização de Hardcodes e Despersonalização (Concluída)
 - Backups salvos em `backup-higienizacao/etapa-2/`.
@@ -61,7 +60,8 @@ Preparar o repositório do **Projeto SHM (Support Hours Manager)** para ser torn
 
 A pasta `backup-higienizacao/` (protegida pelo `.gitignore`) contém:
 - `historico_manutencoes_iate_clube.csv` (dados reais legados)
-- `README.pdf`, `docs_README.pdf`, `manifesto_simples.pdf` (PDFs antigos removidos)
+- `README.pdf`, `docs_README.pdf`, `manifesto_simples.pdf`, `Manifesto-SHM-Engenharia-vs-Vibe-Coding.pdf`, `SHM-Documentacao-Oficial.pdf` (100% dos PDFs salvaguardados)
+- `generate_pdfs.py` (script de geração salvaguardado)
 - `etapa-2/` (cópias de arquivos antes da despersonalização de IPs e e-mails)
 - `etapa-3/` (cópias de scripts e pastas antes da migração para `tools/`)
 - `etapa-4/` (rascunhos de brainstorm do ChatGPT, `last-ssession.md` e `README.md` original)
