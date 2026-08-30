@@ -90,9 +90,39 @@ erDiagram
     HISTORICO_SALDO {
         uuid id PK
         int contrato_id FK
-        string tipo_operacao "consumo / transferencia / estorno"
+        string tipo_operacao "consumo / transferencia / reabastecimento"
         decimal quantidade
         decimal saldo_resultante
+        string ip_origem
+        string user_agent
+        datetime criado_em
+    }
+
+    TRANSFERENCIA_SALDO {
+        uuid id PK
+        int contrato_origem_id FK
+        int contrato_destino_id FK
+        decimal quantidade
+        string motivo
+        datetime criado_em
+    }
+
+    CONTRATO_AUDIT_LOG {
+        uuid id PK
+        int contrato_id FK
+        string tipo_evento "aceite / migracao_saldo / compensacao_debito"
+        string descricao
+        string justificativa
+        string ip_origem
+        string user_agent
+        datetime criado_em
+    }
+
+    AVALIACAO_CICLO {
+        uuid id PK
+        int ciclo_id FK
+        int nota "1 a 5 estrelas"
+        string comentario
         datetime criado_em
     }
 ```

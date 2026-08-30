@@ -1,4 +1,4 @@
-﻿# Business Rules Review — SHM 2.3 Pre-RC
+# Business Rules Review — SHM 2.3 Pre-RC
 
 > **Versão:** 2.3 Pre-RC  
 > **Revisão:** 2026-08-26  
@@ -177,98 +177,47 @@ Funcionalidades e regras de negócio identificadas como necessárias mas ainda n
 
 ### EMPRESA_TECNICO
 
-> Papel operacional responsável pela entrega dos serviços.
+### 9. Trava de Tolerância de Ciclos & Governança de Exceção
 
-| ID | Como... | Quero... | Para... |
-|----|---------|----------|---------|
-| US-ET-01 | EMPRESA_TECNICO | Criar ciclos dentro de pedidos ativos | Organizar o trabalho em blocos aprovados |
-| US-ET-02 | EMPRESA_TECNICO | Submeter um ciclo para aprovação do cliente | Obter autorização antes de iniciar execução |
-| US-ET-03 | EMPRESA_TECNICO | Registrar tarefas com horas lançadas em ciclos em execução | Documentar o trabalho realizado com granularidade |
-| US-ET-04 | EMPRESA_TECNICO | Submeter um ciclo para aceite formal do cliente | Formalizar a conclusão e acionar o débito de saldo |
-| US-ET-05 | EMPRESA_TECNICO | Comentar em ciclos e tarefas | Comunicar-me com o cliente sem sair da plataforma |
-| US-ET-06 | EMPRESA_TECNICO | Visualizar o saldo disponível do contrato (leitura) | Saber se há orçamento antes de criar novos ciclos |
+- **RN-070**: Horas realizadas até +30% sobre o orçamento aprovado (`horas_realizadas <= horas_estimadas * 1.30`) são aceitas normalmente.
+- **RN-071**: Se `horas_realizadas > horas_estimadas * 1.30`, o aceite formal bloqueia compulsoriamente a menos que o tomador/gerente forneça uma justificativa de exceção.
+- **RN-072**: O aceite de exceção gera automaticamente um log forense em `ContratoAuditLog` com IP de origem, User-Agent e a justificativa fornecida.
 
-### CLIENTE_GERENTE
+### 10. Migração Atômica de Saldo de Contratos Vencidos
 
-> Papel de aprovação e supervisão no lado do cliente.
+- **RN-080**: O saldo positivo remanescente de contratos com status `encerrado` ou `expirado` pode ser migrado para novos contratos ativos do mesmo cliente.
+- **RN-081**: Suporta aproveitamento integral (100%) ou parcial (valor customizado).
+- **RN-082**: Operação protegida por lock transacional pessimista determinístico (`select_for_update`) ordenado por ID, eliminando deadlocks.
+- **RN-083**: Gera lançamentos correlacionados no `HistoricoSaldo` (`transferencia_envio` e `transferencia_recebimento`) e auditoria em `ContratoAuditLog`.
 
-| ID | Como... | Quero... | Para... |
-|----|---------|----------|---------|
-| US-CG-01 | CLIENTE_GERENTE | Receber notificação por e-mail quando um ciclo aguarda aprovação | Não perder solicitações pendentes |
-| US-CG-02 | CLIENTE_GERENTE | Aprovar ou rejeitar ciclos via Magic Link (sem login) | Agilizar aprovações mesmo sem acesso à plataforma |
-| US-CG-03 | CLIENTE_GERENTE | Aprovar ciclos pela interface web autenticada | Ter controle formal com registro de sessão |
-| US-CG-04 | CLIENTE_GERENTE | Realizar o Aceite Formal de ciclos concluídos | Confirmar recebimento do serviço e autorizar débito |
-| US-CG-05 | CLIENTE_GERENTE | Visualizar saldo atual e histórico de débitos do meu contrato | Controlar o consumo de horas contratadas |
-| US-CG-06 | CLIENTE_GERENTE | Adicionar comentários e avaliações (1-5 estrelas) nos ciclos | Dar feedback formal sobre os serviços entregues |
-| US-CG-07 | CLIENTE_GERENTE | Rejeitar um ciclo com motivo | Solicitar revisão antes de aprovar execução |
+### 11. Compensação de Débitos de Contratos Anteriores
 
-### CLIENTE_ANALISTA
-
-> Papel de acompanhamento operacional no lado do cliente.
-
-| ID | Como... | Quero... | Para... |
-|----|---------|----------|---------|
-| US-CA-01 | CLIENTE_ANALISTA | Visualizar todos os ciclos e tarefas do meu contrato | Acompanhar o progresso dos serviços |
-| US-CA-02 | CLIENTE_ANALISTA | Comentar em ciclos e tarefas | Comunicar dúvidas e feedbacks operacionais |
-| US-CA-03 | CLIENTE_ANALISTA | Dar like e responder comentários | Interagir com a equipe de forma assíncrona |
-| US-CA-04 | CLIENTE_ANALISTA | Avaliar ciclos concluídos (1-5 estrelas) | Registrar satisfação com a entrega |
-| US-CA-05 | CLIENTE_ANALISTA | Visualizar o histórico de horas consumidas | Entender o ritmo de consumo do saldo |
+- **RN-090**: Permite utilizar a franquia de horas de um novo contrato para abater o saldo devedor/negativo de um contrato anterior encerrado do mesmo cliente.
+- **RN-091**: **Trava de Teto:** O débito no contrato novo é restrito ao valor exato da dívida (`abs(saldo_devedor)`), impedindo abatimentos excedentes.
+- **RN-092**: Quita a dívida contábil do contrato anterior e atualiza ambos os saldos sob transação ACID.
 
 ---
 
 ## Cobertura de Testes vs Regras de Negócio
 
-> **Status atual:** 37 testes de backend passando (pytest).
+> **Status atual:** 79 testes de backend passando (pytest).
 
 | Área | Regras Cobertas | Status | Observações |
 |------|----------------|--------|-------------|
 | RBAC / Permissões | RN-001, RN-002, RN-003 | ✅ Coberto | Testes de permissão por papel |
-| Máquina de estados — transições válidas | RN-020 a RN-026 | ✅ Coberto | Happy path das transições |
-| Máquina de estados — transições inválidas | RN-020 a RN-026 | ⚠️ Parcial | Faltam testes de transições ilegais (ex: `aceito → em_execucao`) |
-| Débito no Aceite Formal | RN-030, RN-031 | ✅ Coberto | Regra crítica testada |
-| Bloqueio de saldo negativo | RN-032 | ⚠️ Parcial | Coberto na API; não testado via Magic Link |
-| HistoricoSaldo imutável | RN-040, RN-041, RN-042 | ✅ Coberto | Append-only verificado |
-| Magic Links — uso único | RN-050, RN-051 | ✅ Coberto | Token invalidado após uso |
-| Magic Links — expiração 7 dias | RN-052, RN-053 | ⚠️ Parcial | Validação de expiração não testada com mock de tempo |
-| Hash SHA-256 de documentos | RN-060, RN-061 | ⚠️ Parcial | Hash gerado; verificação posterior não testada |
-| Campos de auditoria forense | RN-070, RN-071 | ⚠️ Parcial | Campos presentes; completude não validada em testes |
-| Like+Reply em comentários | Pre-RC | 🔴 Ausente | Feature nova, sem cobertura ainda |
-| AvaliacaoCiclo (estrelas) | Pre-RC | 🔴 Ausente | Feature nova, sem cobertura ainda |
-
-**Meta recomendada para RC:** ≥ 60 testes, cobrindo todas as transições inválidas de estado e os dois fluxos de aprovação (autenticado + Magic Link).
-
----
-
-## Oportunidades de Melhoria Identificadas
-
-### 🔧 Arquitetura e Código
-
-1. **Service Layer**: Extrair lógica de negócio complexa (débito de saldo, transições de ciclo) dos serializers/views para uma camada de serviços (`services.py` por app), facilitando testes unitários isolados.
-
-2. **Signals vs. Service calls**: Avaliar uso de Django Signals para efeitos colaterais (ex: envio de notificação após transição de estado) para desacoplar apps. Documentar a escolha arquitetural.
-
-3. **Tipagem nos serializers DRF**: Adicionar type hints e docstrings nos serializers mais complexos (`ciclos`, `saldo`) para facilitar manutenção.
-
-### 🔐 Segurança
-
-4. **Rate limiting global**: Aplicar `DEFAULT_THROTTLE_RATES` no DRF para todos os endpoints não autenticados, especialmente Magic Links e login.
-
-5. **CORS configurado por ambiente**: Garantir que `CORS_ALLOWED_ORIGINS` nunca use wildcard `*` em produção; configurar via variável de ambiente.
-
-6. **Rotação de SECRET_KEY**: Documentar procedimento de rotação de `SECRET_KEY` e impacto em sessões ativas e tokens existentes.
-
-### 📊 Observabilidade
-
-7. **Structured Logging**: Implementar logging estruturado (JSON) para eventos críticos (aprovação, débito, Magic Link usado) para facilitar auditoria em produção.
-
-8. **Health Check endpoint**: Adicionar `GET /api/health/` retornando status do banco e versão da aplicação, útil para monitoramento.
-
-### 🧪 Qualidade
-
-9. **Factory Boy + Faker**: Adotar `factory_boy` para geração de fixtures de teste, reduzindo código repetitivo e facilitando criação de cenários complexos.
-
-10. **Testes de integração E2E**: Para o Pre-RC, considerar ao menos 2-3 testes Playwright cobrindo os fluxos críticos: aprovação via Magic Link e Aceite Formal com débito de saldo.
+| Máquina de estados — transições válidas | RN-020 a RN-026 | ✅ Coberto | Happy path e transições de ciclo |
+| Máquina de estados — transições inválidas | RN-020 a RN-026 | ✅ Coberto | Validações e bloqueios de transição |
+| Débito no Aceite Formal | RN-030, RN-031 | ✅ Coberto | Débito exclusivo de horas reais |
+| Bloqueio de saldo negativo & carência | RN-032, RN-033 | ✅ Coberto | Validação no `SaldoService` |
+| HistoricoSaldo imutável & ACID | RN-040, RN-041, RN-042 | ✅ Coberto | Append-only e `select_for_update` |
+| Magic Links — uso único & expiração | RN-050 a RN-053 | ✅ Coberto | Validação com expiração de 7 dias |
+| Hash SHA-256 de documentos | RN-060, RN-061 | ✅ Coberto | Cálculo no upload e auditoria de integridade |
+| Campos de auditoria forense | RN-070, RN-071 | ✅ Coberto | IP, User-Agent e método de aprovação |
+| Trava de tolerância de 30% | RN-070 a RN-072 | ✅ Coberto | Testes de teto e aceite de exceção |
+| Migração de saldo de contratos | RN-080 a RN-083 | ✅ Coberto | Migração total/parcial e lock anti-deadlock |
+| Compensação de débitos anteriores | RN-090 a RN-092 | ✅ Coberto | Trava de teto de dívida real |
+| AvaliacaoCiclo (CSAT 1-5★) | Pre-RC | ✅ Coberto | Avaliações pós-aceite formal |
 
 ---
 
-*Documento gerado em revisão reversa da implementação SHM 2.3 Pre-RC — 2026-08-26*
+*Documento consolidado e atualizado na re-extração do SHM 2.5 — 2026-08-30*

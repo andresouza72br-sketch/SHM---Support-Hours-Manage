@@ -2,7 +2,11 @@
 
 > **Feature ID:** `001-trava-tolerancia-ciclos`  
 > **Data de Homologação:** 2026-08-27  
-> **Status:** `Vigente` 🟢
+
+## Vigência
+
+Vigente desde 2026-08-27.
+Superado pela re-extração de 2026-08-30.
 
 ---
 
