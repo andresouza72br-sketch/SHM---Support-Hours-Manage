@@ -1,9 +1,0 @@
-diff --git a/backend/apps/accounts/views.py b/backend/apps/accounts/views.py
---- a/backend/apps/accounts/views.py
-+++ b/backend/apps/accounts/views.py
-@@ -204,3 +204,3 @@
- 
--        if timezone.now() > token_obj.expira_em:
-+        if token_obj.esta_expirado():
-             return Response(
-                 {"detail": "Este link de login expirou (validade de 15 minutos). Solicite um novo link."},

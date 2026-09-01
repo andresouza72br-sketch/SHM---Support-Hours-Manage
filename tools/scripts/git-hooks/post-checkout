@@ -57,7 +57,16 @@ for rel_path in $FILES_TO_COPY; do
     src="$MAIN_REPO/$rel_path"
     dest="./$rel_path"
     
-    if [ -f "$src" ]; then
+    if [ -d "$src" ]; then
+        if [ ! -d "$dest" ]; then
+            mkdir -p "$dest" 2>/dev/null
+            cp -r "$src/." "$dest/" 2>/dev/null || cp -R "$src" "$dest" 2>/dev/null
+            echo "  ✓ Diretorio copiado: $rel_path"
+            COPIED_COUNT=$((COPIED_COUNT + 1))
+        else
+            EXISTED_COUNT=$((EXISTED_COUNT + 1))
+        fi
+    elif [ -f "$src" ]; then
         if [ ! -f "$dest" ]; then
             dest_dir=$(dirname "$dest")
             mkdir -p "$dest_dir" 2>/dev/null
@@ -71,7 +80,7 @@ for rel_path in $FILES_TO_COPY; do
 done
 
 if [ $COPIED_COUNT -gt 0 ]; then
-    echo "  📄 $COPIED_COUNT arquivo(s) de configuracao sincronizado(s) da main."
+    echo "  📄 $COPIED_COUNT item(ns) de configuracao sincronizado(s) da main."
 fi
 
 # ------------------------------------------------------------------------------
