@@ -1,7 +1,0 @@
-# Arquivos adicionais para copiar automaticamente da branch main para novas worktrees (Orca / Git)
-# Formato: caminhos relativos a raiz do projeto (um por linha)
-
-.env
-backend/.env
-frontend/.env
-backend/db.sqlite3

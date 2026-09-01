@@ -87,6 +87,14 @@ relatorio-legado/
 
 # Local Sanitization Backup
 backup-higienizacao/
+tools/backups/
 
-
-
+# Reversa Internal Workspaces & Local AI Skills (Untracked)
+.reversa/
+_reversa_forward/
+_reversa_refactor/
+_reversa_bugs/
+_reversa_docs/
+.agents/skills/
+.claude/skills/
+.worktree-copy

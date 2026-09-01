@@ -1,12 +1,13 @@
 param(
     [Parameter(Position=0)]
-    [ValidateSet("start", "stop", "restart", "status", "logs", "reset-db")]
+    [ValidateSet("start", "stop", "restart", "status", "logs", "reset-db", "sync", "diff", "backups")]
     [string]$Action = "start",
 
     [Parameter(Position=1)]
     [string]$Target = "backend",
 
-    [switch]$Visible = $false
+    [switch]$Visible = $false,
+    [switch]$VsCode = $false
 )
 
 switch ($Action) {
@@ -95,6 +96,15 @@ switch ($Action) {
         } else {
             Write-Host "Nenhum arquivo de log encontrado em $file." -ForegroundColor Yellow
         }
+    }
+    "sync" {
+        & "$PSScriptRoot\tools\scripts\sync-local.ps1" -Action sync
+    }
+    "diff" {
+        & "$PSScriptRoot\tools\scripts\sync-local.ps1" -Action diff -TargetItem $Target -VsCode:$VsCode
+    }
+    "backups" {
+        & "$PSScriptRoot\tools\scripts\sync-local.ps1" -Action backups
     }
 }
 
