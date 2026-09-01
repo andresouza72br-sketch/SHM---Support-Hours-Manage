@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    SHM Local Governance Vault & Worktree Sync / Diff Tool
+    SHM Local Governance Vault & Worktree Sync / Diff / Restore Tool
 .DESCRIPTION
     Gerencia backups incrementais externos (100% fora do Git) e sincronizacao bidirecional
     de especificacoes do Reversa e Skills entre Worktrees e a Main local.
@@ -9,7 +9,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Position=0)]
-    [ValidateSet("sync", "diff", "backups", "status")]
+    [ValidateSet("sync", "diff", "backups", "status", "restore")]
     [string]$Action = "sync",
 
     [Parameter(Position=1)]
@@ -68,6 +68,22 @@ if (-not (Test-Path $VAULT_ROOT)) {
     New-Item -ItemType Directory -Path $VAULT_ROOT -Force | Out-Null
 }
 
+function Copy-SmartFolder {
+    param([string]$Src, [string]$Dest)
+    if (-not (Test-Path $Src)) { return }
+
+    if (Test-Path -PathType Container $Src) {
+        if (-not (Test-Path $Dest)) {
+            New-Item -ItemType Directory -Path $Dest -Force | Out-Null
+        }
+        robocopy "$Src" "$Dest" /E /NFL /NDL /NJH /NJS /nc /ns /np 2>$null | Out-Null
+    } else {
+        $destP = Split-Path $Dest -Parent
+        if (-not (Test-Path $destP)) { New-Item -ItemType Directory -Path $destP -Force | Out-Null }
+        Copy-Item -Path $Src -Destination $Dest -Force
+    }
+}
+
 switch ($Action) {
     "sync" {
         $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -94,11 +110,7 @@ switch ($Action) {
             $srcPath = Join-Path $currentDir $item
             if (Test-Path $srcPath) {
                 $destPath = Join-Path $snapshotDir $item
-                $destParent = Split-Path $destPath -Parent
-                if (-not (Test-Path $destParent)) {
-                    New-Item -ItemType Directory -Path $destParent -Force | Out-Null
-                }
-                Copy-Item -Path $srcPath -Destination $destPath -Recurse -Force
+                Copy-SmartFolder -Src $srcPath -Dest $destPath
                 Write-Host "    [OK] Snapshot salvo: $item" -ForegroundColor DarkGreen
                 $backedUpCount++
             }
@@ -120,11 +132,7 @@ switch ($Action) {
                 $srcPath = Join-Path $currentDir $item
                 if (Test-Path $srcPath) {
                     $mainDest = Join-Path $mainRepo $item
-                    $mainDestParent = Split-Path $mainDest -Parent
-                    if (-not (Test-Path $mainDestParent)) {
-                        New-Item -ItemType Directory -Path $mainDestParent -Force | Out-Null
-                    }
-                    Copy-Item -Path $srcPath -Destination $mainDest -Recurse -Force
+                    Copy-SmartFolder -Src $srcPath -Dest $mainDest
                     Write-Host "    [OK] Sincronizado para a Main: $item" -ForegroundColor Green
                     $syncedCount++
                 }
@@ -135,6 +143,58 @@ switch ($Action) {
 
         Write-Host "----------------------------------------------------------------" -ForegroundColor Gray
         Write-Host " Concluido com sucesso! Vault localizado fora do Git." -ForegroundColor Green
+        Write-Host "================================================================" -ForegroundColor Cyan
+        Write-Host ""
+    }
+
+    "restore" {
+        Write-Host ""
+        Write-Host "================================================================" -ForegroundColor Cyan
+        Write-Host " [SHM Governance Vault] Restaurador de Snapshots Locais" -ForegroundColor Cyan
+        Write-Host "================================================================" -ForegroundColor Cyan
+
+        $targetBackup = $null
+        if ($BackupId) {
+            $candidate = Join-Path $VAULT_ROOT $BackupId
+            if (Test-Path $candidate) {
+                $targetBackup = $candidate
+            } else {
+                Write-Host " Backup '$BackupId' nao encontrado no Vault." -ForegroundColor Yellow
+            }
+        }
+
+        if (-not $targetBackup) {
+            $allBackups = Get-ChildItem -Path $VAULT_ROOT -Directory | Sort-Object CreationTime -Descending
+            if ($allBackups.Count -gt 0) {
+                $targetBackup = $allBackups[0].FullName
+            }
+        }
+
+        if (-not $targetBackup) {
+            Write-Host " Nenhum snapshot encontrado em $VAULT_ROOT para restaurar." -ForegroundColor Red
+            return
+        }
+
+        $targetLeaf = Split-Path $targetBackup -Leaf
+        Write-Host " Destino da Restauracao: $currentDir" -ForegroundColor Gray
+        Write-Host " Snapshot de Origem    : $targetLeaf" -ForegroundColor Yellow
+        Write-Host "----------------------------------------------------------------" -ForegroundColor Gray
+
+        $restoredCount = 0
+        foreach ($item in $ITEMS_TO_MANAGE) {
+            if ($TargetItem -and ($item -notlike "*$TargetItem*")) { continue }
+
+            $srcPath = Join-Path $targetBackup $item
+            if (Test-Path $srcPath) {
+                $destPath = Join-Path $currentDir $item
+                Copy-SmartFolder -Src $srcPath -Dest $destPath
+                Write-Host "    [OK] Restaurado: $item" -ForegroundColor Green
+                $restoredCount++
+            }
+        }
+
+        Write-Host "----------------------------------------------------------------" -ForegroundColor Gray
+        Write-Host " Restauracao concluida ($restoredCount itens restaurados com sucesso)." -ForegroundColor Green
         Write-Host "================================================================" -ForegroundColor Cyan
         Write-Host ""
     }
