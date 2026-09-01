@@ -5,7 +5,7 @@
   "chat_language": "pt-br",
   "doc_language": "Português",
   "answer_mode": "file",
-  "doc_level": "completo",
+  "doc_level": "detalhado",
   "output_folder": "_reversa_sdd",
   "forward_folder": "_reversa_forward",
   "phase": null,
@@ -19,7 +19,7 @@
   "pending": [],
   "checkpoints": {
     "scout": {
-      "completed_at": "2026-08-27T12:17:35.916Z",
+      "completed_at": "2026-08-30T15:11:00.000Z",
       "files": [
         "_reversa_sdd/inventory.md",
         "_reversa_sdd/dependencies.md",
@@ -38,7 +38,7 @@
         "core",
         "frontend"
       ],
-      "doc_level": "completo"
+      "doc_level": "detalhado"
     },
     "archaeologist": {
       "completed_at": "2026-08-27T12:20:19.217773+00:00",
