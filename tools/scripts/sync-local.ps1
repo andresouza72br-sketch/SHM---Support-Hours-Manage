@@ -31,7 +31,8 @@ $ITEMS_TO_MANAGE = @(
     "_reversa_docs",
     ".reversa",
     ".agents\skills",
-    ".claude\skills"
+    ".claude\skills",
+    ".worktree-copy"
 )
 
 $currentDir = (Get-Location).Path
@@ -136,6 +137,14 @@ switch ($Action) {
                     Write-Host "    [OK] Sincronizado para a Main: $item" -ForegroundColor Green
                     $syncedCount++
                 }
+            }
+
+            # Garante que o hook post-checkout esteja ativo em .git/hooks da Main
+            $mainHooksDir = Join-Path $mainRepo ".git\hooks"
+            $hookSrc = Join-Path $currentDir "tools\scripts\git-hooks\post-checkout"
+            if ((Test-Path $mainHooksDir) -and (Test-Path $hookSrc)) {
+                Copy-Item -Path $hookSrc -Destination (Join-Path $mainHooksDir "post-checkout") -Force
+                Write-Host "    [OK] Git hook post-checkout atualizado na Main." -ForegroundColor Green
             }
         } else {
             Write-Host " 2. Executando direto na base principal (sync dispensado)." -ForegroundColor Gray
