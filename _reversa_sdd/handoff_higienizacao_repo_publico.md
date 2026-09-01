@@ -65,3 +65,4 @@ A pasta `backup-higienizacao/` (protegida pelo `.gitignore`) contém:
 - `etapa-2/` (cópias de arquivos antes da despersonalização de IPs e e-mails)
 - `etapa-3/` (cópias de scripts e pastas antes da migração para `tools/`)
 - `etapa-4/` (rascunhos de brainstorm do ChatGPT, `last-ssession.md` e `README.md` original)
+- `relatorio-legado/` (dossiê legado de análise e regras, desrastreado do Git)
