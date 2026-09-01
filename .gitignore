@@ -82,7 +82,11 @@ frontend/dist/
 # Binary documentation & generated PDFs
 *.pdf
 
+# Legacy Reports & Internal Dossiers
+relatorio-legado/
+
 # Local Sanitization Backup
 backup-higienizacao/
+
 
 
