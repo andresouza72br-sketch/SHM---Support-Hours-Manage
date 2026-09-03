@@ -224,30 +224,29 @@ class ContratoService:
             )
 
         try:
+            from apps.notificacoes.config_service import NotificacaoConfigService
             from apps.notificacoes.models import Notification
-            from apps.accounts.models import User, UserRole
 
-            dest_users = set()
             cli = contrato_origem.cliente or contrato_destino.cliente
-            if cli:
-                for u in User.objects.filter(cliente=cli, role=UserRole.CLIENTE_GERENTE, is_active=True):
-                    dest_users.add(u)
-            for a in User.objects.filter(role=UserRole.EMPRESA_ADMIN, is_active=True):
-                dest_users.add(a)
-            if autor:
-                dest_users.discard(autor)
+            _, enviar_in_app, dest_users, _ = NotificacaoConfigService.resolver_destinatarios_evento(
+                codigo="CONTRATO_MIGRACAO_SALDO",
+                contrato=contrato_destino,
+                cliente=cli,
+                autor=autor,
+            )
 
-            notifs = [
-                Notification(
-                    usuario=u,
-                    titulo=f"⚡ Aproveitamento de Saldo: {quantidade:.1f}h",
-                    mensagem=f"{quantidade:.1f}h do contrato encerrado {contrato_origem.numero} foram aproveitadas no contrato {contrato_destino.numero}.",
-                    url=f"/contratos/{contrato_destino.id}/extrato",
-                )
-                for u in dest_users
-            ]
-            if notifs:
-                Notification.objects.bulk_create(notifs)
+            if enviar_in_app and dest_users:
+                notifs = [
+                    Notification(
+                        usuario=u,
+                        titulo=f"⚡ Aproveitamento de Saldo: {quantidade:.1f}h",
+                        mensagem=f"{quantidade:.1f}h do contrato encerrado {contrato_origem.numero} foram aproveitadas no contrato {contrato_destino.numero}.",
+                        url=f"/contratos/{contrato_destino.id}/extrato",
+                    )
+                    for u in dest_users
+                ]
+                if notifs:
+                    Notification.objects.bulk_create(notifs)
         except Exception as exc:
             logger.warning(
                 "Falha ao criar notificações in-app de migração de saldo (%s -> %s): %s",
@@ -309,30 +308,29 @@ class ContratoService:
             )
 
         try:
+            from apps.notificacoes.config_service import NotificacaoConfigService
             from apps.notificacoes.models import Notification
-            from apps.accounts.models import User, UserRole
 
-            dest_users = set()
             cli = contrato_novo.cliente or contrato_devedor.cliente
-            if cli:
-                for u in User.objects.filter(cliente=cli, role=UserRole.CLIENTE_GERENTE, is_active=True):
-                    dest_users.add(u)
-            for a in User.objects.filter(role=UserRole.EMPRESA_ADMIN, is_active=True):
-                dest_users.add(a)
-            if autor:
-                dest_users.discard(autor)
+            _, enviar_in_app, dest_users, _ = NotificacaoConfigService.resolver_destinatarios_evento(
+                codigo="CONTRATO_COMPENSACAO_DEBITO",
+                contrato=contrato_novo,
+                cliente=cli,
+                autor=autor,
+            )
 
-            notifs = [
-                Notification(
-                    usuario=u,
-                    titulo=f"⚖️ Compensação de Débito: {quantidade:.1f}h",
-                    mensagem=f"{quantidade:.1f}h foram abatidas do contrato {contrato_novo.numero} para quitação de saldo devedor do contrato {contrato_devedor.numero}.",
-                    url=f"/contratos/{contrato_novo.id}/extrato",
-                )
-                for u in dest_users
-            ]
-            if notifs:
-                Notification.objects.bulk_create(notifs)
+            if enviar_in_app and dest_users:
+                notifs = [
+                    Notification(
+                        usuario=u,
+                        titulo=f"⚖️ Compensação de Débito: {quantidade:.1f}h",
+                        mensagem=f"{quantidade:.1f}h foram abatidas do contrato {contrato_novo.numero} para quitação de saldo devedor do contrato {contrato_devedor.numero}.",
+                        url=f"/contratos/{contrato_novo.id}/extrato",
+                    )
+                    for u in dest_users
+                ]
+                if notifs:
+                    Notification.objects.bulk_create(notifs)
         except Exception as exc:
             logger.warning(
                 "Falha ao criar notificações in-app de compensação de débito (%s -> %s): %s",
@@ -403,29 +401,27 @@ class ContratoService:
             user_agent=ua,
         )
 
-        # Notificações no sistema para a equipe da empresa e clientes
-        empresa_users = User.objects.filter(
-            role__in=[UserRole.EMPRESA_ADMIN, UserRole.EMPRESA_TECNICO],
-            is_active=True,
-        )
-        cliente_users = User.objects.filter(
+        # Notificações no sistema para a equipe da empresa e clientes conforme governança
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        _, enviar_in_app, dest_users, _ = NotificacaoConfigService.resolver_destinatarios_evento(
+            codigo="CONTRATO_ATIVADO",
+            contrato=contrato,
             cliente=contrato.cliente,
-            role__in=[UserRole.CLIENTE_GERENTE, UserRole.CLIENTE_ANALISTA],
-            is_active=True,
-        ) if contrato.cliente else []
+        )
 
-        notifs = [
-            Notification(
-                usuario=u,
-                titulo=f"Contrato Ativado: {contrato.numero} — {contrato.cliente.display_name}",
-                mensagem=f"O responsável formalizou o aceite do Contrato {contrato.numero}. Início dos trabalhos e uso do sistema liberados.",
-                url=f"/contratos/{contrato.id}/extrato",
-                lida=False,
-            )
-            for u in list(empresa_users) + list(cliente_users)
-        ]
-        if notifs:
-            Notification.objects.bulk_create(notifs)
+        if enviar_in_app and dest_users:
+            notifs = [
+                Notification(
+                    usuario=u,
+                    titulo=f"Contrato Ativado: {contrato.numero} — {contrato.cliente.display_name}",
+                    mensagem=f"O responsável formalizou o aceite do Contrato {contrato.numero}. Início dos trabalhos e uso do sistema liberados.",
+                    url=f"/contratos/{contrato.id}/extrato",
+                    lida=False,
+                )
+                for u in dest_users
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
 
         # Disparo de e-mail de aviso de contrato ativado para toda a Empresa e e-mails de notificação listados
         try:

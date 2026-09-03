@@ -590,6 +590,10 @@ class Command(BaseCommand):
                 lida=False,
             )
 
+        # 8. Configurações de Notificações
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        NotificacaoConfigService.garantir_configuracoes_padrao()
+
         self.stdout.write(self.style.SUCCESS("Seed de dados concluído com sucesso!"))
         self.stdout.write("Usuários criados:")
         self.stdout.write("  Admin:            admin / admin123 (Empresa)")

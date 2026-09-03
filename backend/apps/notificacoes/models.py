@@ -36,3 +36,41 @@ class Notification(TimeStampedModel):
     class Meta:
         db_table = "shm_notification"
         ordering = ["-criado_em"]
+
+
+class CategoriaNotificacao(models.TextChoices):
+    AUTENTICACAO = "autenticacao", "Autenticação e Acesso"
+    CLIENTES = "clientes", "Clientes e Usuários"
+    CONTRATOS = "contratos", "Contratos e Vigência"
+    SALDO = "saldo", "Saldo e Franquia de Horas"
+    PEDIDOS = "pedidos", "Chamados e Pedidos Técnicos"
+    CICLOS = "ciclos", "Orçamentos, Execução e Aceites"
+
+
+class ConfiguracaoNotificacao(TimeStampedModel):
+    codigo = models.CharField("código do evento", max_length=60, unique=True, db_index=True)
+    categoria = models.CharField("categoria", max_length=30, choices=CategoriaNotificacao.choices, db_index=True)
+    nome = models.CharField("nome amigável", max_length=150)
+    descricao = models.TextField("descrição detalhada do gatilho")
+
+    # Controles principais
+    ativo_email = models.BooleanField("enviar por e-mail", default=True)
+    ativo_in_app = models.BooleanField("gerar notificação in-app", default=True)
+
+    # Matriz de destinatários por papel
+    notificar_empresa_admin = models.BooleanField("notificar admins da empresa", default=True)
+    notificar_empresa_tecnico = models.BooleanField("notificar técnicos da empresa", default=True)
+    notificar_cliente_gerente = models.BooleanField("notificar gerentes do cliente", default=True)
+    notificar_cliente_comum = models.BooleanField("notificar solicitantes do cliente", default=False)
+    notificar_gestor_contrato = models.BooleanField("notificar gestor do contrato", default=True)
+    notificar_emails_cc = models.BooleanField("enviar cópia para lista CC do contrato/cliente", default=True)
+
+    emails_adicionais = models.JSONField("e-mails fixos adicionais", default=list, blank=True)
+    bloqueado_edicao = models.BooleanField("evento obrigatório do sistema", default=False)
+
+    class Meta:
+        db_table = "shm_configuracao_notificacao"
+        ordering = ["categoria", "codigo"]
+
+    def __str__(self):
+        return f"[{self.get_categoria_display()}] {self.nome} ({self.codigo})"

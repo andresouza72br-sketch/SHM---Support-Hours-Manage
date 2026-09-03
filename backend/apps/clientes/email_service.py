@@ -101,6 +101,12 @@ Equipe SHM — Support Hours Manager
 
     @staticmethod
     def enviar_convite_usuario(user: User, token_obj: PasswordlessLoginToken, convidador: User = None) -> bool:
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        cfg = NotificacaoConfigService.obter_configuracao("CLIENTE_CONVITE_USUARIO")
+        if cfg and not cfg.ativo_email:
+            logger.info("Envio de e-mail de convite de usuário desativado por configuração do administrador.")
+            return True
+
         try:
             texto_plano, html = ClienteUsuarioEmailService.gerar_corpo_email_convite(user, token_obj, convidador)
             cliente_nome = user.cliente.display_name if user.cliente else "SHM"
@@ -229,6 +235,12 @@ Equipe SHM — Support Hours Manager
 
     @staticmethod
     def enviar_email_aprovacao_cliente(cliente, aceite_link, request=None) -> bool:
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        cfg = NotificacaoConfigService.obter_configuracao("CLIENTE_APROVACAO_CADASTRO")
+        if cfg and not cfg.ativo_email:
+            logger.info("Envio de e-mail de aprovação de cadastro desativado por configuração do administrador.")
+            return True
+
         destinatario = cliente.email_contato
         if not destinatario or not str(destinatario).strip():
             logger.warning(f"Cliente #{cliente.id} não possui email_contato cadastrado para envio de aceite.")

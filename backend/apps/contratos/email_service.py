@@ -170,6 +170,12 @@ Equipe SHM — Support Hours Manager
         """
         Dispara o e-mail de convite/confirmação com magic link de 15 dias e registra auditoria.
         """
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        cfg = NotificacaoConfigService.obter_configuracao("CONTRATO_CONVITE_CONFIRMACAO")
+        if cfg and not cfg.ativo_email:
+            logger.info("Envio de convite de confirmação de e-mail desativado por configuração do administrador.")
+            return True
+
         try:
             contrato = destinatario.contrato
             texto_plano, html_conteudo = ContratoEmailNotificacaoService.gerar_corpo_email_convite(destinatario)
@@ -556,6 +562,12 @@ Equipe SHM — Support Hours Manager
         Envia e-mail formal com Magic Link de aceite UNICAMENTE para o gestor responsável do contrato
         para autorização de início dos trabalhos e uso do sistema.
         """
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        cfg = NotificacaoConfigService.obter_configuracao("CONTRATO_ACEITE_SOLICITADO")
+        if cfg and not cfg.ativo_email:
+            logger.info("Envio de e-mail de aceite de contrato desativado por configuração do administrador.")
+            return True
+
         try:
             destinatarios_emails = set()
 
@@ -808,6 +820,12 @@ Equipe SHM — Support Hours Manager
         2. Todos os e-mails de notificação listados no contrato (emails_notificacao).
         3. Gestor do contrato e gerentes do cliente.
         """
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        cfg = NotificacaoConfigService.obter_configuracao("CONTRATO_ATIVADO")
+        if cfg and not cfg.ativo_email:
+            logger.info("Envio de e-mail de contrato ativado desativado por configuração do administrador.")
+            return True
+
         try:
             from apps.accounts.models import User, UserRole
 
@@ -1010,6 +1028,12 @@ Equipe SHM — Support Hours Manager
         3. Gerentes do cliente (CLIENTE_GERENTE).
         4. Administradores da empresa.
         """
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        cfg = NotificacaoConfigService.obter_configuracao("CONTRATO_MIGRACAO_SALDO")
+        if cfg and not cfg.ativo_email:
+            logger.info("Envio de e-mail de migração de saldo desativado por configuração do administrador.")
+            return True
+
         try:
             from apps.accounts.models import User, UserRole
 
@@ -1199,6 +1223,12 @@ Equipe SHM — Support Hours Manager
         """
         Dispara e-mail de notificação de compensação/quitação de débito contratual.
         """
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        cfg = NotificacaoConfigService.obter_configuracao("CONTRATO_COMPENSACAO_DEBITO")
+        if cfg and not cfg.ativo_email:
+            logger.info("Envio de e-mail de compensação de débito desativado por configuração do administrador.")
+            return True
+
         try:
             from apps.accounts.models import User, UserRole
 

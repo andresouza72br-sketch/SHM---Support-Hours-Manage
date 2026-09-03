@@ -68,8 +68,16 @@ class NotificacaoService:
         except Exception as e:
             logger.warning("Falha ao registrar TimelineEvent para novo pedido %s: %s", getattr(pedido, "protocolo", pedido), e)
 
-        # 2. Coleta destinatários
-        destinatarios_set = NotificacaoService._obter_destinatarios_envolvidos(pedido, autor=autor)
+        # 2. Consulta regras dinâmicas de notificação configuradas pelo Admin
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        enviar_email, enviar_in_app, dests_cfg, emails_cc = NotificacaoConfigService.resolver_destinatarios_evento(
+            codigo="PEDIDO_CRIADO",
+            pedido=pedido,
+            autor=autor,
+        )
+
+        cfg = NotificacaoConfigService.obter_configuracao("PEDIDO_CRIADO")
+        destinatarios_set = dests_cfg if cfg else NotificacaoService._obter_destinatarios_envolvidos(pedido, autor=autor)
 
         # Formata título e mensagem
         contrato_info = f" (Contrato {pedido.contrato.numero})" if pedido.contrato else ""
@@ -77,38 +85,30 @@ class NotificacaoService:
         desc_resumo = (pedido.descricao[:100] + "...") if len(pedido.descricao) > 100 else pedido.descricao
         mensagem = f"{autor_nome} ({origem}) abriu um novo pedido{contrato_info}: \"{desc_resumo}\""
 
-        notificacoes = [
-            Notification(
-                usuario=dest,
-                titulo=titulo,
-                mensagem=mensagem,
-                url=url_destino,
-                lida=False,
-            )
-            for dest in destinatarios_set
-        ]
-        if notificacoes:
-            Notification.objects.bulk_create(notificacoes)
+        if enviar_in_app and destinatarios_set:
+            notificacoes = [
+                Notification(
+                    usuario=dest,
+                    titulo=titulo,
+                    mensagem=mensagem,
+                    url=url_destino,
+                    lida=False,
+                )
+                for dest in destinatarios_set
+            ]
+            if notificacoes:
+                Notification.objects.bulk_create(notificacoes)
 
-        if destinatarios_set:
-            # Se pedido aberto pelo cliente, notifica a equipe da empresa para triagem técnica
-            if autor and not autor.is_empresa:
-                destinatarios_email = set(User.objects.filter(
-                    role__in=[UserRole.EMPRESA_ADMIN, UserRole.EMPRESA_TECNICO],
-                    is_active=True,
-                ))
-            else:
-                destinatarios_email = set(User.objects.filter(cliente=pedido.cliente, is_active=True)) if pedido.cliente else set()
-            if autor:
-                destinatarios_email.discard(autor)
-
-            if destinatarios_email:
+        if enviar_email:
+            destinatarios_email = set(destinatarios_set)
+            if destinatarios_email or emails_cc:
                 NotificacaoService._enviar_email(
                     destinatarios=destinatarios_email,
                     assunto=titulo,
                     mensagem_texto=mensagem,
                     url_destino=url_destino,
                     cta_texto="Visualizar Pedido no SHM",
+                    cc=emails_cc,
                 )
 
     @staticmethod
@@ -131,7 +131,15 @@ class NotificacaoService:
         texto_resumo = (texto_limpo[:117] + "...") if len(texto_limpo) > 120 else texto_limpo
         url_destino = f"/pedidos/{pedido.id}?ciclo={ciclo.id}"
 
-        destinatarios_set = NotificacaoService._obter_destinatarios_envolvidos(pedido, ciclo=ciclo, autor=autor)
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        enviar_email, enviar_in_app, dests_cfg, emails_cc = NotificacaoConfigService.resolver_destinatarios_evento(
+            codigo="COMENTARIO_CRIADO",
+            pedido=pedido,
+            ciclo=ciclo,
+            autor=autor,
+        )
+
+        destinatarios_set = dests_cfg if dests_cfg else NotificacaoService._obter_destinatarios_envolvidos(pedido, ciclo=ciclo, autor=autor)
 
         # Formatação de título e mensagem
         tipo_ciclo_nome = ciclo.get_tipo_display() if hasattr(ciclo, "get_tipo_display") else ciclo.tipo
@@ -139,27 +147,30 @@ class NotificacaoService:
         mensagem = f"{autor_nome} ({origem}): \"{texto_resumo}\""
 
         # Cria as notificações no banco em lote
-        notificacoes = [
-            Notification(
-                usuario=dest,
-                titulo=titulo,
-                mensagem=mensagem,
-                url=url_destino,
-                lida=False,
-            )
-            for dest in destinatarios_set
-        ]
-        if notificacoes:
-            Notification.objects.bulk_create(notificacoes)
+        if enviar_in_app and destinatarios_set:
+            notificacoes = [
+                Notification(
+                    usuario=dest,
+                    titulo=titulo,
+                    mensagem=mensagem,
+                    url=url_destino,
+                    lida=False,
+                )
+                for dest in destinatarios_set
+            ]
+            if notificacoes:
+                Notification.objects.bulk_create(notificacoes)
 
-        if destinatarios_set:
+        if enviar_email and destinatarios_set:
             NotificacaoService._enviar_email(
                 destinatarios=destinatarios_set,
                 assunto=titulo,
                 mensagem_texto=mensagem,
                 url_destino=url_destino,
                 cta_texto="Ver Comentário no SHM",
+                cc=emails_cc,
             )
+
 
     @staticmethod
     def _obter_destinatarios_email_por_grupo(grupo: str, pedido, ciclo, autor=None):
@@ -353,9 +364,28 @@ class NotificacaoService:
                 logger.warning("Falha ao registrar TimelineEvent no ciclo %s: %s", getattr(ciclo, "id", ciclo), e)
 
         # 2. Notificações para todos os envolvidos, exceto o autor
-        destinatarios_set = NotificacaoService._obter_destinatarios_envolvidos(pedido, ciclo=ciclo, autor=autor)
+        MAPA_EVENTO_CODIGO = {
+            "orcamento_apresentado": "ORCAMENTO_APRESENTADO",
+            "orcamento_aprovado": "ORCAMENTO_APROVADO",
+            "orcamento_rejeitado": "ORCAMENTO_REJEITADO",
+            "execucao_iniciada": "EXECUCAO_INICIADA",
+            "aceite_solicitado": "ACEITE_SOLICITADO",
+            "ciclo_aceito": "CICLO_ACEITO",
+            "aceite_recusado": "ACEITE_RECUSADO",
+            "ciclo_avaliado": "AVALIACAO_ATENDIMENTO",
+        }
+        codigo_config = MAPA_EVENTO_CODIGO.get(tipo_evento, tipo_evento.upper())
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        enviar_email, enviar_in_app, dests_cfg, emails_cc_cfg = NotificacaoConfigService.resolver_destinatarios_evento(
+            codigo=codigo_config,
+            pedido=pedido,
+            ciclo=ciclo,
+            autor=autor,
+        )
 
-        if destinatarios_set and payload.get("titulo"):
+        destinatarios_set = dests_cfg if dests_cfg else NotificacaoService._obter_destinatarios_envolvidos(pedido, ciclo=ciclo, autor=autor)
+
+        if enviar_in_app and destinatarios_set and payload.get("titulo"):
             url_notificacao_app = f"/pedidos/{pedido.id}?ciclo={ciclo.id}"
             notificacoes = [
                 Notification(
@@ -370,8 +400,10 @@ class NotificacaoService:
             if notificacoes:
                 Notification.objects.bulk_create(notificacoes)
 
-            # 3. Disparo de E-mail Real (SMTP / Console) com Regras Estritas de Governança
+        # 3. Disparo de E-mail Real (SMTP / Console) com Regras Estritas de Governança
+        if enviar_email and payload.get("titulo"):
             email_grupo = payload.get("email_grupo")
+            destinatarios_email = set()
             if email_grupo:
                 destinatarios_email = NotificacaoService._obter_destinatarios_email_por_grupo(
                     grupo=email_grupo,
@@ -379,27 +411,164 @@ class NotificacaoService:
                     ciclo=ciclo,
                     autor=autor,
                 )
+            else:
+                destinatarios_email = set(destinatarios_set)
 
-                cc_emails = []
-                if tipo_evento in ["orcamento_apresentado", "aceite_solicitado"]:
-                    # Se o cliente não possuir nenhum CLIENTE_GERENTE ativo cadastrado,
-                    # utiliza Cliente.email_contato como fallback para garantir o recebimento
-                    if not destinatarios_email and pedido.cliente and pedido.cliente.email_contato:
-                        destinatarios_email = [pedido.cliente.email_contato]
+            cc_emails = list(emails_cc_cfg)
+            if tipo_evento in ["orcamento_apresentado", "aceite_solicitado"]:
+                # Se o cliente não possuir nenhum CLIENTE_GERENTE ativo cadastrado,
+                # utiliza Cliente.email_contato como fallback para garantir o recebimento
+                if not destinatarios_email and pedido.cliente and pedido.cliente.email_contato:
+                    destinatarios_email = [pedido.cliente.email_contato]
 
-                    # Adiciona os e-mails cadastrados em Cliente.emails_notificacao_padrao em cópia (CC)
-                    if pedido.cliente:
-                        cc_emails = NotificacaoService._extrair_emails_lista(pedido.cliente.emails_notificacao_padrao)
+                # Adiciona os e-mails cadastrados em Cliente.emails_notificacao_padrao em cópia (CC)
+                if pedido.cliente:
+                    cc_extras = NotificacaoService._extrair_emails_lista(pedido.cliente.emails_notificacao_padrao)
+                    cc_emails = list(dict.fromkeys(cc_emails + cc_extras))
 
-                if destinatarios_email:
-                    NotificacaoService._enviar_email(
-                        destinatarios=destinatarios_email,
-                        assunto=payload["titulo"],
-                        mensagem_texto=payload["mensagem"],
-                        url_destino=payload["url_destino"],
-                        cta_texto=payload["cta_btn"],
-                        cc=cc_emails,
-                    )
+            if destinatarios_email or cc_emails:
+                NotificacaoService._enviar_email(
+                    destinatarios=destinatarios_email,
+                    assunto=payload["titulo"],
+                    mensagem_texto=payload["mensagem"],
+                    url_destino=payload["url_destino"],
+                    cta_texto=payload["cta_btn"],
+                    cc=cc_emails,
+                )
+
+    @staticmethod
+    def notificar_alerta_saldo(contrato, tipo_alerta: str, saldo_anterior=None, saldo_novo=None):
+        """
+        Gera notificações in-app e e-mail transacional de consumo de saldo:
+        - tipo_alerta == '80_porcento': 80% da franquia consumida (saldo <= 20%)
+        - tipo_alerta == 'saldo_esgotado': franquia zerada ou devedora (saldo <= 0)
+        """
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        codigo = "SALDO_ALERTA_80_PORCENTO" if tipo_alerta == "80_porcento" else "SALDO_ESGOTADO_OU_NEGATIVO"
+
+        enviar_email, enviar_in_app, dests_usuarios, emails_cc = NotificacaoConfigService.resolver_destinatarios_evento(
+            codigo=codigo,
+            contrato=contrato,
+            cliente=contrato.cliente,
+        )
+
+        cliente_nome = contrato.cliente.display_name if contrato.cliente else "Cliente"
+        franquia = f"{float(contrato.horas_contratadas):.1f}h"
+        saldo_atual_num = float(saldo_novo if saldo_novo is not None else contrato.saldo)
+        saldo_str = f"{saldo_atual_num:.1f}h"
+
+        if tipo_alerta == "80_porcento":
+            titulo = f"Alerta de Consumo: 80% da Franquia Atingida (Contrato {contrato.numero})"
+            mensagem = (
+                f"Atenção: O contrato de suporte {contrato.numero} ({cliente_nome}) atingiu 80% de consumo da franquia contratada.\n\n"
+                f"• Franquia Contratada: {franquia}\n"
+                f"• Saldo Disponível Restante: {saldo_str}\n\n"
+                f"Recomendamos o acompanhamento do extrato de horas para planejamento de eventuais aditivos ou reabastecimentos."
+            )
+            cta_texto = "Visualizar Extrato de Horas no SHM"
+        else:
+            titulo = f"URGENTE: Saldo de Horas Esgotado (Contrato {contrato.numero})"
+            mensagem = (
+                f"Aviso Crítico: O contrato de suporte {contrato.numero} ({cliente_nome}) atingiu o limite de consumo da sua franquia de horas.\n\n"
+                f"• Franquia Contratada: {franquia}\n"
+                f"• Saldo Atual: {saldo_str} ({'Saldo Zerado' if saldo_atual_num == 0 else 'Saldo Devedor'})\n\n"
+                f"Novas demandas técnicas podem demandar aprovação de reabastecimento de saldo para continuidade."
+            )
+            cta_texto = "Ver Extrato & Reabastecer Saldo"
+
+        url_destino = f"/contratos/{contrato.id}/extrato"
+
+        if enviar_in_app and dests_usuarios:
+            notifs = [
+                Notification(
+                    usuario=u,
+                    titulo=titulo,
+                    mensagem=mensagem,
+                    url=url_destino,
+                    lida=False,
+                )
+                for u in dests_usuarios
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
+
+        if enviar_email:
+            destinatarios_finais = list(dests_usuarios)
+            if not destinatarios_finais and contrato.gestor_email:
+                destinatarios_finais.append(contrato.gestor_email)
+            if destinatarios_finais or emails_cc:
+                NotificacaoService._enviar_email(
+                    destinatarios=destinatarios_finais,
+                    assunto=titulo,
+                    mensagem_texto=mensagem,
+                    url_destino=url_destino,
+                    cta_texto=cta_texto,
+                    cc=emails_cc,
+                )
+
+
+    @staticmethod
+    def notificar_expiracao_proxima(contrato, dias_restantes: int):
+        """
+        Gera notificações in-app e e-mail de proximidade de término de vigência do contrato.
+        """
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        from apps.contratos.models import ContratoAuditLog, TipoEventoContratoAudit
+        enviar_email, enviar_in_app, dests_usuarios, emails_cc = NotificacaoConfigService.resolver_destinatarios_evento(
+            codigo="CONTRATO_EXPIRACAO_PROXIMA",
+            contrato=contrato,
+            cliente=contrato.cliente,
+        )
+
+        cliente_nome = contrato.cliente.display_name if contrato.cliente else "Cliente"
+        data_fim_str = contrato.data_termino.strftime("%d/%m/%Y") if contrato.data_termino else "A definir"
+        titulo = f"Vigência Próxima do Fim: Contrato {contrato.numero} ({dias_restantes} dias restantes)"
+        mensagem = (
+            f"Aviso de Vigência: O contrato de suporte {contrato.numero} ({cliente_nome}) "
+            f"está a {dias_restantes} dia(s) do término de sua vigência ({data_fim_str}).\n\n"
+            f"• Franquia Contratada: {contrato.horas_contratadas:.1f}h\n"
+            f"• Saldo Disponível: {contrato.saldo:.1f}h\n"
+            f"• Data Limite: {data_fim_str}\n\n"
+            f"Recomendamos o planejamento da renovação ou aditivo contratual para evitar interrupção no suporte."
+        )
+        url_destino = f"/contratos/{contrato.id}/extrato"
+
+        if enviar_in_app and dests_usuarios:
+            notifs = [
+                Notification(
+                    usuario=u,
+                    titulo=titulo,
+                    mensagem=mensagem,
+                    url=url_destino,
+                    lida=False,
+                )
+                for u in dests_usuarios
+            ]
+            if notifs:
+                Notification.objects.bulk_create(notifs)
+
+        if enviar_email:
+            destinatarios_finais = list(dests_usuarios)
+            if not destinatarios_finais and contrato.gestor_email:
+                destinatarios_finais.append(contrato.gestor_email)
+            if destinatarios_finais or emails_cc:
+                NotificacaoService._enviar_email(
+                    destinatarios=destinatarios_finais,
+                    assunto=titulo,
+                    mensagem_texto=mensagem,
+                    url_destino=url_destino,
+                    cta_texto="Acompanhar Contrato no SHM",
+                    cc=emails_cc,
+                )
+
+        try:
+            ContratoAuditLog.objects.create(
+                contrato=contrato,
+                tipo_evento=TipoEventoContratoAudit.ALTERACAO,
+                descricao=f"Alerta de término de vigência próximo ({dias_restantes} dias até {data_fim_str}) enviado com sucesso.",
+            )
+        except Exception as audit_err:
+            logger.warning("Falha ao registrar auditoria de alerta de expiração do contrato %s: %s", contrato.numero, audit_err)
 
     @staticmethod
     def _extrair_emails_lista(emails_input) -> list[str]:
@@ -429,6 +598,14 @@ class NotificacaoService:
         """
         Envia o e-mail de pesquisa de satisfação para o cliente que deu o aceite.
         """
+        from apps.notificacoes.config_service import NotificacaoConfigService
+        cfg = NotificacaoConfigService.obter_configuracao("AVALIACAO_ATENDIMENTO")
+        enviar_email = cfg.ativo_email if cfg else True
+        enviar_in_app = cfg.ativo_in_app if cfg else True
+
+        if not enviar_email and not enviar_in_app:
+            return
+
         pedido = ciclo.pedido
         tipo_nome = ciclo.get_tipo_display() if hasattr(ciclo, "get_tipo_display") else ciclo.tipo
         assunto = f"Pesquisa de Satisfação: Como foi o atendimento? (Pedido {pedido.protocolo})"
@@ -442,21 +619,23 @@ class NotificacaoService:
         cta_texto = "Avaliar Atendimento (Link Seguro)"
         
         # Cria a notificação In-App
-        Notification.objects.create(
-            usuario=destinatario,
-            titulo=f"Avalie o Atendimento: Pedido {pedido.protocolo}",
-            mensagem=f"O ciclo de {tipo_nome} foi concluído. Clique aqui para avaliar o atendimento recebido e nos deixar um feedback.",
-            url=f"/pedidos/{pedido.id}?ciclo={ciclo.id}",
-            lida=False,
-        )
+        if enviar_in_app:
+            Notification.objects.create(
+                usuario=destinatario,
+                titulo=f"Avalie o Atendimento: Pedido {pedido.protocolo}",
+                mensagem=f"O ciclo de {tipo_nome} foi concluído. Clique aqui para avaliar o atendimento recebido e nos deixar um feedback.",
+                url=f"/pedidos/{pedido.id}?ciclo={ciclo.id}",
+                lida=False,
+            )
 
-        NotificacaoService._enviar_email(
-            destinatarios=[destinatario],
-            assunto=assunto,
-            mensagem_texto=mensagem,
-            url_destino=url_destino,
-            cta_texto=cta_texto,
-        )
+        if enviar_email:
+            NotificacaoService._enviar_email(
+                destinatarios=[destinatario],
+                assunto=assunto,
+                mensagem_texto=mensagem,
+                url_destino=url_destino,
+                cta_texto=cta_texto,
+            )
 
     @staticmethod
     def _enviar_email(destinatarios, assunto: str, mensagem_texto: str, url_destino: str = None, cta_texto: str = None, cc: list = None):

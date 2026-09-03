@@ -75,23 +75,47 @@ class ClienteService:
             "atualizado_em",
         ])
 
-        # 3. Notificações internas para a equipe da empresa
-        empresa_users = User.objects.filter(
-            role__in=[UserRole.EMPRESA_ADMIN, UserRole.EMPRESA_TECNICO],
-            is_active=True,
-        )
-        notifs = [
-            Notification(
-                usuario=u,
-                titulo=f"Cadastro Aprovado: {cliente.display_name}",
-                mensagem=f"O gestor responsável formalizou a aprovação do cadastro de '{cliente.display_name}' via Magic Link. E-mail '{cliente.email_contato}' verificado com sucesso.",
-                url="/clientes",
-                lida=False,
+        # 3. Notificações oficiais via governança configurada
+        try:
+            from apps.notificacoes.config_service import NotificacaoConfigService
+            from apps.notificacoes.services import NotificacaoService
+            enviar_email, enviar_in_app, dest_users, emails_cc = NotificacaoConfigService.resolver_destinatarios_evento(
+                codigo="CLIENTE_CADASTRO_CONFIRMADO",
+                cliente=cliente,
             )
-            for u in empresa_users
-        ]
-        if notifs:
-            Notification.objects.bulk_create(notifs)
+
+            titulo_notif = f"Cadastro Aprovado: {cliente.display_name}"
+            msg_notif = (
+                f"O gestor responsável formalizou a aprovação do cadastro de '{cliente.display_name}' via Magic Link.\n\n"
+                f"• E-mail validado: {cliente.email_contato}\n"
+                f"• Status: Ativo e liberado para contratação e abertura de chamados."
+            )
+
+            if enviar_in_app and dest_users:
+                notifs = [
+                    Notification(
+                        usuario=u,
+                        titulo=titulo_notif,
+                        mensagem=msg_notif,
+                        url="/clientes",
+                        lida=False,
+                    )
+                    for u in dest_users
+                ]
+                if notifs:
+                    Notification.objects.bulk_create(notifs)
+
+            if enviar_email and (dest_users or emails_cc):
+                NotificacaoService._enviar_email(
+                    destinatarios=list(dest_users),
+                    assunto=titulo_notif,
+                    mensagem_texto=msg_notif,
+                    url_destino="/clientes",
+                    cta_texto="Visualizar Cliente no SHM",
+                    cc=emails_cc,
+                )
+        except Exception as notif_err:
+            logger.warning("Falha ao processar notificações de formalização de cadastro de %s: %s", cliente.display_name, notif_err)
 
         return cliente, link, 200, f"Cadastro de '{cliente.display_name}' aprovado com sucesso! O e-mail '{cliente.email_contato}' foi validado automaticamente e a conta está ativa."
 

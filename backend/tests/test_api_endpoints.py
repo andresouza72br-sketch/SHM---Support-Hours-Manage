@@ -114,7 +114,8 @@ class TestApiEndpoints:
             "prioridade": "alta",
         })
         assert res_cli.status_code == 201
-        assert res_cli.data["protocolo"].startswith("OS202608")
+        prefixo_esperado = f"OS{timezone.localdate().strftime('%Y%m')}"
+        assert res_cli.data["protocolo"].startswith(prefixo_esperado)
         assert res_cli.data["cliente"] == self.cliente.id
         assert res_cli.data["assunto"] == "Erro ao emitir relatório"
 
@@ -139,7 +140,7 @@ class TestApiEndpoints:
             "prioridade": "media",
         })
         assert res_adm.status_code == 201
-        assert res_adm.data["protocolo"].startswith("OS202608")
+        assert res_adm.data["protocolo"].startswith(prefixo_esperado)
         assert res_adm.data["cliente"] == self.cliente.id
         assert res_adm.data["protocolo"] != res_cli.data["protocolo"]
 

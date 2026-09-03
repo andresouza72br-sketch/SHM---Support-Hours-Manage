@@ -103,12 +103,13 @@ class SaldoService:
         if horas <= 0:
             return None
         
+        saldo_anterior = contrato.saldo
         novo_saldo = contrato.saldo - horas
         contrato.saldo = novo_saldo
         contrato.horas_consumidas += horas
         contrato.save(update_fields=["saldo", "horas_consumidas", "atualizado_em"])
 
-        return HistoricoSaldo.objects.create(
+        historico = HistoricoSaldo.objects.create(
             contrato=contrato,
             tipo_operacao=TipoOperacaoSaldo.CONSUMO,
             quantidade=-horas,
@@ -121,6 +122,22 @@ class SaldoService:
             user_agent=user_agent,
             metodo_aprovacao=metodo_aprovacao,
         )
+
+        # Disparo de alertas automáticos de saldo (80% consumido ou saldo esgotado/devedor)
+        try:
+            from apps.notificacoes.services import NotificacaoService
+            franquia_total = contrato.horas_contratadas
+            if franquia_total and franquia_total > 0:
+                limite_20_porcento = franquia_total * Decimal("0.20")
+                if saldo_anterior > limite_20_porcento and novo_saldo <= limite_20_porcento and novo_saldo > 0:
+                    NotificacaoService.notificar_alerta_saldo(contrato, tipo_alerta="80_porcento", saldo_anterior=saldo_anterior, saldo_novo=novo_saldo)
+                elif saldo_anterior > 0 and novo_saldo <= 0:
+                    NotificacaoService.notificar_alerta_saldo(contrato, tipo_alerta="saldo_esgotado", saldo_anterior=saldo_anterior, saldo_novo=novo_saldo)
+        except Exception as alerta_err:
+            logger.warning("Falha ao processar alertas automáticos de saldo do contrato %s: %s", getattr(contrato, "numero", contrato), alerta_err)
+
+        return historico
+
 
     @staticmethod
     @transaction.atomic
