@@ -2,23 +2,25 @@
 
 ```mermaid
 C4Context
-    title Diagrama C4 de Contexto — SHM 2.4
+    title Diagrama de Contexto de Sistema — SHM 2.5.0
 
-    Person(empresa_admin, "Administrador Prestador", "Gerencia contratos, saldo, faturamento e clientes.")
-    Person(empresa_tecnico, "Técnico Suporte", "Realiza triagem, orçamentos e executa tarefas.")
-    Person(cliente_gerente, "Gerente Tomador (Cliente)", "Aprova orçamentos, concede aceites e avalia ciclos.")
-    Person(cliente_analista, "Analista Solicitante", "Abre chamados e interage nos comentários.")
+    Person(admin, "Administrador da Empresa", "Gerencia contratos, clientes, saldos e regras globais do sistema.")
+    Person(tecnico, "Técnico da Empresa", "Decompõe pedidos em ciclos, orça horas, aponta tarefas e solicita aceites.")
+    Person(gerente, "Gerente do Cliente", "Autoriza orçamentos, concede aceites com débito real, avalia ciclos e monitora saldo.")
+    Person(analista, "Analista do Cliente", "Abre chamados de suporte e acompanha o progresso dos pedidos.")
 
-    System(shm_system, "SHM — Support Hours Manager", "Plataforma de governança, workflow atômico, ledger de saldo e aprovações.")
+    System(shm, "SHM - Support Hours Manager", "Plataforma central de controle de horas de suporte, gestão contratual, orçamentos, aceites formais e ledger de saldos.")
 
-    System_Ext(smtp_server, "Servidor SMTP / E-mail", "Disparo de convites, Magic Links e notificações.")
-    System_Ext(google_auth, "Google Identity Services", "Autenticação Single Sign-On (OAuth 2.0).")
+    System_Ext(google_auth, "Google OAuth 2.0", "Provedor externo de identidade e autenticação federada.")
+    System_Ext(smtp, "Servidor SMTP / E-mail", "Servidor de envio de e-mails de notificação, alertas de saldo e Magic Links.")
+    System_Ext(docs_validator, "Validador Fiscal", "Validação matemática de documentos CPF e CNPJ.")
 
-    Rel(empresa_admin, shm_system, "Administra", "HTTPS / Web SPA")
-    Rel(empresa_tecnico, shm_system, "Opera atendimentos", "HTTPS / Web SPA")
-    Rel(cliente_gerente, shm_system, "Aprova orçamentos e aceites", "HTTPS / Magic Link / Web SPA")
-    Rel(cliente_analista, shm_system, "Abre chamados", "HTTPS / Web SPA")
+    Rel(admin, shm, "Administra e audita contratos e saldos via", "HTTPS / Web")
+    Rel(tecnico, shm, "Orça ciclos e aponta tarefas via", "HTTPS / Web")
+    Rel(gerente, shm, "Aprova orçamentos e concede aceites via", "HTTPS / Web / Magic Link")
+    Rel(analista, shm, "Abre chamados de suporte via", "HTTPS / Web")
 
-    Rel(shm_system, smtp_server, "Envia e-mails transacionais", "SMTP / TLS")
-    Rel(shm_system, google_auth, "Valida ID Tokens", "HTTPS / REST")
+    Rel(shm, google_auth, "Valida tokens de autenticação via", "HTTPS / JSON")
+    Rel(shm, smtp, "Despacha alertas e convites via", "SMTP / TLS")
+    Rel(shm, docs_validator, "Valida algoritmos de CPF/CNPJ em memória via", "Python Library")
 ```

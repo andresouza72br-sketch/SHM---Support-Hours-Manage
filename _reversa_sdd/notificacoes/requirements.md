@@ -1,21 +1,14 @@
 # Requisitos do Módulo Notificações
 
-> Gerado pelo **Reversa Writer** em 2026-08-27  
-> Confiança: 🟢 CONFIRMADO & HOMOLOGADO
+> Gerado pelo **Reversa Writer** em 2026-09-03  
+> Confiança: 🟢 CONFIRMADO
 
 ## 1. Visão Geral
-Timeline cronológica de eventos de auditoria de pedidos e ciclos, notificações in-app e disparo de e-mails transacionais (com roadmap multicanal para WhatsApp e Telegram).
+Sistema multicanal de eventos e notificações do SHM, englobando timeline de auditoria, notificações in-app e central declarativa de regras de despacho por categoria e papel RBAC.
 
 ## 2. Requisitos Funcionais
-- **RF-NOT-01 (Must):** Gravar `TimelineEvent` a cada transição de status de pedido e ciclo 🟢.
-- **RF-NOT-02 (Must):** Criar `Notification` in-app para os usuários afetados 🟢.
-- **RF-NOT-03 (Must):** Disparar e-mails HTML transacionais com links diretos e Magic Links para aprovações 🟢.
-- **RF-NOT-04 (Roadmap / Futuro):** Suportar envio de notificações e links de aprovação rápida via **WhatsApp Business API** e **Telegram Bot API** 🟡.
-
-## 3. Critérios de Aceitação
-```gherkin
-Cenário: Notificação transacional por e-mail no envio de orçamento
-  Dado que o técnico apresenta orçamento de um ciclo
-  Quando a transição de status é processada
-  Então o sistema grava um evento na Timeline, gera notificação in-app e dispara e-mail com o Magic Link de aprovação.
-```
+- **RF-NOT-01 (Must):** Gravação cronológica imutável de eventos na timeline (`TimelineEvent`) para pedidos e ciclos 🟢.
+- **RF-NOT-02 (Must):** Envio de notificações in-app (`Notification`) com controle de leitura (`lida`) para usuários autenticados 🟢.
+- **RF-NOT-03 (Must):** Central declarativa de regras (`ConfiguracaoNotificacao`) cobrindo 6 categorias: Autenticação, Clientes, Contratos, Saldo, Pedidos e Ciclos 🟢.
+- **RF-NOT-04 (Must):** Toggles independentes por evento para canais (E-mail e In-App) e matriz de papéis (`empresa_admin`, `empresa_tecnico`, `cliente_gerente`, `cliente_comum`, `gestor_contrato`, `emails_cc`) 🟢.
+- **RF-NOT-05 (Should):** Suporte a lista de e-mails fixos adicionais em JSON (`emails_adicionais`) por regra de evento 🟢.

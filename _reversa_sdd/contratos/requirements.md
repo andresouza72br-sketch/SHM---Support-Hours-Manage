@@ -1,23 +1,16 @@
 # Requisitos do Módulo Contratos
 
-> Gerado pelo **Reversa Writer** em 2026-08-27  
-> Confiança: 🟢 CONFIRMADO & HOMOLOGADO
+> Gerado pelo **Reversa Writer** em 2026-09-03  
+> Confiança: 🟢 CONFIRMADO
 
 ## 1. Visão Geral
-Gestão contratual com código CT-YYYY-NNNN, controle de franquia de horas, vigência e carência de 30 dias, aditivos recursivos, rotina de aproveitamento/migração de saldo remanescente, hash SHA-256 de documentos e gestão de destinatários de notificações.
+Gestão completa do ciclo de vida contratual, regras de vigência e carência de 30 dias, custódia de documentos com integridade SHA-256, gestão de destinatários de notificações e trilha de auditoria periciável.
 
 ## 2. Requisitos Funcionais
-- **RF-CON-01 (Must):** Controlar franquia de horas contratadas, saldo atual e horas consumidas 🟢.
-- **RF-CON-02 (Must):** Calcular automaticamente carência de 30 dias pós-expiração (`data_fim_carencia`) e permitir consumo de saldo remanescente 🟢.
-- **RF-CON-03 (Must):** Gerar hash SHA-256 no upload de documentos e fornecer endpoint de verificação de integridade 🟢.
-- **RF-CON-04 (Must):** **Aproveitamento de Saldo Remanescente de Contratos Vencidos:** Na criação de um novo contrato, renovação ou aditivo, o sistema deve detectar automaticamente se o cliente possui contratos vencidos com saldo remanescente positivo e sugerir a migração/transferência integral ou parcial das horas para o novo contrato 🟢.
-- **RF-CON-05 (Should):** Permitir aditivos vinculados ao contrato original (`contrato_referencia`) 🟢.
-
-## 3. Critérios de Aceitação
-```gherkin
-Cenário: Sugestão de migração de saldo remanescente na renovação
-  Dado que o cliente possui um contrato anterior CT-2025-0010 expirado com saldo de 18.50h
-  Quando o administrador cria o contrato CT-2026-0001 para o mesmo cliente
-  Então o sistema exibe alerta sugerindo importar as 18.50h remanescentes
-  E ao confirmar, o saldo inicial do novo contrato é acrescido e uma transferência é auditada no ledger.
-```
+- **RF-CON-01 (Must):** Numeração unívoca no padrão `CT-YYYY-NNNN` 🟢.
+- **RF-CON-02 (Must):** Suporte a tipos `novo`, `aditivo` (com vínculo recursivo) e `renovacao` 🟢.
+- **RF-CON-03 (Must):** Carência de 30 dias após data de término para consumo de saldo positivo remanescente 🟢.
+- **RF-CON-04 (Must):** Armazenamento de arquivos com cálculo e gravação de hash SHA-256 no momento do upload 🟢.
+- **RF-CON-05 (Must):** Endpoint de verificação de integridade documental (`/verificar_integridade/`) que compara o hash persistido contra o hash recalculado do arquivo em storage 🟢.
+- **RF-CON-06 (Must):** Gestão de lista de e-mails de notificação (`ContratoEmailNotificacao`) com envio de convites de confirmação (tokens de 7 dias) e registro de opt-in 🟢.
+- **RF-CON-07 (Must):** Trilha de auditoria periciável (`ContratoAuditLog`) registrando eventos de criação, alteração, upload, exclusão de documentos, migrações de saldo e convites de notificação 🟢.

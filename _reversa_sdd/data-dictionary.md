@@ -1,6 +1,6 @@
-# Dicionário Completo de Dados — SHM 2.4
+# Dicionário Completo de Dados — SHM 2.5.0
 
-> Gerado pelo **Reversa Archaeologist** em 2026-08-27  
+> Gerado pelo **Reversa Archaeologist** em 2026-09-03  
 > Base de Dados: SQLite / PostgreSQL
 
 ---
@@ -16,6 +16,8 @@
 | `telefone` | VarChar(20) | Sim | NULL | Telefone de contato do usuário |
 | `avatar_url` | VarChar(500) | Sim | NULL | URL da foto de perfil / Google Avatar |
 | `cliente_id` | BigInt (FK) | Sim | NULL | FK para `shm_cliente` (obrigatório para clientes) |
+
+---
 
 ## 2. Tabela `shm_cliente` (Módulo Clientes)
 
@@ -34,6 +36,8 @@
 | `aprovado_em` | DateTime | Sim | NULL | Data/hora do aceite cadastral via Magic Link |
 | `aprovado_ip` | GenericIP | Sim | NULL | Endereço IP do dispositivo que aprovou |
 
+---
+
 ## 3. Tabela `shm_contrato` (Módulo Contratos)
 
 | Campo | Tipo | Nulo | Padrão | Descrição / Regras |
@@ -51,7 +55,59 @@
 | `horas_consumidas` | Decimal(10,2) | Não | 0.00 | Total acumulado de horas consumidas |
 | `status` | VarChar(20) | Não | pendente_aceite | pendente_aceite, ativo, concluido, cancelado, suspenso, expirado |
 
-## 4. Tabela `shm_pedido` (Módulo Pedidos)
+---
+
+## 4. Tabela `shm_contrato_documento` (Módulo Contratos)
+
+| Campo | Tipo | Nulo | Padrão | Descrição / Regras |
+|---|---|---|---|---|
+| `id` | BigAutoField | Não | Auto | Chave Primária PK |
+| `contrato_id` | BigInt (FK) | Não | - | FK para `shm_contrato` |
+| `arquivo` | FileField | Não | - | Caminho relativo do documento em disco |
+| `nome_original` | VarChar(255) | Não | - | Nome original do arquivo submetido |
+| `tipo_documento` | VarChar(30) | Não | outro | proposta, contrato_assinado, aditivo, distrato, outro |
+| `tamanho_bytes` | BigInt | Não | 0 | Tamanho do arquivo em bytes |
+| `hash_sha256` | VarChar(64) | Não | "" | Hash SHA-256 criptográfico para prova de integridade |
+| `algoritmo_hash` | VarChar(20) | Não | SHA-256 | Algoritmo criptográfico utilizado |
+| `enviado_por_id` | BigInt (FK) | Sim | NULL | FK para `shm_user` |
+
+---
+
+## 5. Tabela `shm_contrato_email_notificacao` (Módulo Contratos)
+
+| Campo | Tipo | Nulo | Padrão | Descrição / Regras |
+|---|---|---|---|---|
+| `id` | BigAutoField | Não | Auto | Chave Primária PK |
+| `contrato_id` | BigInt (FK) | Não | - | FK para `shm_contrato` |
+| `email` | EmailField | Não | - | Endereço de e-mail do destinatário |
+| `nome` | VarChar(150) | Sim | NULL | Nome ou cargo do destinatário |
+| `ativo` | Boolean | Não | True | Notificações habilitadas para este e-mail |
+| `status` | VarChar(20) | Não | pendente | pendente, confirmado, recusado, expirado |
+| `token` | UUIDField | Não | uuid4 | Token seguro para opt-in de confirmação pública |
+| `expira_em` | DateTime | Não | - | Data limite para confirmação |
+| `confirmado_em` | DateTime | Sim | NULL | Momento da confirmação |
+| `confirmado_ip` | GenericIP | Sim | NULL | IP da confirmação |
+
+---
+
+## 6. Tabela `shm_contrato_audit_log` (Módulo Contratos)
+
+| Campo | Tipo | Nulo | Padrão | Descrição / Regras |
+|---|---|---|---|---|
+| `id` | BigAutoField | Não | Auto | Chave Primária PK |
+| `contrato_id` | BigInt (FK) | Não | - | FK para `shm_contrato` |
+| `tipo_evento` | VarChar(40) | Não | - | criacao, aceite, alteracao, conclusao, cancelamento, upload_documento, download_documento, exclusao_documento, atualizacao_emails, convite_email, confirmacao_email, recusa_email, download_relatorio, avaliacao_ciclo |
+| `descricao` | TextField | Não | - | Detalhamento em prosa do evento |
+| `justificativa` | TextField | Sim | NULL | Justificativa operacional obrigatória para eventos críticos |
+| `documento_nome` | VarChar(255) | Sim | NULL | Nome do documento associado (quando aplicável) |
+| `documento_hash` | VarChar(64) | Sim | NULL | Hash SHA-256 do documento associado |
+| `usuario_id` | BigInt (FK) | Sim | NULL | FK para `shm_user` |
+| `ip_origem` | GenericIP | Sim | NULL | Endereço IP do solicitante |
+| `timestamp` | DateTime | Não | auto_now | Carimbo de data/hora |
+
+---
+
+## 7. Tabela `shm_pedido` (Módulo Pedidos)
 
 | Campo | Tipo | Nulo | Padrão | Descrição / Regras |
 |---|---|---|---|---|
@@ -59,55 +115,87 @@
 | `protocolo` | VarChar(20) | Não | - | Protocolo único sequencial OSYYYYMMNNNN |
 | `cliente_id` | BigInt (FK) | Não | - | FK para `shm_cliente` |
 | `contrato_id` | BigInt (FK) | Não | - | FK para `shm_contrato` |
-| `assunto` | VarChar(200) | Não | - | Título resumido da demanda |
-| `descricao` | TextField | Não | - | Descrição completa do chamado |
-| `prioridade` | VarChar(10) | Não | media | baixa, media, alta, urgente |
+| `titulo` | VarChar(200) | Não | - | Resumo do chamado |
 | `status` | VarChar(25) | Não | aberto | aberto, em_orcamento, aguardando_aprovacao, em_execucao, aguardando_aceite, concluido, cancelado |
 
-## 5. Tabela `shm_ciclo` (Módulo Ciclos)
+---
+
+## 8. Tabela `shm_ciclo` (Módulo Ciclos)
 
 | Campo | Tipo | Nulo | Padrão | Descrição / Regras |
 |---|---|---|---|---|
 | `id` | BigAutoField | Não | Auto | Chave Primária PK |
 | `pedido_id` | BigInt (FK) | Não | - | FK para `shm_pedido` |
-| `tipo` | VarChar(20) | Não | analise | corretiva, evolutiva, preventiva, analise, consultoria, treinamento, teste |
-| `contexto` | TextField | Sim | NULL | Escopo e detalhes técnicos do ciclo |
-| `operador_id` | BigInt (FK) | Não | - | FK para `shm_user` (técnico responsável) |
+| `tipo` | VarChar(20) | Não | corretiva | corretiva, evolutiva, preventiva, analise, consultoria, treinamento, teste |
 | `status` | VarChar(25) | Não | orcado | orcado, aguardando_aprovacao, aprovado, em_execucao, aguardando_aceite, aceito, cancelado |
-| `horas_estimadas` | Decimal(8,2) | Não | 0.00 | Horas orçadas para o cliente |
-| `horas_realizadas` | Decimal(8,2) | Não | 0.00 | Horas reais apontadas nas tarefas |
-| `token_acesso` | UUID | Não | uuid4 | Token Magic Link para aprovação/aceite público |
-| `aceito_em` | DateTime | Sim | NULL | Carimbo temporal do aceite formal |
+| `horas_estimadas` | Decimal(8,2) | Não | 0.00 | Orçamento aprovado |
+| `horas_realizadas` | Decimal(8,2) | Não | 0.00 | Somatório atômico das tarefas realizadas |
+| `token_acesso` | UUIDField | Sim | NULL | Token de acesso via Magic Link |
 
-## 6. Tabela `shm_tarefa` (Módulo Tarefas)
+---
+
+## 9. Tabela `shm_tarefa` (Módulo Tarefas)
 
 | Campo | Tipo | Nulo | Padrão | Descrição / Regras |
 |---|---|---|---|---|
 | `id` | BigAutoField | Não | Auto | Chave Primária PK |
 | `ciclo_id` | BigInt (FK) | Não | - | FK para `shm_ciclo` |
-| `descricao` | TextField | Não | - | Descrição do serviço técnico executado |
-| `horas_estimadas` | Decimal(8,2) | Não | 0.00 | Estimativa técnica da tarefa |
-| `horas_realizadas` | Decimal(8,2) | Não | 0.00 | Esforço real despendido pelo técnico |
-| `status` | VarChar(15) | Não | prevista | prevista, realizada, cancelada |
+| `titulo` | VarChar(200) | Não | - | Descrição do item técnico |
+| `horas_estimadas` | Decimal(8,2) | Não | 0.00 | Estimativa da tarefa |
+| `horas_realizadas` | Decimal(8,2) | Não | 0.00 | Horas efetivamente apontadas |
+| `status` | VarChar(20) | Não | prevista | prevista, realizada, cancelada |
 
-## 7. Tabela `shm_historico_saldo` (Módulo Saldo / Ledger Imutável)
+---
+
+## 10. Tabela `shm_historico_saldo` (Módulo Saldo)
 
 | Campo | Tipo | Nulo | Padrão | Descrição / Regras |
 |---|---|---|---|---|
-| `id` | UUID | Não | uuid4 | Chave Primária PK (UUIDv4) |
+| `id` | UUIDField | Não | uuid4 | PK imutável UUIDv4 |
 | `contrato_id` | BigInt (FK) | Não | - | FK para `shm_contrato` |
 | `tipo_operacao` | VarChar(30) | Não | - | consumo, transferencia_envio, transferencia_recebimento, reabastecimento, estorno |
-| `quantidade` | Decimal(8,2) | Não | - | Horas debitadas (-) ou creditadas (+) |
-| `saldo_resultante` | Decimal(10,2) | Não | - | Snapshot do saldo após a operação |
-| `ciclo_id` | BigInt (FK) | Sim | NULL | FK para ciclo que gerou o consumo |
-| `ip_origem` | GenericIP | Sim | NULL | IP de origem para compliance e auditoria |
+| `quantidade` | Decimal(8,2) | Não | - | Débito (-) ou crédito (+) de horas |
+| `saldo_resultante` | Decimal(10,2) | Não | - | Snapshot exato do saldo após a operação |
+| `autor_id` | BigInt (FK) | Sim | NULL | FK para `shm_user` |
+| `pedido_id` | BigInt (FK) | Sim | NULL | FK para `shm_pedido` (se consumo) |
+| `ciclo_id` | BigInt (FK) | Sim | NULL | FK para `shm_ciclo` (se consumo) |
+| `operacao_original_id` | UUIDField | Sim | NULL | Apontador para histórico estornado |
+| `ip_origem` | GenericIP | Sim | NULL | Rastreabilidade forense de IP |
+| `user_agent` | TextField | Sim | NULL | Agente de navegação do solicitante |
+| `metodo_aprovacao` | VarChar(50) | Não | APP | Canal de aprovação (APP, MAGIC_LINK) |
+| `criado_em` | DateTime | Não | auto_now | Timestamp imutável |
 
-## 8. Tabela `shm_avaliacao_ciclo` (Módulo Ciclos / Avaliação)
+---
+
+## 11. Tabela `shm_transferencia_saldo` (Módulo Saldo)
+
+| Campo | Tipo | Nulo | Padrão | Descrição / Regras |
+|---|---|---|---|---|
+| `id` | UUIDField | Não | uuid4 | PK UUIDv4 |
+| `contrato_origem_id` | BigInt (FK) | Não | - | Contrato de onde as horas saem |
+| `contrato_destino_id` | BigInt (FK) | Não | - | Contrato que recebe as horas |
+| `quantidade` | Decimal(8,2) | Não | - | Horas transferidas |
+| `motivo` | TextField | Não | - | Justificativa da transferência |
+| `autor_id` | BigInt (FK) | Não | - | Usuário responsável |
+
+---
+
+## 12. Tabela `shm_configuracao_notificacao` (Módulo Notificações)
 
 | Campo | Tipo | Nulo | Padrão | Descrição / Regras |
 |---|---|---|---|---|
 | `id` | BigAutoField | Não | Auto | Chave Primária PK |
-| `ciclo_id` | BigInt (FK/1:1)| Não | - | OneToOne para `shm_ciclo` |
-| `avaliador_id` | BigInt (FK) | Não | - | FK para `shm_user` (gerente que avaliou) |
-| `nota` | SmallInt | Não | - | Nota de 1 a 5 estrelas |
-| `comentario` | TextField | Sim | " | Feedback qualitativo do cliente |
+| `codigo` | VarChar(60) | Não | - | Código único do evento (db_index, unique) |
+| `categoria` | VarChar(30) | Não | - | autenticacao, clientes, contratos, saldo, pedidos, ciclos |
+| `nome` | VarChar(150) | Não | - | Rótulo amigável exibido na UI |
+| `descricao` | TextField | Não | - | Explicação detalhada do gatilho |
+| `ativo_email` | Boolean | Não | True | Habilita disparo via e-mail SMTP |
+| `ativo_in_app` | Boolean | Não | True | Habilita inserção em shm_notification |
+| `notificar_empresa_admin` | Boolean | Não | True | Notifica Administradores |
+| `notificar_empresa_tecnico` | Boolean | Não | True | Notifica Técnicos |
+| `notificar_cliente_gerente` | Boolean | Não | True | Notifica Gestores do Cliente |
+| `notificar_cliente_comum` | Boolean | Não | False | Notifica Solicitantes do Cliente |
+| `notificar_gestor_contrato` | Boolean | Não | True | Notifica Gestor do Contrato |
+| `notificar_emails_cc` | Boolean | Não | True | Notifica lista de e-mails em cópia |
+| `emails_adicionais` | JSONField | Não | [] | Lista de e-mails fixos extras |
+| `bloqueado_edicao` | Boolean | Não | False | Evento essencial do sistema |
