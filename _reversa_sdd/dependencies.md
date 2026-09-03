@@ -1,7 +1,7 @@
 # Dependências do Sistema — SHM (Support Hours Manager)
 
-> Gerado pelo **Reversa Scout** em 2026-08-27
-> Versão do Sistema: **SHM 2.4**
+> Gerado pelo **Reversa Scout** em 2026-09-03
+> Versão do Sistema: **SHM 2.5.0**
 
 ---
 

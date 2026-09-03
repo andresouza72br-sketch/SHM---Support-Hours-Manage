@@ -1,20 +1,20 @@
 # Análise Técnica Consolidada de Código (Code Analysis)
 
-> Gerado pelo **Reversa Archaeologist** em 2026-08-27  
-> Sistema: **SHM 2.4 (Support Hours Manager)**  
+> Gerado pelo **Reversa Archaeologist** em 2026-09-03  
+> Sistema: **SHM 2.5.0 (Support Hours Manager)**  
 > Escala de Confiança: 🟢 CONFIRMADO | 🟡 INFERIDO | 🔴 LACUNA
 
 ---
 
 ## 1. Visão Geral da Engenharia do Sistema
 
-O SHM 2.4 é estruturado no padrão **Django Apps Modulares** no backend com arquitetura limpa e desacoplamento de serviços, e **React 19 SPA com TypeScript e TanStack Query** no frontend.
+O SHM 2.5.0 é estruturado no padrão **Django Apps Modulares** no backend com arquitetura orientada a serviços desacoplados e transacionais, e **React 19 SPA com TypeScript e TanStack Query** no frontend.
 
 ### 1.1 Stack Tecnológico & Arquitetura
-- **Backend:** Django 5.2, Django REST Framework 3.15, SimpleJWT 5.3 (Tokens rotativos), drf-spectacular 0.28 (OpenAPI 3.0), validate-docbr 2.0 (Validação CPF/CNPJ).
-- **Frontend:** React 19.0.0, TypeScript 5.7.3, Vite 6.1.0, Tailwind CSS 3.4.17, Axios 1.7.9, Lucide React 0.475, React Router 7.2.0.
+- **Backend:** Python 3.12+, Django 5.2, Django REST Framework 3.15, SimpleJWT 5.3 (Tokens rotativos), drf-spectacular 0.28 (OpenAPI 3.0), validate-docbr 2.0 (Validação matemática CPF/CNPJ).
+- **Frontend:** React 19.0.0, TypeScript 5.7.3, Vite 6.1.0, Tailwind CSS 3.4.17, Axios 1.7.9, Lucide React 0.475, React Router 7.2.0, TanStack React Query 5.66.
 - **Persistência:** SQLite3 (dev/local), PostgreSQL com psycopg2-binary (produção).
-- **Segurança & Auditoria:** Hash SHA-256 para integridade documental, Magic Links criptográficos (UUIDv4) com expiração de 7 dias, Auditoria Forense em Clientes e Contratos, Ledger Imutável em Saldo.
+- **Segurança & Auditoria:** Hash SHA-256 para integridade documental, Magic Links criptográficos (UUIDv4) com expiração de 7 dias, Auditoria Forense em Clientes e Contratos, Ledger Imutável em Saldo com lock ordenado anti-deadlock.
 
 ---
 
@@ -23,14 +23,14 @@ O SHM 2.4 é estruturado no padrão **Django Apps Modulares** no backend com arq
 ### 2.1 Módulo `accounts` (Autenticação, RBAC e Tokens)
 - **Modelos:** `User` (herda de `AbstractUser`), `PasswordlessLoginToken` 🟢.
 - **Papéis de Acesso (RBAC):**
-  1. `EMPRESA_ADMIN`: Gestão total de contratos, clientes, saldos e usuários.
-  2. `EMPRESA_TECNICO`: Triagem operacional, estimativa de ciclos e apontamento de tarefas.
-  3. `CLIENTE_GERENTE`: Tomador do contrato. Autoriza orçamentos, concede aceites finais e acessa extratos.
+  1. `EMPRESA_ADMIN`: Gestão total de contratos, clientes, saldos, configurações de notificações e usuários.
+  2. `EMPRESA_TECNICO`: Triagem operacional, estimativa de ciclos, apontamento de tarefas e execução técnica.
+  3. `CLIENTE_GERENTE`: Tomador do contrato. Autoriza orçamentos, concede aceites finais, avalia ciclos e acessa extratos.
   4. `CLIENTE_ANALISTA`: Usuário solicitante. Abre pedidos de suporte e acompanha kanban.
-- **Mecanismos de Login:**
-  - Login tradicional (usuário/senha via JWT).
-  - Magic Login sem senha: Gera `PasswordlessLoginToken` UUID com expiração configurável.
-  - Google OAuth: Validação de ID Token do Google via `google-auth` no endpoint `/api/v1/auth/google/` com auto-provisionamento ou vinculação de avatar.
+- **Mecanismos de Autenticação:**
+  - Login tradicional (usuário/senha via JWT com access e refresh tokens).
+  - Magic Login sem senha: Gera `PasswordlessLoginToken` UUID de uso único com expiração.
+  - Google OAuth: Validação de ID Token do Google via `google-auth` no endpoint `/api/v1/auth/google/` com vinculação ou auto-provisionamento.
 
 ### 2.2 Módulo `clientes` (Gestão de Organizações Tomadoras)
 - **Modelos:** `Cliente` (PF/PJ), `ClienteAceiteLink`, `ClienteAuditLog` 🟢.
@@ -40,23 +40,25 @@ O SHM 2.4 é estruturado no padrão **Django Apps Modulares** no backend com arq
   - Magic Link de Aceite Cadastral (7 dias): Disparado para e-mail do tomador aprovar o cadastro e ativar a organização sem login prévio 🟢.
   - Auditoria Forense (`ClienteAuditLog`): Registra criação, alteração, aprovação por magic link e exclusão (com justificativa obrigatória, IP, user-agent e autor) 🟢.
 
-### 2.3 Módulo `contratos` (Gestão Contratual, Vigência e Documentos)
-- **Modelos:** `Contrato`, `ContratoDocumento`, `ContratoAuditLog`, `AceiteLink`, `ContratoEmailNotificacao` 🟢.
+### 2.3 Módulo `contratos` (Gestão Contratual, Vigência, Documentos e Auditoria)
+- **Modelos:** `Contrato`, `ContratoDocumento`, `ContratoAuditLog`, `AceiteLink`, `ContratoEmailNotificacao`, `ContratoPDF` 🟢.
 - **Regras de Negócio & Algoritmos:**
   - Numeração padronizada `CT-YYYY-NNNN` 🟢.
   - Tipos: `novo`, `aditivo`, `renovacao`. Aditivos possuem FK recursiva `contrato_referencia` 🟢.
   - Carência de 30 dias (`data_fim_carencia`): Calculada na expiração do contrato. Durante a carência (`em_carencia = True`), o saldo positivo restante pode ser consumido em atendimentos de suporte sem bloqueio imediato 🟢.
-  - Documentos & Integridade Criptográfica: Upload de arquivos gera hash SHA-256 (`hash_sha256`) e endpoint de verificação `/verificar_integridade/` recalcula o hash do arquivo em disco e atesta integridade contra manipulação 🟢.
-  - Notificações por E-mail: Gestão de lista de destinatários (`ContratoEmailNotificacao`) com envio de convites e links de confirmação/recusa 🟢.
+  - Documentos & Integridade Criptográfica: Upload de arquivos gera hash SHA-256 (`hash_sha256`, `algoritmo_hash`) e endpoint de verificação `/verificar_integridade/` recalcula o hash do arquivo em disco e atesta integridade contra manipulação 🟢.
+  - Gestão de E-mails de Notificação (`ContratoEmailNotificacao`): Destinatários adicionais convidados via token temporário com tela pública de opt-in (`ConfirmarNotificacaoPage`) 🟢.
+  - QuerySets Especializados: `elegiveis_para_migracao` (saldo > 0, expirados ou vencidos) e `devedores` (saldo < 0) 🟢.
+  - Auditoria Desacoplada: `ContratoService.notificar_e_auditar_migracao_saldo` e `notificar_e_auditar_compensacao_debito` para rastreabilidade de eventos contábeis 🟢.
 
 ### 2.4 Módulo `pedidos` (Chamados de Suporte e Protocolos)
 - **Modelos:** `Pedido`, `AnexoPedido` 🟢.
 - **Regras de Negócio & Algoritmos:**
-  - Geração de protocolo sequencial atômico diário/mensal: `OSYYYYMMNNNN` (ex: `OS2026080001`) via `PedidoService.gerar_protocolo()` 🟢.
+  - Geração de protocolo sequencial atômico diário/mensal: `OSYYYYMMNNNN` (ex: `OS2026090001`) via `PedidoService.gerar_protocolo()` 🟢.
   - Agrupador de Ciclos: Um pedido não tem esforço direto; ele é decomposto em 1 ou mais ciclos técnicos 🟢.
   - Sincronização Automática de Status (`PedidoService.sincronizar_status_pedido`): O status do pedido é recalculado automaticamente em cascata conforme os status dos seus ciclos (`aberto`, `em_orcamento`, `aguardando_aprovacao`, `em_execucao`, `aguardando_aceite`, `concluido`, `cancelado`) 🟢.
 
-### 2.5 Módulo `ciclos` (Workflow Atômico, Orçamento, Aceite e Avaliação)
+### 2.5 Módulo `ciclos` (Workflow Atômico, Orçamento, Trava de Tolerância, Aceite e Avaliação)
 - **Modelos:** `Ciclo`, `CicloMagicLink`, `AvaliacaoCiclo` 🟢.
 - **Classificação:** `corretiva`, `evolutiva`, `preventiva`, `analise`, `consultoria`, `treinamento`, `teste` 🟢.
 - **Workflow Operacional:**
@@ -64,21 +66,26 @@ O SHM 2.4 é estruturado no padrão **Django Apps Modulares** no backend com arq
   2. Apresentação de Orçamento: Técnico lança horas estimadas e emite Magic Link (`aguardando_aprovacao`).
   3. Aprovação pelo Cliente: Aprovação **não consome saldo** do contrato 🟢.
   4. Execução Técnica: Apontamento de tarefas pelo técnico (`em_execucao`).
-  5. Solicitação de Aceite: Técnico solicita aceite final (`aguardando_aceite`).
-  6. Concessão de Aceite: Cliente concede aceite formal. O sistema debita **exclusivamente as horas reais realizadas** (`horas_realizadas`) no ledger de saldo do contrato 🟢.
-  7. Avaliação de Satisfação (`AvaliacaoCiclo`): Rating de 1 a 5 estrelas e feedback textual registrado após o aceite 🟢.
+  5. **Trava de Tolerância de Horas Excedentes (Feature 001):**
+     - Função `CicloService.validar_tolerancia_horas`: calcula o teto de tolerância de +30% sobre o orçamento (`horas_estimadas * 1.30`).
+     - Se `horas_realizadas > limite_tolerancia`, aciona bloqueio: exige justificativa técnica obrigatória de excedente ao solicitar aceite, gravando evidência na timeline e alertando gestores 🟢.
+  6. Solicitação de Aceite: Técnico solicita aceite final (`aguardando_aceite`).
+  7. Concessão de Aceite: Cliente concede aceite formal. O sistema debita **exclusivamente as horas reais realizadas** (`horas_realizadas`) no ledger de saldo do contrato 🟢.
+  8. Avaliação de Satisfação (`AvaliacaoCiclo`): Rating de 1 a 5 estrelas e feedback textual registrado após o aceite 🟢.
 
 ### 2.6 Módulo `tarefas` (Apontamento Técnico de Horas)
 - **Modelos:** `Tarefa` (status: `prevista`, `realizada`, `cancelada`) 🟢.
 - **Regras de Negócio & Algoritmos:**
   - No método `save()` e `delete()` de `Tarefa`, o somatório de `horas_realizadas` de todas as tarefas com status `realizada` é recalculado e gravado atômicamente no campo `ciclo.horas_realizadas` 🟢.
 
-### 2.7 Módulo `saldo` (Ledger Imutável de Movimentações)
+### 2.7 Módulo `saldo` (Ledger Imutável, Migração de Saldo e Compensação de Débitos)
 - **Modelos:** `HistoricoSaldo`, `TransferenciaSaldo`, `Reabastecimento` 🟢.
 - **Regras de Negócio & Algoritmos:**
   - **Ledger Append-Only Imutável:** Todas as transações usam `select_for_update()` para isolamento e atomicidade ACID 🟢.
-  - Operações: `consumo` (débito negativo por aceite de ciclo), `transferencia_envio` / `transferencia_recebimento` (entre contratos do mesmo cliente), `reabastecimento` (crédito autorizado) e `estorno` 🟢.
-  - Metadados de Compliance: Cada registro de saldo guarda IP de origem, User-Agent, método de aprovação e autor 🟢.
+  - **Lock Ordenado Anti-Deadlock (`_obter_par_contratos_com_lock_ordenado`):** Em transferências ou migrações concorrentes entre contratos, os locks pessimistas são adquiridos em ordem lexicográfica determinística pelo ID, evitando deadlocks em cenários de alta concorrência 🟢.
+  - **Migração de Saldo de Contratos Vencidos (Feature 002):** `SaldoService.migrar_saldo_contratos_vencidos` permite transferir saldo remanescente de contrato vencido/expirado para um novo contrato ativo do mesmo cliente, registrando lançamentos correlacionados no `HistoricoSaldo`, atualizando saldos e gravando no `ContratoAuditLog` 🟢.
+  - **Compensação de Débito Anterior:** `SaldoService.compensar_debito_contrato_anterior` quita saldo devedor/negativo de contrato anterior deduzindo da franquia inicial do novo contrato ativo 🟢.
+  - **Gatilhos Automáticos de Alerta:** Ao consumir saldo, se atingir 80% da franquia ou zerar/negativar o saldo, o `NotificacaoService.notificar_alerta_saldo` é disparado imediatamente 🟢.
 
 ### 2.8 Módulo `comunicacao` (Threads de Comentários e Reações)
 - **Modelos:** `Comentario`, `AnexoComentario`, `ReacaoComentario` 🟢.
@@ -87,25 +94,21 @@ O SHM 2.4 é estruturado no padrão **Django Apps Modulares** no backend com arq
   - Reações de emoji: Toggle atômico por usuário (`unique_together = [['comentario', 'autor', 'tipo']]`) 🟢.
   - Conversão em Tarefa: Endpoint `/converter_em_tarefa/` cria uma tarefa diretamente a partir de um comentário 🟢.
 
-### 2.9 Módulo `notificacoes` (Timeline e Notificações In-App)
-- **Modelos:** `TimelineEvent`, `Notification` 🟢.
+### 2.9 Módulo `notificacoes` (Timeline, Alertas e Painel Declarativo de Configurações)
+- **Modelos:** `TimelineEvent`, `Notification`, `ConfiguracaoNotificacao` 🟢.
 - **Recursos:**
   - Timeline de auditoria com histórico cronológico de cada transição de pedido e ciclo 🟢.
-  - Disparo de e-mails de notificação formatados em HTML para gestores e técnicos 🟢.
+  - Central Declarativa de Notificações (`ConfiguracaoNotificacao`): Suporte a 6 categorias de eventos (Autenticação, Clientes, Contratos, Saldo, Pedidos, Ciclos) com controles independentes de e-mail e in-app, além de matriz de destinatários por papel RBAC (`empresa_admin`, `empresa_tecnico`, `cliente_gerente`, `cliente_comum`, `gestor_contrato`, `emails_cc`) 🟢.
 
-### 2.10 Módulo `frontend` (React 19 SPA)
-- **Arquitetura de Estado:** TanStack Query com invalidação de cache estratégica após mutações 🟢.
-- **Componentes Chave:** Kanban Board de 6 colunas, Carrossel de Ciclos, Modais de Gestão Contratual, Switch Light/Dark Mode com contraste otimizado 🟢.
+### 2.10 Módulo `core` (Modelos Base e Exception Handler)
+- **Modelos:** `TimeStampedModel` (abstract base com `criado_em`, `atualizado_em`) 🟢.
+- **Recursos:** Exception handler unificado que intercepta `ValidationError`, `PermissionDenied`, `NotFound` e exceções não tratadas retornando JSON com padrão RFC 7807 🟢.
 
----
-
-## 3. Matriz de Algoritmos & Regras de Ouro
-
-| Regra / Algoritmo | Módulo Responsável | Criticidade | Validação |
-|---|---|---|---|
-| Validação de CNPJ e CPF | `clientes` | Crítica | Matemática (Dígitos Verificadores) 🟢 |
-| Débito Exclusivo no Aceite | `ciclos` / `saldo` | Crítica | Débito de horas_realizadas apenas em aceite formal 🟢 |
-| Sincronização de Status do Pedido | `pedidos` | Alta | Cascata baseada nos ciclos vinculados 🟢 |
-| Recálculo de Horas do Ciclo | `tarefas` | Alta | Somatório de tarefas realizadas 🟢 |
-| Transferência entre Contratos | `saldo` | Alta | Restrito a contratos do mesmo cliente 🟢 |
-| Hash SHA-256 de Documentos | `contratos` | Alta | Checksum criptográfico de integridade 🟢 |
+### 2.11 Módulo `frontend` (React 19 SPA)
+- **Arquitetura de Estado:** TanStack Query 5.66 com invalidação de cache estratégica após mutações 🟢.
+- **Componentes Chave:**
+  - `MigracaoSaldoModal.tsx`: Modal para migração e compensação contábil de saldo entre contratos com preview em tempo real e cálculo de impacto financeiro 🟢.
+  - `DocumentosContratoModal.tsx` & `TimelineAuditoriaContrato.tsx`: Gestão de anexos com cálculo/exibição de hash SHA-256 e linha do tempo de auditoria 🟢.
+  - `ConfiguracoesNotificacoesPage.tsx`: Painel interativo com switches para regras de despacho de alertas 🟢.
+  - `AdminDashboardPage.tsx`: Cockpit executivo com métricas de horas, contratos e saúde da operação 🟢.
+  - Kanban Board de 6 colunas, Carrossel de Ciclos e tema claro/escuro dinâmico 🟢.
