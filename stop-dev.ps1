@@ -9,7 +9,7 @@ $pidsFile = Join-Path $PSScriptRoot ".logs\pids.json"
 if (Test-Path $pidsFile) {
     try {
         $pidsJson = Get-Content $pidsFile -Raw | ConvertFrom-Json
-        $savedPids = @($pidsJson.BackendPid, $pidsJson.FrontendPid)
+        $savedPids = @($pidsJson.BackendPid, $pidsJson.FrontendPid, $pidsJson.MailPid)
         foreach ($pidToKill in $savedPids) {
             if ($pidToKill -and ($pidToKill -gt 0)) {
                 $proc = Get-Process -Id $pidToKill -ErrorAction SilentlyContinue
@@ -24,8 +24,8 @@ if (Test-Path $pidsFile) {
     Remove-Item $pidsFile -Force -ErrorAction SilentlyContinue
 }
 
-# 2. Encerra qualquer processo escutando nas portas 8000 e 5173
-$ports = @(8000, 5173)
+# 2. Encerra qualquer processo escutando nas portas 8001, 5173, 8025 e 1025
+$ports = @(8001, 5173, 8025, 1025)
 foreach ($port in $ports) {
     $connections = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
     if ($connections) {

@@ -22,8 +22,12 @@ export function LoginPage() {
       const loggedUser = await login({ username, password })
       const isEmp = loggedUser.role === 'EMPRESA_ADMIN' || loggedUser.role === 'EMPRESA_TECNICO' || loggedUser.is_staff
       navigate(isEmp ? '/admin/dashboard' : '/dashboard')
-    } catch {
-      setError('Credenciais inválidas. Verifique usuário e senha.')
+    } catch (err: any) {
+      if (!err.response || err.response.status >= 500) {
+        setError('Servidor indisponível. O backend pode estar offline.')
+      } else {
+        setError('Credenciais inválidas. Verifique usuário e senha.')
+      }
     } finally {
       setLoading(false)
     }
@@ -51,8 +55,12 @@ export function LoginPage() {
       const loggedUser = await login({ username: u, password: p })
       const isEmp = loggedUser.role === 'EMPRESA_ADMIN' || loggedUser.role === 'EMPRESA_TECNICO' || loggedUser.is_staff
       navigate(isEmp ? '/admin/dashboard' : '/dashboard')
-    } catch {
-      setError('Falha ao autenticar com usuário de demonstração.')
+    } catch (err: any) {
+      if (!err.response || err.response.status >= 500) {
+        setError('Servidor indisponível. O backend pode estar offline.')
+      } else {
+        setError('Falha ao autenticar com usuário de demonstração. Credenciais inválidas.')
+      }
     } finally {
       setLoading(false)
       setQuickLoggingInUser(null)

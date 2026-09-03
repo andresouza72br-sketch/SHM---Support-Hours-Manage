@@ -479,7 +479,7 @@ class ContratoService:
         qs_saldo = HistoricoSaldo.objects.filter(contrato=contrato)
         creditos_migrados = float(
             qs_saldo.filter(
-                tipo_operacao__in=[TipoOperacaoSaldo.TRANSFERENCIA_RECEBIMENTO, TipoOperacaoSaldo.REABASTECIMENTO]
+                tipo_operacao=TipoOperacaoSaldo.TRANSFERENCIA_RECEBIMENTO
             ).aggregate(total=Sum("quantidade"))["total"]
             or 0
         )

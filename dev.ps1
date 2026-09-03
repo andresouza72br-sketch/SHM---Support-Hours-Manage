@@ -13,6 +13,8 @@ param(
 switch ($Action) {
     "reset-db" {
         & "$PSScriptRoot\tools\database\reset_db.ps1"
+        Write-Host "Reiniciando ambiente apos reset..." -ForegroundColor Cyan
+        & "$PSScriptRoot\start-dev.ps1" -Visible:$Visible
     }
     "stop" {
         & "$PSScriptRoot\stop-dev.ps1"
@@ -27,24 +29,25 @@ switch ($Action) {
         & "$PSScriptRoot\start-dev.ps1" -Visible:$Visible
     }
     "status" {
-        $port8000 = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue
+        $port8001 = Get-NetTCPConnection -LocalPort 8001 -State Listen -ErrorAction SilentlyContinue
         $port5173 = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue
+        $port8025 = Get-NetTCPConnection -LocalPort 8025 -State Listen -ErrorAction SilentlyContinue
 
         Write-Host "===================================================" -ForegroundColor Cyan
         Write-Host "           Status dos Servicos SHM 2.3             " -ForegroundColor Cyan
         Write-Host "===================================================" -ForegroundColor Cyan
         
-        if ($port8000) {
-            $pid8000 = $port8000[0].OwningProcess
-            Write-Host " [ONLINE]  Backend Django  -> http://localhost:8000 (PID: $pid8000)" -ForegroundColor Green
+        if ($port8001) {
+            $pid8001 = $port8001[0].OwningProcess
+            Write-Host " [ONLINE]  Backend Django  -> http://localhost:8001 (PID: $pid8001)" -ForegroundColor Green
             try {
-                $statusRes = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/status/" -TimeoutSec 2 -ErrorAction SilentlyContinue
+                $statusRes = Invoke-RestMethod -Uri "http://127.0.0.1:8001/api/v1/status/" -TimeoutSec 2 -ErrorAction SilentlyContinue
                 if ($statusRes) {
                     Write-Host "           Health / Versao: $($statusRes.service) - $($statusRes.release)" -ForegroundColor DarkGreen
                 }
             } catch {}
         } else {
-            Write-Host " [OFFLINE] Backend Django  -> Porta 8000 livre" -ForegroundColor Red
+            Write-Host " [OFFLINE] Backend Django  -> Porta 8001 livre" -ForegroundColor Red
         }
 
         if ($port5173) {
@@ -68,10 +71,18 @@ switch ($Action) {
             Write-Host " [OFFLINE] Frontend Vite   -> Porta 5173 livre" -ForegroundColor Red
         }
 
+        if ($port8025) {
+            $pid8025 = $port8025[0].OwningProcess
+            Write-Host " [ONLINE]  Mail Dev Server -> http://localhost:8025 (SMTP: 1025 / PID: $pid8025)" -ForegroundColor Green
+        } else {
+            Write-Host " [OFFLINE] Mail Dev Server -> Portas 1025/8025 livres" -ForegroundColor Yellow
+        }
+
         $logDir = Join-Path $PSScriptRoot ".logs"
         if (Test-Path $logDir) {
             $bLog = Join-Path $logDir "backend.log"
             $fLog = Join-Path $logDir "frontend.log"
+            $mLog = Join-Path $logDir "mail.log"
             Write-Host "---------------------------------------------------" -ForegroundColor Gray
             if (Test-Path $bLog) {
                 $bItem = Get-Item $bLog
@@ -83,13 +94,24 @@ switch ($Action) {
                 $fKb = [math]::Round($fItem.Length / 1024, 1)
                 Write-Host " Log Frontend: .logs\frontend.log ($fKb KB)" -ForegroundColor Gray
             }
+            if (Test-Path $mLog) {
+                $mItem = Get-Item $mLog
+                $mKb = [math]::Round($mItem.Length / 1024, 1)
+                Write-Host " Log Mail Dev: .logs\mail.log ($mKb KB)" -ForegroundColor Gray
+            }
         }
 
         Write-Host "===================================================" -ForegroundColor Cyan
     }
     "logs" {
         $logDir = Join-Path $PSScriptRoot ".logs"
-        $file = if ($Target -like "*front*") { Join-Path $logDir "frontend.log" } else { Join-Path $logDir "backend.log" }
+        $file = if ($Target -like "*front*") { 
+            Join-Path $logDir "frontend.log" 
+        } elseif ($Target -like "*mail*") { 
+            Join-Path $logDir "mail.log" 
+        } else { 
+            Join-Path $logDir "backend.log" 
+        }
         if (Test-Path $file) {
             Write-Host "Exibindo ultimas linhas de $file (Ctrl+C para sair)..." -ForegroundColor Cyan
             Get-Content -Path $file -Tail 30 -Wait

@@ -129,8 +129,8 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
+    "http://localhost:8001",
+    "http://127.0.0.1:8001",
 ]
 
 # Suporte a origens adicionais e Tailscale via variáveis de ambiente
@@ -141,7 +141,7 @@ _tailscale_ip = os.getenv("TAILSCALE_IP", "").strip()
 if _tailscale_ip:
     CSRF_TRUSTED_ORIGINS.extend([
         f"http://{_tailscale_ip}:5173",
-        f"http://{_tailscale_ip}:8000",
+        f"http://{_tailscale_ip}:8001",
     ])
 
 # Django REST Framework

@@ -13,14 +13,14 @@ if (-not (Test-Path $pyExe)) {
     $pyExe = "python.exe"
 }
 
-# 2. Interromper processos na porta 8000 para liberar o arquivo db.sqlite3
+# 2. Interromper processos na porta 8001 para liberar o arquivo db.sqlite3
 Write-Host ""
 Write-Host "[1/4] Verificando e liberando locks no banco SQLite..." -ForegroundColor Yellow
-$port8000 = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue
-if ($port8000) {
-    foreach ($conn in $port8000) {
+$port8001 = Get-NetTCPConnection -LocalPort 8001 -State Listen -ErrorAction SilentlyContinue
+if ($port8001) {
+    foreach ($conn in $port8001) {
         $procId = $conn.OwningProcess
-        Write-Host "  -> Encerrando processo no lock da porta 8000 [PID $procId]..." -ForegroundColor DarkYellow
+        Write-Host "  -> Encerrando processo no lock da porta 8001 [PID $procId]..." -ForegroundColor DarkYellow
         Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
     }
     Start-Sleep -Milliseconds 800
