@@ -1,0 +1,128 @@
+#!/bin/sh
+
+# ==============================================================================
+# Git Hook: post-checkout
+# Sincronizacao automatica de ambiente e arquivos para Git Worktrees (Orca / CLI)
+# ==============================================================================
+
+# 1. Verifica se estamos dentro de uma worktree secundaria (.git e um arquivo ponteiro, nao diretorio)
+if [ ! -f .git ]; then
+    exit 0
+fi
+
+PREV_HEAD="$1"
+NEW_HEAD="$2"
+FLAG="$3"
+
+# Identifica o caminho absoluto do repositorio principal (main)
+MAIN_REPO=$(git worktree list --porcelain 2>/dev/null | head -n 1 | sed 's/^worktree //')
+
+if [ -z "$MAIN_REPO" ] || [ ! -d "$MAIN_REPO" ]; then
+    exit 0
+fi
+
+echo ""
+echo "================================================================"
+echo " 🌊 [Orca / Worktree Setup] Configurando nova worktree..."
+echo " 📁 Origem (Main): $MAIN_REPO"
+echo " 🎯 Destino: $(pwd)"
+echo "================================================================"
+
+# ------------------------------------------------------------------------------
+# 1. Copia de arquivos essenciais nao-versionados (.env, sqlite, configs locais)
+# ------------------------------------------------------------------------------
+DEFAULT_FILES="
+.env
+backend/.env
+frontend/.env
+backend/db.sqlite3
+db.sqlite3
+local_settings.py
+backend/local_settings.py
+"
+
+FILES_TO_COPY="$DEFAULT_FILES"
+
+if [ -f "$MAIN_REPO/.worktree-copy" ]; then
+    CUSTOM_FILES=$(grep -v '^#' "$MAIN_REPO/.worktree-copy" | grep -v '^[[:space:]]*$')
+    FILES_TO_COPY="$FILES_TO_COPY
+$CUSTOM_FILES"
+fi
+
+COPIED_COUNT=0
+EXISTED_COUNT=0
+
+for rel_path in $FILES_TO_COPY; do
+    [ -z "$rel_path" ] && continue
+    src="$MAIN_REPO/$rel_path"
+    dest="./$rel_path"
+    
+    if [ -d "$src" ]; then
+        if [ ! -d "$dest" ]; then
+            mkdir -p "$dest" 2>/dev/null
+            cp -r "$src/." "$dest/" 2>/dev/null || cp -R "$src" "$dest" 2>/dev/null
+            echo "  ✓ Diretorio copiado: $rel_path"
+            COPIED_COUNT=$((COPIED_COUNT + 1))
+        else
+            EXISTED_COUNT=$((EXISTED_COUNT + 1))
+        fi
+    elif [ -f "$src" ]; then
+        if [ ! -f "$dest" ]; then
+            dest_dir=$(dirname "$dest")
+            mkdir -p "$dest_dir" 2>/dev/null
+            cp "$src" "$dest"
+            echo "  ✓ Copiado: $rel_path"
+            COPIED_COUNT=$((COPIED_COUNT + 1))
+        else
+            EXISTED_COUNT=$((EXISTED_COUNT + 1))
+        fi
+    fi
+done
+
+if [ $COPIED_COUNT -gt 0 ]; then
+    echo "  📄 $COPIED_COUNT item(ns) de configuracao sincronizado(s) da main."
+fi
+
+# ------------------------------------------------------------------------------
+# 2. Instalacao de Dependencias (Python uv + Frontend bun)
+# ------------------------------------------------------------------------------
+if [ -n "$SKIP_DEPS" ]; then
+    echo "  ⏭️ [SKIP_DEPS] Instalacao de dependencias pulada pelo usuario."
+else
+    # 2.1 Backend Python Virtualenv & Requirements
+    if [ -f "backend/requirements.txt" ] || [ -f "pyproject.toml" ]; then
+        if command -v uv >/dev/null 2>&1; then
+            if [ ! -d ".venv" ]; then
+                echo "  📦 [Python] Criando ambiente virtual com uv..."
+                uv venv .venv --quiet 2>/dev/null || uv venv .venv
+            fi
+            if [ -f "backend/requirements.txt" ]; then
+                echo "  📦 [Python] Sincronizando dependencias com uv..."
+                uv pip install --python .venv/Scripts/python.exe -r backend/requirements.txt --quiet 2>/dev/null || uv pip install --python .venv/Scripts/python.exe -r backend/requirements.txt
+                echo "  ✓ [Python] Dependencias prontas (.venv)"
+            fi
+        elif [ -f "backend/requirements.txt" ]; then
+            echo "  ⚠️ [Python] 'uv' nao encontrado no PATH para configurar o venv automaticamente."
+        fi
+    fi
+
+    # 2.2 Frontend Node Modules via Bun
+    if [ -f "frontend/package.json" ]; then
+        if command -v bun >/dev/null 2>&1; then
+            if [ ! -d "frontend/node_modules" ]; then
+                echo "  📦 [Frontend] Instalando dependencias com bun..."
+                (cd frontend && (bun install --silent 2>/dev/null || bun install))
+                echo "  ✓ [Frontend] Dependencias prontas (frontend/node_modules)"
+            else
+                echo "  ✓ [Frontend] node_modules ja existe."
+            fi
+        else
+            echo "  ⚠️ [Frontend] 'bun' nao encontrado no PATH."
+        fi
+    fi
+fi
+
+echo "================================================================"
+echo " ✨ Ambiente da worktree 100% pronto para desenvolvimento!"
+echo "================================================================"
+echo ""

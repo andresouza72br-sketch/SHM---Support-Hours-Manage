@@ -1,0 +1,9 @@
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py", "*_test.py"]
+addopts = "--tb=short"
+pythonpath = ["backend", "backend/apps"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

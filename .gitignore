@@ -1,0 +1,102 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Django & Logs
+*.log
+.logs/
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Pytest & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+.bun/
+
+# Temp files & office locks
+.~lock.*
+.~lock.*#
+~$*
+*.tmp
+*.bak
+
+# Data dumps & spreadsheets (PII protection)
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.ods
+
+# Binary documentation & generated PDFs
+*.pdf
+
+# Legacy Reports & Internal Dossiers
+relatorio-legado/
+
+# Local Sanitization Backup
+backup-higienizacao/
+tools/backups/
+
+# Reversa Internal Workspaces & Local AI Skills (Untracked)
+.reversa/
+_reversa_forward/
+_reversa_refactor/
+_reversa_bugs/
+_reversa_docs/
+.agents/skills/
+.claude/skills/
+.worktree-copy
+MANUAL_HIGIENIZACAO_E_WORKTREES.md
+handoff_higienizacao_repo_publico.md

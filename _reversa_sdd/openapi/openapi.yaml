@@ -1,0 +1,35 @@
+openapi: 3.0.3
+info:
+  title: Support Hours Manager (SHM) API
+  version: 2.5.0
+  description: API REST para governança, controle de horas técnicas, gestão contratual, decomposição em ciclos atômicos e ledger imutável.
+paths:
+  /api/v1/status/:
+    get:
+      summary: Health check e status do serviço
+      responses:
+        '200':
+          description: OK
+  /api/v1/auth/login/:
+    post:
+      summary: Login JWT
+      responses:
+        '200':
+          description: Tokens emitidos
+  /api/v1/pedidos/:
+    get:
+      summary: Listar pedidos de suporte
+      responses:
+        '200':
+          description: Lista de pedidos
+    post:
+      summary: Criar novo pedido de suporte
+      responses:
+        '201':
+          description: Pedido criado
+  /api/v1/ciclos/{id}/aceitar/:
+    post:
+      summary: Aceite formal do ciclo com débito de saldo
+      responses:
+        '200':
+          description: Ciclo aceito e horas debitadas no contrato
