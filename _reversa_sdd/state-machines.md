@@ -1,75 +1,77 @@
-# Máquinas de Estado do Sistema — SHM 2.4
+# Máquinas de Estado do Sistema — SHM 2.5.0
 
-> Gerado pelo **Reversa Detective** em 2026-08-27
+> Gerado pelo **Reversa Detective** em 2026-09-03  
+> Sistema: **SHM 2.5.0 (Support Hours Manager)**
 
 ---
 
-## 1. Ciclo de Vida do Pedido (Protocolo OS)
+## 1. Máquina de Estados: Ciclo Técnico (`shm_ciclo`)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Aberto: Cliente abre demanda
-    Aberto --> Em_Orcamento: Técnico cria primeiro ciclo
-    Em_Orcamento --> Aguardando_Aprovacao: Orçamento apresentado
-    Aguardando_Aprovacao --> Em_Execucao: Cliente aprova orçamento
-    Aguardando_Aprovacao --> Em_Orcamento: Cliente rejeita orçamento
-    Em_Execucao --> Aguardando_Aceite: Técnico solicita aceite
-    Aguardando_Aceite --> Em_Execucao: Cliente recusa aceite
-    Aguardando_Aceite --> Concluido: Todos os ciclos aceitos
-    Aberto --> Cancelado: Gestor cancela
-    Em_Orcamento --> Cancelado: Gestor cancela
-    Concluido --> [*]
-    Cancelado --> [*]
+    [*] --> orcado: Criação técnica
+    orcado --> aguardando_aprovacao: Apresentar orçamento
+    aguardando_aprovacao --> orcado: Orçamento rejeitado
+    aguardando_aprovacao --> aprovado: Orçamento aprovado (Magic Link / App)
+    aprovado --> em_execucao: Iniciar execução técnica
+    em_execucao --> aguardando_aceite: Solicitar aceite (com validação de tolerância +30%)
+    aguardando_aceite --> em_execucao: Aceite recusado pelo cliente
+    aguardando_aceite --> aceito: Aceite formalizado (Debita saldo no ledger)
+    orcado --> cancelado: Cancelamento
+    aguardando_aprovacao --> cancelado: Cancelamento
+    em_execucao --> cancelado: Cancelamento
+    aceito --> [*]
+    cancelado --> [*]
 ```
 
 ---
 
-## 2. Ciclo de Vida do Ciclo de Atendimento
+## 2. Máquina de Estados: Contrato (`shm_contrato`)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Orcado: Criação pelo técnico
-    Orcado --> Aguardando_Aprovacao: Apresenta orçamento + Magic Link
-    Aguardando_Aprovacao --> Orcado: Cliente rejeita orçamento
-    Aguardando_Aprovacao --> Aprovado: Cliente aprova (0h debitadas)
-    Aprovado --> Em_Execucao: Técnico inicia execução
-    Em_Execucao --> Aguardando_Aceite: Aponta tarefas e solicita aceite
-    Aguardando_Aceite --> Em_Execucao: Cliente recusa aceite
-    Aguardando_Aceite --> Aceito: Cliente concede aceite (💰 Débito real no Ledger)
-    Orcado --> Cancelado: Cancelamento
-    Aceito --> [*]
-    Cancelado --> [*]
+    [*] --> pendente_aceite: Cadastro inicial do contrato
+    pendente_aceite --> ativo: Aceite formal / Ativação
+    pendente_aceite --> cancelado: Cancelamento pré-ativação
+    ativo --> suspenso: Suspensão administrativa
+    suspenso --> ativo: Reativação
+    ativo --> concluido: Encerramento com entrega completa
+    ativo --> expirado: Data término atingida
+    expirado --> ativo: Renovação / Aditivo
+    ativo --> cancelado: Rescisão / Distrato
+    concluido --> [*]
+    expirado --> [*]
+    cancelado --> [*]
 ```
 
 ---
 
-## 3. Ciclo de Vida do Contrato
+## 3. Máquina de Estados: Pedido de Suporte (`shm_pedido`)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Pendente_Aceite: Criação do contrato
-    Pendente_Aceite --> Ativo: Aceite formalizado / Início de vigência
-    Ativo --> Suspenso: Inadimplência ou bloqueio administrativo
-    Suspenso --> Ativo: Regularização
-    Ativo --> Expirado: Vencimento da vigência (data_termino)
-    Expirado --> Ativo: Termo Aditivo / Renovação
-    Ativo --> Concluido: Encerramento normal
-    Ativo --> Cancelado: Distrato / Rescisão
-    Expirado --> [*]
-    Concluido --> [*]
-    Cancelado --> [*]
+    [*] --> aberto: Abertura pelo cliente ou suporte
+    aberto --> em_orcamento: Primeiro ciclo criado
+    em_orcamento --> aguardando_aprovacao: Ciclos aguardando aprovação
+    aguardando_aprovacao --> em_execucao: Ciclos aprovados e em trabalho
+    em_execucao --> aguardando_aceite: Todos os ciclos submetidos a aceite
+    aguardando_aceite --> concluido: Todos os ciclos aceitos
+    aberto --> cancelado: Cancelamento
+    concluido --> [*]
+    cancelado --> [*]
 ```
 
 ---
 
-## 4. Ciclo de Vida do Cliente
+## 4. Máquina de Estados: Convite de E-mail de Notificação (`shm_contrato_email_notificacao`)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Pendente_Aprovacao: Cadastro criado
-    Pendente_Aprovacao --> Ativo: Gestor aprova via Magic Link (7 dias)
-    Ativo --> Suspenso: Bloqueio administrativo
-    Suspenso --> Ativo: Reativação
-    Ativo --> Inativo: Inativação / Arquivamento
-    Inativo --> [*]
+    [*] --> pendente: Convite emitido com token de 7 dias
+    pendente --> confirmado: Opt-in realizado na tela pública
+    pendente --> recusado: Destinatário recusou recebimento
+    pendente --> expirado: Prazo de 7 dias expirado sem ação
+    confirmado --> [*]
+    recusado --> [*]
+    expirado --> [*]
 ```
