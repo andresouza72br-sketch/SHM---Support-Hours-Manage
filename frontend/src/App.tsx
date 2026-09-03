@@ -17,6 +17,8 @@ import { MagicLinkPage } from './pages/MagicLinkPage'
 import { ConfirmarNotificacaoPage } from './pages/ConfirmarNotificacaoPage'
 import { AceiteContratoPage } from './pages/AceiteContratoPage'
 import { AceiteClientePage } from './pages/AceiteClientePage'
+import { ConfiguracoesNotificacoesPage } from './pages/ConfiguracoesNotificacoesPage'
+
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -51,6 +53,7 @@ export default function App() {
               <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
               <Route path="/admin/contratos" element={<ProtectedRoute><ContratosPage /></ProtectedRoute>} />
               <Route path="/admin/clientes" element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
+              <Route path="/admin/configuracoes/notificacoes" element={<ProtectedRoute><ConfiguracoesNotificacoesPage /></ProtectedRoute>} />
               <Route path="/admin/pedidos/:id/analise" element={<ProtectedRoute><AnalisePedidoPage /></ProtectedRoute>} />
               <Route path="/admin/ciclos/:id/execucao" element={<ProtectedRoute><ExecucaoCicloPage /></ProtectedRoute>} />
               <Route path="/aceite-contrato/:token" element={<AceiteContratoPage />} />

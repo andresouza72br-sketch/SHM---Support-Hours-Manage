@@ -316,3 +316,26 @@ export interface Notification {
   lida: boolean
   criado_em: string
 }
+
+export type CategoriaNotificacao = 'autenticacao' | 'clientes' | 'contratos' | 'saldo' | 'pedidos' | 'ciclos'
+
+export interface ConfiguracaoNotificacao {
+  id: number
+  codigo: string
+  categoria: CategoriaNotificacao
+  categoria_display: string
+  nome: string
+  descricao: string
+  ativo_email: boolean
+  ativo_in_app: boolean
+  notificar_empresa_admin: boolean
+  notificar_empresa_tecnico: boolean
+  notificar_cliente_gerente: boolean
+  notificar_cliente_comum: boolean
+  notificar_gestor_contrato: boolean
+  notificar_emails_cc: boolean
+  emails_adicionais: string[]
+  bloqueado_edicao: boolean
+  criado_em: string
+  atualizado_em: string
+}

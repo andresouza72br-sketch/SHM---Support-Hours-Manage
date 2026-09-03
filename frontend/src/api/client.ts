@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Pedido, Contrato, Ciclo, Tarefa, Comentario, Notification, Cliente, ClienteUser } from '../types'
+import type { Pedido, Contrato, Ciclo, Tarefa, Comentario, Notification, Cliente, ClienteUser, ConfiguracaoNotificacao } from '../types'
 
 export const api = axios.create({
   baseURL: '/api/v1',
@@ -276,6 +276,22 @@ export const clientService = {
     list: () => api.get<any>('/notificacoes/notificacoes/').then((r) => normalizeArray<Notification>(r.data)),
     marcarLida: (id: number) => api.post(`/notificacoes/notificacoes/${id}/marcar_lida/`).then((r) => r.data),
     marcarTodasLidas: () => api.post('/notificacoes/notificacoes/marcar_todas_lidas/').then((r) => r.data),
+  },
+  configuracoesNotificacoes: {
+    list: () =>
+      api
+        .get<any>('/notificacoes/configuracoes-notificacoes/')
+        .then((r) => normalizeArray<ConfiguracaoNotificacao>(r.data)),
+    update: (id: number, data: Partial<ConfiguracaoNotificacao>) =>
+      api.patch<ConfiguracaoNotificacao>(`/notificacoes/configuracoes-notificacoes/${id}/`, data).then((r) => r.data),
+    resetarPadroes: () =>
+      api.post<{ status: string; total: number }>('/notificacoes/configuracoes-notificacoes/resetar-padroes/').then((r) => r.data),
+    testarDisparo: (id: number) =>
+      api
+        .post<{ status: string; mensagem: string; destinatario: string }>(
+          `/notificacoes/configuracoes-notificacoes/${id}/testar-disparo/`
+        )
+        .then((r) => r.data),
   },
   saldo: {
     list: (params?: Record<string, any>) => api.get<any>('/saldo/', { params }).then((r) => normalizeArray<any>(r.data)),
