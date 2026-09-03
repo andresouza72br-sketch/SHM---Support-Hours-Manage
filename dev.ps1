@@ -1,6 +1,6 @@
 param(
     [Parameter(Position=0)]
-    [ValidateSet("start", "stop", "restart", "status", "logs", "reset-db", "sync", "diff", "backups")]
+    [ValidateSet("start", "stop", "restart", "status", "logs", "reset-db", "sync", "diff", "backups", "restore")]
     [string]$Action = "start",
 
     [Parameter(Position=1)]
@@ -105,6 +105,9 @@ switch ($Action) {
     }
     "backups" {
         & "$PSScriptRoot\tools\scripts\sync-local.ps1" -Action backups
+    }
+    "restore" {
+        & "$PSScriptRoot\tools\scripts\sync-local.ps1" -Action restore -BackupId $Target
     }
 }
 
