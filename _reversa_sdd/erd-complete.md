@@ -1,31 +1,51 @@
-# Diagrama Entidade-Relacionamento Completo (ERD) — SHM 2.4
+# Diagrama Entidade-Relacionamento Completo (ERD) — SHM 2.5.0
 
 ```mermaid
 erDiagram
-    CLIENTE ||--o{ CONTRATO : "possui"
-    CLIENTE ||--o{ USUARIO : "pertence_a"
-    CLIENTE ||--o{ CLIENTE_ACEITE_LINK : "possui"
-    CLIENTE ||--o{ CLIENTE_AUDIT_LOG : "registra"
+    shm_user ||--o{ shm_cliente : "pertence_a (se cliente)"
+    shm_cliente ||--o{ shm_contrato : "possui"
+    shm_cliente ||--o{ shm_pedido : "abre"
+    shm_cliente ||--o{ shm_cliente_audit_log : "registra"
+    shm_cliente ||--o{ shm_cliente_aceite_link : "possui"
 
-    CONTRATO ||--o{ CONTRATO : "referencia_aditivo"
-    CONTRATO ||--o{ CONTRATO_DOCUMENTO : "anexa"
-    CONTRATO ||--o{ CONTRATO_AUDIT_LOG : "audita"
-    CONTRATO ||--o{ CONTRATO_EMAIL_NOTIFICACAO : "notifica"
-    CONTRATO ||--o{ PEDIDO : "vincula"
-    CONTRATO ||--o{ HISTORICO_SALDO : "movimenta_ledger"
+    shm_contrato ||--o{ shm_contrato : "aditivo_de (recursivo)"
+    shm_contrato ||--o{ shm_contrato_documento : "possui"
+    shm_contrato ||--o{ shm_contrato_audit_log : "registra"
+    shm_contrato ||--o{ shm_contrato_email_notificacao : "destinatarios"
+    shm_contrato ||--o{ shm_historico_saldo : "movimentacoes_saldo"
+    shm_contrato ||--o{ shm_transferencia_saldo : "origem/destino"
+    shm_contrato ||--o{ shm_reabastecimento : "recebe"
 
-    PEDIDO ||--|{ CICLO : "decomposto_em"
-    PEDIDO ||--o{ ANEXO_PEDIDO : "possui"
-    PEDIDO ||--o{ TIMELINE_EVENT : "gera"
+    shm_pedido ||--o{ shm_ciclo : "decomposto_em"
+    shm_pedido ||--o{ shm_anexo_pedido : "possui"
+    shm_pedido ||--o{ shm_timeline_event : "timeline"
 
-    CICLO ||--o{ TAREFA : "composto_por"
-    CICLO ||--o{ CICLO_MAGIC_LINK : "emite"
-    CICLO ||--o| AVALIACAO_CICLO : "recebe_avaliacao"
-    CICLO ||--o{ COMENTARIO : "possui_thread"
+    shm_ciclo ||--o{ shm_tarefa : "composto_por"
+    shm_ciclo ||--o{ shm_ciclo_magic_link : "magic_links"
+    shm_ciclo ||--o{ shm_avaliacao_ciclo : "avaliacao"
+    shm_ciclo ||--o{ shm_comentario : "comentarios"
+    shm_ciclo ||--o{ shm_historico_saldo : "consumos"
 
-    COMENTARIO ||--o{ COMENTARIO : "resposta_filha"
-    COMENTARIO ||--o{ REACAO_COMENTARIO : "recebe_reacao"
+    shm_comentario ||--o{ shm_comentario : "resposta_de (parent)"
+    shm_comentario ||--o{ shm_anexo_comentario : "anexos"
+    shm_comentario ||--o{ shm_reacao_comentario : "reacoes"
 
-    USUARIO ||--o{ NOTIFICACAO : "recebe"
-    USUARIO ||--o{ PASSWORDLESS_TOKEN : "gera_login"
+    shm_user ||--o{ shm_notification : "notificacoes_in_app"
+
+    shm_configuracao_notificacao {
+        bigint id PK
+        string codigo UK
+        string categoria
+        string nome
+        boolean ativo_email
+        boolean ativo_in_app
+        boolean notificar_empresa_admin
+        boolean notificar_empresa_tecnico
+        boolean notificar_cliente_gerente
+        boolean notificar_cliente_comum
+        boolean notificar_gestor_contrato
+        boolean notificar_emails_cc
+        json emails_adicionais
+        boolean bloqueado_edicao
+    }
 ```

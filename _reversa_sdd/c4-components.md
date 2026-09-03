@@ -2,20 +2,29 @@
 
 ```mermaid
 C4Component
-    title Diagrama C4 de Componentes — Backend Django REST Framework
+    title Diagrama de Componentes do Backend — SHM 2.5.0
 
-    Component(accounts, "apps.accounts", "Django App", "Usuários, RBAC, Magic Login, Google OAuth.")
-    Component(clientes, "apps.clientes", "Django App", "Cadastro PF/PJ, validações, Magic Link e auditoria.")
-    Component(contratos, "apps.contratos", "Django App", "Contratos, carência, integridade SHA-256 e destinatários.")
-    Component(pedidos, "apps.pedidos", "Django App", "Chamados OS, sincronização de status.")
-    Component(ciclos, "apps.ciclos", "Django App", "CicloService, workflow de aprovação e aceite.")
-    Component(tarefas, "apps.tarefas", "Django App", "Apontamento técnico e recálculo de horas.")
-    Component(saldo, "apps.saldo", "Django App", "SaldoService, Ledger imutável e transferências.")
-    Component(comunicacao, "apps.comunicacao", "Django App", "Comentários em árvore e reações.")
-    Component(notificacoes, "apps.notificacoes", "Django App", "TimelineEvent e notificações in-app/e-mail.")
+    Container_Boundary(backend, "Backend Application (Django REST Framework)")
+        Component(auth_ctrl, "Auth & Accounts ViewSet", "DRF Views", "Login tradicional, geração de Magic Login e validação Google OAuth.")
+        Component(contrato_svc, "ContratoService", "Service Layer", "Vigência, carência, integridade SHA-256 e auditoria de contratos.")
+        Component(pedido_svc, "PedidoService", "Service Layer", "Geração sequencial de protocolo OS e sincronização de status.")
+        Component(ciclo_svc, "CicloService", "Service Layer", "Workflow de orçamentos, trava de tolerância (+30%), aceites e Magic Links.")
+        Component(saldo_svc, "SaldoService", "Service Layer", "Ledger append-only, locks ordenados, migração de saldo e compensação de débitos.")
+        Component(notif_svc, "NotificacaoService", "Service Layer", "Timeline de eventos e despacho multicanal baseado em ConfiguracaoNotificacao.")
+        Component(tarefa_svc, "TarefaService", "Service Layer", "Apontamento de horas e recálculo atômico de horas realizadas.")
+    end
 
-    Rel(ciclos, saldo, "Consome horas reais no aceite", "SaldoService.consumir()")
-    Rel(ciclos, pedidos, "Atualiza status em cascata", "PedidoService.sincronizar_status_pedido()")
-    Rel(tarefas, ciclos, "Recalcula horas_realizadas", "Tarefa.save()")
-    Rel(ciclos, notificacoes, "Registra eventos e dispara e-mails", "NotificacaoService.notificar_evento_ciclo()")
+    ContainerDb(db, "PostgreSQL / SQLite", "Tabelas shm_*")
+
+    Rel(auth_ctrl, db, "Autentica e emite tokens")
+    Rel(ciclo_svc, pedido_svc, "Notifica mudanças para sincronizar pedido")
+    Rel(ciclo_svc, saldo_svc, "Dispara débito de horas reais no aceite")
+    Rel(ciclo_svc, notif_svc, "Dispara eventos e alertas de tolerância")
+    Rel(saldo_svc, contrato_svc, "Valida e atualiza saldos de contratos com lock")
+    Rel(saldo_svc, notif_svc, "Dispara alertas de saldo 80% e saldo esgotado")
+    Rel(tarefa_svc, ciclo_svc, "Atualiza horas_realizadas no ciclo")
+    Rel(contrato_svc, notif_svc, "Dispara notificações contratuais e convites")
+
+    Rel(contrato_svc, db, "Persiste contratos e audit log")
+    Rel(saldo_svc, db, "Persiste HistoricoSaldo com select_for_update")
 ```
