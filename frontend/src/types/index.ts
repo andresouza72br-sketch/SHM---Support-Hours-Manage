@@ -334,6 +334,7 @@ export interface ConfiguracaoNotificacao {
   notificar_cliente_comum: boolean
   notificar_gestor_contrato: boolean
   notificar_emails_cc: boolean
+  nao_enviar_autor: boolean
   emails_adicionais: string[]
   bloqueado_edicao: boolean
   criado_em: string

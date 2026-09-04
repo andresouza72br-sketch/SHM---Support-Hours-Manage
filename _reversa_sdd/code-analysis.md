@@ -94,11 +94,17 @@ O SHM 2.5.0 é estruturado no padrão **Django Apps Modulares** no backend com a
   - Reações de emoji: Toggle atômico por usuário (`unique_together = [['comentario', 'autor', 'tipo']]`) 🟢.
   - Conversão em Tarefa: Endpoint `/converter_em_tarefa/` cria uma tarefa diretamente a partir de um comentário 🟢.
 
-### 2.9 Módulo `notificacoes` (Timeline, Alertas e Painel Declarativo de Configurações)
+### 2.9 Módulo `notificacoes` (Timeline, Alertas, Central Declarativa e Supressão para o Autor)
 - **Modelos:** `TimelineEvent`, `Notification`, `ConfiguracaoNotificacao` 🟢.
-- **Recursos:**
+- **Recursos & Regras de Negócio:**
   - Timeline de auditoria com histórico cronológico de cada transição de pedido e ciclo 🟢.
   - Central Declarativa de Notificações (`ConfiguracaoNotificacao`): Suporte a 6 categorias de eventos (Autenticação, Clientes, Contratos, Saldo, Pedidos, Ciclos) com controles independentes de e-mail e in-app, além de matriz de destinatários por papel RBAC (`empresa_admin`, `empresa_tecnico`, `cliente_gerente`, `cliente_comum`, `gestor_contrato`, `emails_cc`) 🟢.
+  - **Supressão Seletiva para o Autor da Ação (Feature 003):**
+    - Campo booleano `nao_enviar_autor` no modelo `ConfiguracaoNotificacao` com `default=True` persistido via migração `0004_configuracaonotificacao_nao_enviar_autor.py` 🟢.
+    - **Invariante Universal In-App:** O autor da ação conectado NUNCA recebe no sininho de notificações (`Notification`) alertas gerados por suas próprias ações (`destinatarios_in_app.discard(autor)`), blindando contra ruído e auto-notificações no app web ou mobile 🟢.
+    - **Filtragem Declarativa de E-mail:** O método `NotificacaoConfigService.resolver_destinatarios_evento` expurga o autor da lista `destinatarios_usuarios` e elimina seu e-mail da lista de cópia (`emails_cc`) com normalização case-insensitive quando `nao_enviar_autor = True` 🟢.
+    - **Calibragem Padrão dos 22 Eventos:** 14 eventos operacionais ativos por padrão (chamados, comentários, aprovações, orçamentos, aceite) e 8 inativos (convites de clientes, relatórios, ações de usuários) 🟢.
+    - Serializer DRF `ConfiguracaoNotificacaoSerializer` expõe `nao_enviar_autor` permitindo atualização granular via PATCH por administradores da empresa 🟢.
 
 ### 2.10 Módulo `core` (Modelos Base e Exception Handler)
 - **Modelos:** `TimeStampedModel` (abstract base com `criado_em`, `atualizado_em`) 🟢.
@@ -109,6 +115,6 @@ O SHM 2.5.0 é estruturado no padrão **Django Apps Modulares** no backend com a
 - **Componentes Chave:**
   - `MigracaoSaldoModal.tsx`: Modal para migração e compensação contábil de saldo entre contratos com preview em tempo real e cálculo de impacto financeiro 🟢.
   - `DocumentosContratoModal.tsx` & `TimelineAuditoriaContrato.tsx`: Gestão de anexos com cálculo/exibição de hash SHA-256 e linha do tempo de auditoria 🟢.
-  - `ConfiguracoesNotificacoesPage.tsx`: Painel interativo com switches para regras de despacho de alertas 🟢.
+  - `ConfiguracoesNotificacoesPage.tsx`: Painel interativo para governança de notificações e e-mails, com switches de canais e modal de Matriz de Destinatários incluindo o checkbox reativo "Não enviar para o autor (Quem executou a ação)" 🟢.
   - `AdminDashboardPage.tsx`: Cockpit executivo com métricas de horas, contratos e saúde da operação 🟢.
   - Kanban Board de 6 colunas, Carrossel de Ciclos e tema claro/escuro dinâmico 🟢.

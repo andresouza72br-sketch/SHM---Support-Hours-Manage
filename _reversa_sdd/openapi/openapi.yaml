@@ -33,3 +33,15 @@ paths:
       responses:
         '200':
           description: Ciclo aceito e horas debitadas no contrato
+  /api/v1/notificacoes/configuracoes-notificacoes/:
+    get:
+      summary: Listar configurações declarativas de notificações
+      responses:
+        '200':
+          description: Lista de configurações por evento
+    patch:
+      summary: Atualização parcial de configuração de notificação (incluindo nao_enviar_autor)
+      responses:
+        '200':
+          description: Configuração atualizada
+

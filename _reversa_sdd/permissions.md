@@ -29,5 +29,7 @@
 | **Saldo** | Transferir saldo entre contratos ativos | ✅ Permitido | ❌ Negado | ❌ Negado | ❌ Negado |
 | **Saldo** | Migrar saldo remanescente de vencidos | ✅ Permitido | ❌ Negado | ❌ Negado | ❌ Negado |
 | **Saldo** | Compensar saldo devedor anterior | ✅ Permitido | ❌ Negado | ❌ Negado | ❌ Negado |
-| **Notificações** | Configurar regras e categorias | ✅ Total | ❌ Negado | ❌ Negado | ❌ Negado |
-| **Notificações** | Receber alertas in-app e e-mail | ✅ Habilitado | ✅ Habilitado | ✅ Habilitado | 🟡 Condicional |
+| **Notificações** | Configurar regras, canais e supressão para autor | ✅ Total | ❌ Negado | ❌ Negado | ❌ Negado |
+| **Notificações** | Receber alertas in-app e e-mail | ✅ Habilitado* | ✅ Habilitado* | ✅ Habilitado* | 🟡 Condicional* |
+
+> *\* **Invariante do Autor:** Quando o usuário for o próprio autor que disparou a ação, o alerta no sininho in-app é suprimido incondicionalmente, e o disparo de e-mail respeita o toggle `nao_enviar_autor` configurado para o evento.*

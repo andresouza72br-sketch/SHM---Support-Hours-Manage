@@ -19,6 +19,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": False,
         "notificar_gestor_contrato": False,
         "notificar_emails_cc": False,
+        "nao_enviar_autor": False,
         "bloqueado_edicao": True,
     },
     # --- CLIENTES ---
@@ -35,6 +36,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": False,
         "notificar_gestor_contrato": False,
         "notificar_emails_cc": False,
+        "nao_enviar_autor": False,
         "bloqueado_edicao": False,
     },
     {
@@ -50,6 +52,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": False,
         "notificar_gestor_contrato": False,
         "notificar_emails_cc": False,
+        "nao_enviar_autor": False,
         "bloqueado_edicao": False,
     },
     {
@@ -65,6 +68,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": False,
         "notificar_gestor_contrato": False,
         "notificar_emails_cc": False,
+        "nao_enviar_autor": False,
         "bloqueado_edicao": False,
     },
     # --- CONTRATOS ---
@@ -81,6 +85,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": False,
         "notificar_gestor_contrato": False,
         "notificar_emails_cc": False,
+        "nao_enviar_autor": False,
         "bloqueado_edicao": False,
     },
     {
@@ -96,6 +101,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": False,
         "notificar_gestor_contrato": True,
         "notificar_emails_cc": False,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
     {
@@ -111,6 +117,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": False,
         "notificar_gestor_contrato": True,
         "notificar_emails_cc": True,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
     {
@@ -126,6 +133,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": False,
         "notificar_gestor_contrato": True,
         "notificar_emails_cc": True,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
     {
@@ -141,6 +149,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": False,
         "notificar_gestor_contrato": True,
         "notificar_emails_cc": True,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
     {
@@ -156,6 +165,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": False,
         "notificar_gestor_contrato": True,
         "notificar_emails_cc": True,
+        "nao_enviar_autor": False,
         "bloqueado_edicao": False,
     },
     # --- SALDO ---
@@ -172,6 +182,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": False,
         "notificar_gestor_contrato": True,
         "notificar_emails_cc": True,
+        "nao_enviar_autor": False,
         "bloqueado_edicao": False,
     },
     {
@@ -187,6 +198,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": False,
         "notificar_gestor_contrato": True,
         "notificar_emails_cc": True,
+        "nao_enviar_autor": False,
         "bloqueado_edicao": False,
     },
     # --- PEDIDOS ---
@@ -203,6 +215,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": True,
         "notificar_gestor_contrato": True,
         "notificar_emails_cc": True,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
     {
@@ -218,6 +231,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": True,
         "notificar_gestor_contrato": False,
         "notificar_emails_cc": False,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
     # --- CICLOS ---
@@ -234,6 +248,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": True,
         "notificar_gestor_contrato": True,
         "notificar_emails_cc": True,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
     {
@@ -249,6 +264,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": True,
         "notificar_gestor_contrato": False,
         "notificar_emails_cc": False,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
     {
@@ -264,6 +280,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": True,
         "notificar_gestor_contrato": False,
         "notificar_emails_cc": False,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
     {
@@ -279,6 +296,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": True,
         "notificar_gestor_contrato": False,
         "notificar_emails_cc": False,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
     {
@@ -294,6 +312,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": True,
         "notificar_gestor_contrato": True,
         "notificar_emails_cc": True,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
     {
@@ -309,6 +328,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": True,
         "notificar_gestor_contrato": True,
         "notificar_emails_cc": True,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
     {
@@ -324,6 +344,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": True,
         "notificar_gestor_contrato": False,
         "notificar_emails_cc": False,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
     {
@@ -339,6 +360,7 @@ CONFIGURACOES_PADRAO = [
         "notificar_cliente_comum": True,
         "notificar_gestor_contrato": False,
         "notificar_emails_cc": False,
+        "nao_enviar_autor": True,
         "bloqueado_edicao": False,
     },
 ]
@@ -349,12 +371,17 @@ class NotificacaoConfigService:
     def garantir_configuracoes_padrao():
         """
         Garante idempotentemente que todas as configurações padrão existam no banco de dados.
+        Sincroniza o campo nao_enviar_autor caso o registro já exista.
         """
         for item in CONFIGURACOES_PADRAO:
-            ConfiguracaoNotificacao.objects.get_or_create(
+            cfg, created = ConfiguracaoNotificacao.objects.get_or_create(
                 codigo=item["codigo"],
                 defaults=item,
             )
+            if not created and "nao_enviar_autor" in item:
+                if cfg.nao_enviar_autor != item["nao_enviar_autor"]:
+                    cfg.nao_enviar_autor = item["nao_enviar_autor"]
+                    cfg.save(update_fields=["nao_enviar_autor"])
 
     @staticmethod
     def obter_configuracao(codigo: str) -> ConfiguracaoNotificacao | None:
@@ -419,8 +446,10 @@ class NotificacaoConfigService:
         if ciclo and ciclo.operador and ciclo.operador.is_active:
             destinatarios_usuarios.add(ciclo.operador)
 
-        # Não notificar o autor da própria ação
-        if autor and hasattr(autor, "is_authenticated") and autor.is_authenticated:
+        # Regra de envio para o autor da ação:
+        # Se nao_enviar_autor for True (padrão em eventos operacionais), remove o autor dos destinatários
+        nao_enviar_autor = getattr(cfg, "nao_enviar_autor", True)
+        if nao_enviar_autor and autor and hasattr(autor, "is_authenticated") and autor.is_authenticated:
             destinatarios_usuarios.discard(autor)
 
         # 5. Destinatários de E-mails / CC
@@ -454,5 +483,13 @@ class NotificacaoConfigService:
             e for e in dict.fromkeys(emails_cc)
             if e.lower().strip() not in emails_dos_usuarios
         ]
+
+        # Se nao_enviar_autor for True, garante que o e-mail do autor não seja incluído na lista CC
+        if nao_enviar_autor and autor and hasattr(autor, "email") and autor.email:
+            autor_email_norm = autor.email.lower().strip()
+            emails_cc_filtrados = [
+                e for e in emails_cc_filtrados
+                if e.lower().strip() != autor_email_norm
+            ]
 
         return enviar_email, enviar_in_app, destinatarios_usuarios, emails_cc_filtrados
