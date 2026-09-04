@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Plus, Send, Trash2, Clock, MessageSquare, Loader2 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
+import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { clientService } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
@@ -16,6 +17,8 @@ export function ExecucaoCicloPage() {
 
   const [descricaoTarefa, setDescricaoTarefa] = useState('')
   const [horasRealizadas, setHorasRealizadas] = useState('1.0')
+  const [tarefaParaExcluir, setTarefaParaExcluir] = useState<Tarefa | null>(null)
+  const [showSolicitarAceiteModal, setShowSolicitarAceiteModal] = useState(false)
 
   const { data: ciclo, isLoading } = useQuery({
     queryKey: ['ciclo_detail', id],
@@ -50,6 +53,7 @@ export function ExecucaoCicloPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ciclo_detail', id] })
       toast.info('Apontamento de tarefa excluído com sucesso.', 'Tarefa Excluída')
+      setTarefaParaExcluir(null)
     },
     onError: () => toast.error('Erro ao excluir tarefa.', 'Falha'),
   })
@@ -59,6 +63,7 @@ export function ExecucaoCicloPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ciclo_detail', id] })
       toast.success('Solicitação de aceite enviada ao cliente com sucesso!', 'Aceite Solicitado')
+      setShowSolicitarAceiteModal(false)
     },
     onError: () => toast.error('Erro ao solicitar aceite.', 'Falha'),
   })
@@ -206,7 +211,7 @@ export function ExecucaoCicloPage() {
                   </span>
                   <button
                     disabled={deleteTarefaMutation.isPending && (deleteTarefaMutation.variables as any) === t.id}
-                    onClick={() => deleteTarefaMutation.mutate(t.id)}
+                    onClick={() => setTarefaParaExcluir(t)}
                     className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition cursor-pointer disabled:opacity-50"
                     title="Excluir Apontamento"
                   >
@@ -231,7 +236,7 @@ export function ExecucaoCicloPage() {
         <div className="flex justify-end gap-3 pt-4">
           <button
             disabled={solicitarAceiteMutation.isPending}
-            onClick={() => solicitarAceiteMutation.mutate()}
+            onClick={() => setShowSolicitarAceiteModal(true)}
             className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm px-7 py-3.5 rounded-2xl shadow-lg shadow-emerald-500/20 transition cursor-pointer disabled:opacity-75 disabled:cursor-wait"
           >
             {solicitarAceiteMutation.isPending ? (
@@ -247,6 +252,53 @@ export function ExecucaoCicloPage() {
             )}
           </button>
         </div>
+
+        {/* Modal de Confirmação: Excluir Apontamento */}
+        <ConfirmModal
+          isOpen={Boolean(tarefaParaExcluir)}
+          onClose={() => setTarefaParaExcluir(null)}
+          onConfirm={() => {
+            if (tarefaParaExcluir) {
+              deleteTarefaMutation.mutate(tarefaParaExcluir.id)
+            }
+          }}
+          title="Excluir Apontamento de Horas"
+          badge={tarefaParaExcluir ? `${Number(tarefaParaExcluir.horas_realizadas).toFixed(1)}h` : undefined}
+          variant="danger"
+          icon={Trash2}
+          confirmText="Confirmar Exclusão"
+          isLoading={deleteTarefaMutation.isPending}
+          description={
+            tarefaParaExcluir ? (
+              <p>
+                Tem certeza que deseja excluir o apontamento <strong>"{tarefaParaExcluir.descricao}"</strong>? As <strong>{Number(tarefaParaExcluir.horas_realizadas).toFixed(1)}h</strong> lançadas serão estornadas do total do ciclo.
+              </p>
+            ) : undefined
+          }
+        />
+
+        {/* Modal de Confirmação: Solicitar Aceite */}
+        <ConfirmModal
+          isOpen={showSolicitarAceiteModal}
+          onClose={() => setShowSolicitarAceiteModal(false)}
+          onConfirm={() => solicitarAceiteMutation.mutate()}
+          title="Solicitar Aceite do Cliente"
+          badge={ciclo ? `${Number(ciclo.horas_realizadas).toFixed(1)}h Realizadas` : undefined}
+          variant="success"
+          icon={Send}
+          confirmText="Confirmar e Enviar"
+          isLoading={solicitarAceiteMutation.isPending}
+          description={
+            <div className="space-y-2">
+              <p>
+                Deseja concluir a execução deste ciclo e enviar a solicitação de aceite formal para o cliente?
+              </p>
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-900 dark:text-emerald-200 leading-relaxed">
+                ✉️ <strong>Disparo Automático:</strong> Um Magic Link seguro de aprovação será enviado ao gestor do cliente com o detalhamento das <strong>{Number(ciclo?.horas_realizadas || 0).toFixed(1)}h</strong> executadas.
+              </div>
+            </div>
+          }
+        />
       </div>
     </AppLayout>
   )

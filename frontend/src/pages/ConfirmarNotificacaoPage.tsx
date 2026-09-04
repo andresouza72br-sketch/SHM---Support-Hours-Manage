@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { clientService } from '../api/client'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
+import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { useToast } from '../contexts/ToastContext'
 
 export function ConfirmarNotificacaoPage() {
@@ -23,6 +24,7 @@ export function ConfirmarNotificacaoPage() {
   const toast = useToast()
 
   const [feedbackState, setFeedbackState] = useState<'idle' | 'confirmado' | 'recusado'>('idle')
+  const [showRecusarModal, setShowRecusarModal] = useState(false)
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['convite_notificacao', token],
@@ -48,6 +50,7 @@ export function ConfirmarNotificacaoPage() {
     onSuccess: (res) => {
       setFeedbackState('recusado')
       toast.info(res.detail || 'Recebimento de notificações recusado.', 'Recusado')
+      setShowRecusarModal(false)
       refetch()
     },
     onError: (err: any) => {
@@ -285,11 +288,7 @@ export function ConfirmarNotificacaoPage() {
                 <button
                   type="button"
                   disabled={confirmarMutation.isPending || recusarMutation.isPending}
-                  onClick={() => {
-                    if (window.confirm('Tem certeza que deseja recusar o recebimento de notificações deste contrato?')) {
-                      recusarMutation.mutate()
-                    }
-                  }}
+                  onClick={() => setShowRecusarModal(true)}
                   className="w-full sm:w-auto px-5 py-3.5 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-800 transition cursor-pointer"
                 >
                   {recusarMutation.isPending ? 'Processando...' : 'Recusar Recebimento'}
@@ -308,6 +307,29 @@ export function ConfirmarNotificacaoPage() {
       <div className="max-w-xl mx-auto w-full text-center pt-6 text-[11px] text-slate-400 font-medium">
         Privacidade e Segurança: Seus dados são protegidos segundo as normas da LGPD.
       </div>
+
+      {/* Modal de Confirmação: Recusar Recebimento de Notificações */}
+      <ConfirmModal
+        isOpen={showRecusarModal}
+        onClose={() => setShowRecusarModal(false)}
+        onConfirm={() => recusarMutation.mutate()}
+        title="Recusar Recebimento de Notificações"
+        badge={data?.email}
+        variant="warning"
+        icon={XCircle}
+        confirmText="Confirmar Recusa"
+        isLoading={recusarMutation.isPending}
+        description={
+          <div className="space-y-2">
+            <p>
+              Tem certeza que deseja recusar o recebimento de notificações deste contrato?
+            </p>
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed">
+              ⚠️ <strong>Impacto:</strong> Ao recusar, seu endereço de e-mail não receberá os comunicados de consumo de horas, saldo em carência e fechamento de ciclos de suporte deste contrato.
+            </div>
+          </div>
+        }
+      />
     </div>
   )
 }
