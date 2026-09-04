@@ -118,3 +118,24 @@ class TestGoogleAuthentication:
     def test_google_login_missing_credential(self):
         res = self.client.post("/api/v1/auth/google/", {})
         assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_token_refresh_rotates_and_blacklists_previous_token(self):
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        refresh = RefreshToken.for_user(self.admin_user)
+        refresh_str = str(refresh)
+
+        # 1º Refresh com sucesso
+        res = self.client.post("/api/v1/auth/token/refresh/", {"refresh": refresh_str})
+        assert res.status_code == status.HTTP_200_OK
+        assert "access" in res.data
+        assert "refresh" in res.data
+        new_refresh = res.data["refresh"]
+
+        # 2º Tentativa de reutilizar o token anterior rotacionado (deve falhar por estar na blacklist)
+        res_reuse = self.client.post("/api/v1/auth/token/refresh/", {"refresh": refresh_str})
+        assert res_reuse.status_code == status.HTTP_401_UNAUTHORIZED
+
+        # 3º Novo token emitido na rotação funciona normalmente
+        res_new = self.client.post("/api/v1/auth/token/refresh/", {"refresh": new_refresh})
+        assert res_new.status_code == status.HTTP_200_OK

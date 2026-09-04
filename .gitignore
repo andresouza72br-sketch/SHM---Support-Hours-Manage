@@ -98,5 +98,6 @@ _reversa_docs/
 .agents/skills/
 .claude/skills/
 .worktree-copy
+.ag-kit-backups/
 MANUAL_HIGIENIZACAO_E_WORKTREES.md
 handoff_higienizacao_repo_publico.md

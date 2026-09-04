@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     # Third party
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "drf_spectacular",
 
@@ -122,8 +123,25 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # CORS
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
+
+_frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+if _frontend_url and _frontend_url not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(_frontend_url)
+
+if os.getenv("CORS_ALLOWED_ORIGINS"):
+    CORS_ALLOWED_ORIGINS.extend([o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS").split(",") if o.strip()])
+
+_tailscale_ip = os.getenv("TAILSCALE_IP", "").strip()
+if _tailscale_ip:
+    CORS_ALLOWED_ORIGINS.extend([
+        f"http://{_tailscale_ip}:5173",
+    ])
 
 # CSRF
 CSRF_TRUSTED_ORIGINS = [
@@ -137,7 +155,6 @@ CSRF_TRUSTED_ORIGINS = [
 if os.getenv("CSRF_TRUSTED_ORIGINS"):
     CSRF_TRUSTED_ORIGINS.extend([o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS").split(",") if o.strip()])
 
-_tailscale_ip = os.getenv("TAILSCALE_IP", "").strip()
 if _tailscale_ip:
     CSRF_TRUSTED_ORIGINS.extend([
         f"http://{_tailscale_ip}:5173",
@@ -164,7 +181,7 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": False,
+    "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 

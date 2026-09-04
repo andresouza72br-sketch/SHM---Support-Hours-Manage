@@ -250,6 +250,52 @@ class TestContratosFeatures:
         assert audit is not None
         assert audit.documento_hash == hash_esperado
 
+    def test_upload_documento_extensoes_permitidas_e_bloqueadas(self):
+        contrato = Contrato.objects.create(
+            numero="CT-2026-EXT-TEST",
+            cliente=self.cliente,
+            data_inicio=timezone.localdate(),
+            horas_contratadas=Decimal("50.00"),
+            saldo=Decimal("50.00"),
+            status=StatusContrato.ATIVO,
+            criado_por=self.admin,
+        )
+        self.client.force_authenticate(user=self.admin)
+
+        # 1. Extensões bloqueadas (ex: .exe, .html, .py, .sh)
+        arquivos_bloqueados = [
+            ("malware.exe", b"MZ...", "application/x-msdownload"),
+            ("xss.html", b"<script>alert(1)</script>", "text/html"),
+            ("script.py", b"import os; os.system('calc')", "text/x-python"),
+            ("payload.sh", b"#!/bin/sh\nrm -rf /", "application/x-sh"),
+        ]
+        for nome, conteudo, ctype in arquivos_bloqueados:
+            arquivo = SimpleUploadedFile(nome, conteudo, content_type=ctype)
+            res = self.client.post(
+                f"/api/v1/contratos/{contrato.id}/upload_documento/",
+                {"arquivo": arquivo, "tipo_documento": "outro"},
+                format="multipart",
+            )
+            assert res.status_code == 400
+            assert "não permitida" in str(res.data)
+
+        # 2. Extensões permitidas (ex: .docx, .xlsx, .png, .mp3)
+        arquivos_permitidos = [
+            ("minuta.docx", b"PK...", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+            ("tabela.xlsx", b"PK...", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            ("evidencia.png", b"\x89PNG\r\n\x1a\n...", "image/png"),
+            ("audio_reuniao.mp3", b"ID3...", "audio/mpeg"),
+        ]
+        for nome, conteudo, ctype in arquivos_permitidos:
+            arquivo = SimpleUploadedFile(nome, conteudo, content_type=ctype)
+            res = self.client.post(
+                f"/api/v1/contratos/{contrato.id}/upload_documento/",
+                {"arquivo": arquivo, "tipo_documento": "outro"},
+                format="multipart",
+            )
+            assert res.status_code == 201
+            assert res.data["nome_original"] == nome
+
     def test_gerente_empresa_remove_documento_com_motivo_e_registra_auditoria_forense(self):
         import hashlib
         contrato = Contrato.objects.create(

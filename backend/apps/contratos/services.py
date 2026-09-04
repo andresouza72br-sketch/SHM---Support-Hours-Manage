@@ -528,6 +528,15 @@ class ContratoDocumentoService:
             tipo_doc = TipoDocumentoContrato.OUTRO
 
         nome_original = getattr(arquivo, "name", "documento")
+        from apps.contratos.models import EXTENSOES_PERMITIDAS_DOCUMENTO
+        import os
+        extensao = os.path.splitext(nome_original)[1].lower().lstrip(".")
+        if extensao not in EXTENSOES_PERMITIDAS_DOCUMENTO:
+            exts_formatadas = ", ".join(f".{e}" for e in sorted(EXTENSOES_PERMITIDAS_DOCUMENTO))
+            raise ValidationError({
+                "arquivo": f"Extensão de arquivo '.{extensao}' não permitida. Extensões aceitas: {exts_formatadas}."
+            })
+
         hash_sha256 = calcular_hash_sha256(arquivo)
 
         doc = ContratoDocumento.objects.create(

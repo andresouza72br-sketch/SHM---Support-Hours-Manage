@@ -4,8 +4,13 @@ from datetime import date, timedelta
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 from django.utils import timezone
 from apps.core.models import TimeStampedModel
+
+EXTENSOES_PERMITIDAS_DOCUMENTO = [
+    "pdf", "doc", "docx", "xls", "xlsx", "png", "jpg", "jpeg", "ppt", "pptx", "mp3"
+]
 
 class StatusContrato(models.TextChoices):
     PENDENTE_ACEITE = "pendente_aceite", "Pendente de Aceite"
@@ -158,7 +163,11 @@ class Contrato(TimeStampedModel):
 
 class ContratoDocumento(TimeStampedModel):
     contrato = models.ForeignKey(Contrato, on_delete=models.CASCADE, related_name="documentos", verbose_name="contrato")
-    arquivo = models.FileField("arquivo do documento", upload_to="contratos/documentos/%Y/%m/")
+    arquivo = models.FileField(
+        "arquivo do documento",
+        upload_to="contratos/documentos/%Y/%m/",
+        validators=[FileExtensionValidator(allowed_extensions=EXTENSOES_PERMITIDAS_DOCUMENTO)],
+    )
     nome_original = models.CharField("nome original", max_length=255)
     tipo_documento = models.CharField(
         "tipo de documento",
