@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Layers, X, MessageSquare, FileText, Building2, CheckCircle2, Flame, AlertTriangle, Play, Inbox, Clock, CheckCheck, Sparkles, ArrowDown, ArrowUp, Send, Loader2 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
+import { ScrollToTopButton } from '../components/ui/ScrollToTopButton'
 import { clientService } from '../api/client'
 import { useToast } from '../contexts/ToastContext'
 import type { Contrato, Pedido } from '../types'
@@ -454,7 +455,13 @@ export function AdminDashboardPage() {
             )}
           </div>
 
-          <div className="max-h-[470px] overflow-y-auto pr-1.5 p-1 rounded-3xl">
+          <div className="relative">
+            <ScrollToTopButton
+              targetRef={contratosRef}
+              title="Rolar para o início dos contratos"
+              className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20"
+            />
+            <div ref={contratosRef} className="max-h-[470px] overflow-y-auto pr-1.5 p-1 rounded-3xl scroll-smooth">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {contratos.map((c) => {
                 const isSelected = contratosSelecionados.includes(c.id)
@@ -543,6 +550,7 @@ export function AdminDashboardPage() {
             </div>
           </div>
         </div>
+      </div>
 
         {/* Fila Geral de Pedidos com Ordenação Inteligente & Abas de Filtro */}
         <div ref={filaRef} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs scroll-mt-4">

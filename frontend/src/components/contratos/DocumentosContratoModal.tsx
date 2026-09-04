@@ -22,6 +22,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { RemoverDocumentoContratoModal } from './RemoverDocumentoContratoModal'
 import type { Contrato, ContratoDocumento, TipoDocumentoContrato } from '../../types'
+import { ScrollToTopButton } from '../ui/ScrollToTopButton'
 
 interface DocumentosContratoModalProps {
   contrato: Contrato | null
@@ -42,6 +43,7 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
   const toast = useToast()
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const modalBodyRef = useRef<HTMLDivElement>(null)
 
   const [selectedTipo, setSelectedTipo] = useState<TipoDocumentoContrato>('proposta')
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
@@ -209,7 +211,13 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
         </div>
 
         {/* Content */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-5">
+        <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
+          <ScrollToTopButton
+            targetRef={modalBodyRef}
+            title="Rolar para o início dos documentos"
+            className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20"
+          />
+          <div ref={modalBodyRef} className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1 scroll-smooth">
           {/* Upload Area (Empresa Admin) */}
           {isEmpresa && podeSubirMais && (
             <div
@@ -424,6 +432,7 @@ export function DocumentosContratoModal({ contrato, isOpen, onClose }: Documento
             )}
           </div>
         </div>
+      </div>
 
         {/* Footer */}
         <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">

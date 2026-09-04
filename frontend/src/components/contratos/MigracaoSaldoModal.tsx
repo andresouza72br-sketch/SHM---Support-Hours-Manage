@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { ArrowRight, Zap, AlertCircle, Loader2, X, RefreshCw, Sparkles, ShieldCheck } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 import { useToast } from '../../contexts/ToastContext'
 import type { Contrato } from '../../types'
+import { ScrollToTopButton } from '../ui/ScrollToTopButton'
 
 interface ContratoElegivel {
   id: number
@@ -29,6 +30,7 @@ interface MigracaoSaldoModalProps {
 export function MigracaoSaldoModal({ contratoDestino, isOpen, onClose, onSuccess }: MigracaoSaldoModalProps) {
   const toast = useToast()
   const queryClient = useQueryClient()
+  const modalBodyRef = useRef<HTMLDivElement>(null)
 
   const [origemSelecionadaId, setOrigemSelecionadaId] = useState<number | null>(null)
   const [quantidade, setQuantidade] = useState<string>('')
@@ -163,7 +165,13 @@ export function MigracaoSaldoModal({ contratoDestino, isOpen, onClose, onSuccess
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto space-y-5">
+        <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
+          <ScrollToTopButton
+            targetRef={modalBodyRef}
+            title="Rolar para o início"
+            className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20"
+          />
+          <div ref={modalBodyRef} className="p-6 overflow-y-auto space-y-5 flex-1 scroll-smooth">
           {isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-500 dark:text-slate-400">
               <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
@@ -390,6 +398,7 @@ export function MigracaoSaldoModal({ contratoDestino, isOpen, onClose, onSuccess
             </form>
           )}
         </div>
+      </div>
       </div>
     </div>
   )

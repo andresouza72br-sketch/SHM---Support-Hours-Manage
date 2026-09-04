@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   FilePlus,
   X,
@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 import { useToast } from '../../contexts/ToastContext'
 import type { Cliente, Contrato, EmailNotificacao, TipoDocumentoContrato } from '../../types'
+import { ScrollToTopButton } from '../ui/ScrollToTopButton'
 
 interface NovoContratoModalProps {
   isOpen: boolean
@@ -32,6 +33,7 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
   const toast = useToast()
   const queryClient = useQueryClient()
   const isEditing = Boolean(contratoParaEditar)
+  const formScrollRef = useRef<HTMLDivElement>(null)
 
   const [activeTab, setActiveTab] = useState<TabType>('geral')
   const [error, setError] = useState<string | null>(null)
@@ -445,8 +447,13 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
         )}
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
-          <div className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8">
+        <form onSubmit={handleSubmit} className="relative flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+          <ScrollToTopButton
+            targetRef={formScrollRef}
+            title="Rolar para o início do formulário"
+            className="absolute top-4 right-6 z-20"
+          />
+          <div ref={formScrollRef} className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 scroll-smooth">
             <div className="w-full max-w-3xl mx-auto">
               {/* TAB 1: CONTRATO */}
               {activeTab === 'geral' && (
