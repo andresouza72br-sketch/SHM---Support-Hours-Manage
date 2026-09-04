@@ -290,6 +290,7 @@ export interface Ciclo {
   token_acesso: string
   tarefas: Tarefa[]
   avaliacao?: AvaliacaoCiclo | null
+  anexos_referenciados?: AnexoPedido[]
 }
 
 export interface AnexoPedido {
@@ -298,6 +299,14 @@ export interface AnexoPedido {
   tamanho: number
   url: string
   criado_em: string
+}
+
+export interface AnexoComentario {
+  id: string
+  nome_original: string
+  tamanho: number
+  url: string
+  criado_em?: string
 }
 
 export type PrioridadePedido = 'baixa' | 'media' | 'alta' | 'urgente'
@@ -328,6 +337,8 @@ export interface Pedido {
   contrato_saldo?: string | number
   criado_em: string
   criado_por_nome?: string
+  criado_por_email?: string
+  criado_por_role?: string
   ciclos_resumo?: PedidoResumoCiclo[]
   ciclos?: Ciclo[]
   anexos?: AnexoPedido[]
@@ -347,7 +358,7 @@ export interface Comentario {
   tarefa_convertida?: number | null
   criado_em: string
   atualizado_em?: string
-  anexos?: { id: string; nome_original: string; url: string }[]
+  anexos?: AnexoComentario[]
   respostas?: Comentario[]
   reacoes_count?: number
   user_reacted?: boolean

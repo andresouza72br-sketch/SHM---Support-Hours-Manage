@@ -66,6 +66,13 @@ class Ciclo(TimeStampedModel):
     aceito_ip = models.GenericIPAddressField("IP de aceite", null=True, blank=True)
     aceito_user_agent = models.TextField("User-Agent de aceite", null=True, blank=True)
     aceito_metodo = models.CharField("método de aceite", max_length=20, default="APP")
+    anexos_pedido = models.ManyToManyField(
+        "pedidos.AnexoPedido",
+        blank=True,
+        related_name="ciclos_referenciados",
+        verbose_name="anexos do pedido referenciados",
+        db_table="shm_ciclo_anexos_pedido",
+    )
 
     class Meta:
         db_table = "shm_ciclo"

@@ -56,6 +56,8 @@ class PedidoDetailSerializer(serializers.ModelSerializer):
     anexos = AnexoPedidoSerializer(many=True, read_only=True)
     ciclos = serializers.SerializerMethodField()
     criado_por_nome = serializers.SerializerMethodField()
+    criado_por_email = serializers.CharField(source="criado_por.email", read_only=True, default="")
+    criado_por_role = serializers.CharField(source="criado_por.get_role_display", read_only=True, default="")
 
     class Meta:
         model = Pedido

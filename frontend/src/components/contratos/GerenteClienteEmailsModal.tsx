@@ -177,7 +177,7 @@ export function GerenteClienteEmailsModal({ contrato, isOpen, onClose }: Gerente
             <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
             <div className="text-[11px] leading-relaxed space-y-1">
               <p>
-                Marque com o <strong>check</strong> os e-mails da sua equipe que devem receber alertas de saldo baixo, chamados, relatórios e extratos periódicos deste contrato.
+                Marque com o <strong>check</strong> os e-mails da sua equipe que devem receber alertas de saldo baixo, pedidos, relatórios e extratos periódicos deste contrato.
               </p>
               <p className="text-indigo-700 dark:text-indigo-300 font-semibold">
                 ✉️ Todo novo e-mail cadastrado recebe automaticamente um <strong>Magic Link com validade de 15 dias</strong> para confirmar o aceite.

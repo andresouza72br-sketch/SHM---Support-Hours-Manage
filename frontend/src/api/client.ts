@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Pedido, Contrato, Ciclo, Tarefa, Comentario, Notification, Cliente, ClienteUser, ConfiguracaoNotificacao } from '../types'
+import type { Pedido, Contrato, Ciclo, Tarefa, Comentario, Notification, Cliente, ClienteUser, ConfiguracaoNotificacao, AnexoPedido } from '../types'
 
 export const api = axios.create({
   baseURL: '/api/v1',
@@ -19,6 +19,9 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem('shm_access_token')
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  if (config.data instanceof FormData && config.headers) {
+    delete config.headers['Content-Type']
   }
   return config
 })
@@ -228,14 +231,25 @@ export const clientService = {
     kanban: (contratoId?: number) =>
       api.get<Record<string, Pedido[]>>('/pedidos/kanban/', { params: { contrato: contratoId } }).then((r) => r.data),
     get: (id: number) => api.get<Pedido>(`/pedidos/${id}/`).then((r) => r.data),
-    create: (data: Partial<Pedido>) => api.post<Pedido>('/pedidos/', data).then((r) => r.data),
+    create: (data: FormData | Partial<Pedido>) =>
+      api.post<Pedido>('/pedidos/', data, data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined).then((r) => r.data),
+    adicionarAnexos: (pedidoId: number, formData: FormData) =>
+      api.post<AnexoPedido[]>(`/pedidos/${pedidoId}/adicionar_anexos/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data),
   },
   ciclos: {
     get: (id: number) => api.get<Ciclo>(`/ciclos/${id}/`).then((r) => r.data),
-    create: (data: { pedido: number; tipo: string; contexto: string; operador: number; horas_estimadas?: number }) =>
+    create: (data: { pedido: number; tipo: string; contexto: string; operador: number; horas_estimadas?: number; anexos_pedido_ids?: number[] }) =>
       api.post<Ciclo>('/ciclos/', data).then((r) => r.data),
     update: (id: number, data: Partial<Ciclo>) =>
       api.patch<Ciclo>(`/ciclos/${id}/`, data).then((r) => r.data),
+    referenciarAnexo: (cicloId: number, anexoId: number) =>
+      api.post<{ detail: string; ciclo_id: number; anexo_id: number; total_referenciados: number }>(
+        `/ciclos/${cicloId}/referenciar_anexo/`, { anexo_id: anexoId }
+      ).then((r) => r.data),
+    desvincularAnexo: (cicloId: number, anexoId: number) =>
+      api.post<{ detail: string; ciclo_id: number; anexo_id: number }>(
+        `/ciclos/${cicloId}/desvincular_anexo/`, { anexo_id: anexoId }
+      ).then((r) => r.data),
     apresentarOrcamento: (id: number, horas_estimadas: number) =>
       api.post<Ciclo>(`/ciclos/${id}/apresentar_orcamento/`, { horas_estimadas }).then((r) => r.data),
     aprovar: (id: number) => api.post<Ciclo>(`/ciclos/${id}/aprovar/`).then((r) => r.data),
@@ -262,9 +276,14 @@ export const clientService = {
   },
   comunicacao: {
     list: (cicloId: number) => api.get<any>(`/comunicacao/comentarios/?ciclo=${cicloId}`).then((r) => normalizeArray<Comentario>(r.data)),
-    create: (data: { ciclo: number; texto: string; parent?: string }) => api.post<Comentario>('/comunicacao/comentarios/', data).then((r) => r.data),
+    create: (data: FormData | { ciclo: number; texto: string; parent?: string }) =>
+      api.post<Comentario>('/comunicacao/comentarios/', data).then((r) => r.data),
     update: (id: string, data: { texto: string }) => api.patch<Comentario>(`/comunicacao/comentarios/${id}/`, data).then((r) => r.data),
     delete: (id: string) => api.delete(`/comunicacao/comentarios/${id}/`).then((r) => r.data),
+    removerAnexo: (comentarioId: string, anexoId: string) =>
+      api.post<{ detail: string; comentario_id: string; anexo_id: string }>(
+        `/comunicacao/comentarios/${comentarioId}/remover_anexo/`, { anexo_id: anexoId }
+      ).then((r) => r.data),
     reagir: (id: string, tipo: string = 'like') =>
       api.post<{ acao: string; tipo: string; reacoes_count: number; user_reacted: boolean }>(
         `/comunicacao/comentarios/${id}/reagir/`, { tipo }

@@ -344,7 +344,7 @@ export function AdminDashboardPage() {
     })
   }, [pedidos, dateFilter])
 
-  // Contadores por estágio operacional baseados nos chamados do período selecionado
+  // Contadores por estágio operacional baseados nos pedidos do período selecionado
   const counts = useMemo(() => {
     return {
       todos: pedidosFiltradosPorData.length,
@@ -389,11 +389,25 @@ export function AdminDashboardPage() {
         }
       }}
     >
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Title & Top Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Painel Operacional</h1>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1">Gestão de contratos de suporte, triagem em ciclos, orçamentação e execução técnica</p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 px-2.5 py-1 rounded-md border border-indigo-200 dark:border-indigo-800">
+                Operação SHM
+              </span>
+              <span className="text-xs font-bold text-slate-400">•</span>
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                Painel Administrativo & Operação
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
+              Painel Operacional
+            </h1>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-0.5">
+              Manutenção de pedidos, gestão de contratos de suporte, triagem em ciclos e execução técnica
+            </p>
           </div>
         </div>
 
@@ -571,7 +585,7 @@ export function AdminDashboardPage() {
                   </button>
                 )}
                 <span className="text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 px-3 py-1.5 rounded-full font-black border border-slate-300 dark:border-slate-700 shadow-2xs">
-                  {pedidosOrdenados.length} {pedidosOrdenados.length === 1 ? 'chamado' : 'chamados'}
+                  {pedidosOrdenados.length} {pedidosOrdenados.length === 1 ? 'pedido' : 'pedidos'}
                 </span>
               </div>
             </div>
@@ -746,7 +760,7 @@ export function AdminDashboardPage() {
                     <button
                       onClick={() => navigate(`/pedidos/${p.id}`)}
                       className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black text-xs px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 transition duration-150 cursor-pointer shadow-2xs"
-                      title="Ver histórico de ciclos e comentários deste chamado"
+                      title="Ver histórico de ciclos e comentários deste pedido"
                     >
                       <MessageSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                       <span>Detalhes & Comentários</span>
@@ -766,12 +780,12 @@ export function AdminDashboardPage() {
             {pedidosOrdenados.length === 0 && (
               <div className="p-12 text-center text-slate-500 dark:text-slate-400 text-xs italic font-medium">
                 {contratosSelecionados.length > 0
-                  ? `Nenhum chamado encontrado nesta categoria para ${
+                  ? `Nenhum pedido encontrado nesta categoria para ${
                       contratosSelecionados.length === 1
                         ? `o contrato ${contratoAtivoUnico ? `${contratoAtivoUnico.numero} (${contratoAtivoUnico.cliente_nome})` : `#${contratosSelecionados[0]}`}`
                         : `os ${contratosSelecionados.length} contratos selecionados`
                     }${dateFilter !== 'todos' ? ` no período selecionado (${dateFilter.toUpperCase()})` : ''}.`
-                  : `Nenhum chamado encontrado para os filtros selecionados${dateFilter !== 'todos' ? ` no período (${dateFilter.toUpperCase()})` : ''}.`}
+                  : `Nenhum pedido encontrado para os filtros selecionados${dateFilter !== 'todos' ? ` no período (${dateFilter.toUpperCase()})` : ''}.`}
               </div>
             )}
           </div>

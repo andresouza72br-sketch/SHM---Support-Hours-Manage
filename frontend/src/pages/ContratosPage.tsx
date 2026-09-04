@@ -606,7 +606,7 @@ export function ContratosPage() {
               Deseja realmente marcar o contrato <strong>{concluirModalContrato?.numero}</strong> como <strong>Concluído</strong>?
             </p>
             <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-900 dark:text-emerald-200 leading-relaxed">
-              🔒 <strong>Encerramento de Vigência:</strong> O contrato será encerrado no sistema, mantendo todo o histórico de lançamentos, faturamento e relatórios auditáveis, mas bloqueando novas alterações cadastrais e novas aberturas de chamados.
+              🔒 <strong>Encerramento de Vigência:</strong> O contrato será encerrado no sistema, mantendo todo o histórico de lançamentos, faturamento e relatórios auditáveis, mas bloqueando novas alterações cadastrais e novas aberturas de pedidos.
             </div>
           </div>
         }

@@ -1211,7 +1211,7 @@ export function NovoClienteModal({
                   className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-3 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs cursor-pointer"
                 >
                   <option value="pendente_aprovacao">🟡 Pendente de Aprovação (Aguardando Magic Link de 7 dias)</option>
-                  <option value="ativo">🟢 Ativo (Operação regular e abertura de chamados permitida)</option>
+                  <option value="ativo">🟢 Ativo (Operação regular e abertura de pedidos permitida)</option>
                   <option value="suspenso">🟡 Suspenso (Acesso congelado temporariamente / pendências)</option>
                   <option value="inativo">🔴 Inativo (Conta descontinuada / sem atendimento ativo)</option>
                 </select>

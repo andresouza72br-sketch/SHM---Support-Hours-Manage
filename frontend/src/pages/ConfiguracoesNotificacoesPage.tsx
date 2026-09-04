@@ -27,7 +27,7 @@ import type { ConfiguracaoNotificacao } from '../types'
 
 const CATEGORIAS: { id: string; label: string; icon: any }[] = [
   { id: 'todas', label: 'Todos os Eventos', icon: Sliders },
-  { id: 'pedidos', label: 'Chamados & Pedidos', icon: Layers },
+  { id: 'pedidos', label: 'Pedidos & Ciclos', icon: Layers },
   { id: 'ciclos', label: 'Orçamentos & Aceites', icon: Clock },
   { id: 'contratos', label: 'Contratos & Vigência', icon: FileText },
   { id: 'saldo', label: 'Saldo & Franquia', icon: DollarSign },
@@ -164,30 +164,34 @@ export function ConfiguracoesNotificacoesPage() {
   return (
     <AppLayout showSidebar={false}>
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Cabeçalho */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+        {/* Header Title & Top Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60">
-                <Sliders className="w-5 h-5" />
+              <span className="text-xs font-mono font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 px-2.5 py-1 rounded-md border border-indigo-200 dark:border-indigo-800">
+                Governança SHM
               </span>
-              <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
-                Governança de Notificações & E-mails
-              </h1>
+              <span className="text-xs font-bold text-slate-400">•</span>
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                Configurações Corporativas
+              </span>
             </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Configure quais ações do sistema disparam e-mails ou alertas in-app e defina a matriz de destinatários por papel corporativo.
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
+              Governança de Notificações & E-mails
+            </h1>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-0.5">
+              Matriz de disparos corporativos, canais de e-mail e alertas in-app para pedidos e contratos
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setShowResetModal(true)}
               disabled={resetMutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
+              className="px-4 py-3 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 font-black text-xs border border-slate-300 dark:border-slate-700 shadow-2xs transition flex items-center gap-2 cursor-pointer"
             >
               {resetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
-              Restaurar Padrões
+              <span>Restaurar Padrões</span>
             </button>
           </div>
         </div>

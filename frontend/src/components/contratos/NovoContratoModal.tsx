@@ -751,7 +751,7 @@ export function NovoContratoModal({ isOpen, onClose, contratoParaEditar }: NovoC
                   <span className="text-[10px] text-slate-500 mt-1 block">
                     {statusInicial === 'pendente_aceite'
                       ? '✉️ O gestor/responsável receberá um e-mail com link seguro para conferir o contrato e autorizar o início dos trabalhos.'
-                      : '⚡ O contrato estará pronto imediatamente para abertura de chamados e execução técnica.'}
+                      : '⚡ O contrato estará pronto imediatamente para abertura de pedidos e execução técnica.'}
                   </span>
                 </div>
               </div>

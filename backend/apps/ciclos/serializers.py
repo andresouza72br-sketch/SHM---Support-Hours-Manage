@@ -21,8 +21,23 @@ class CicloSerializer(serializers.ModelSerializer):
     avaliacao = AvaliacaoCicloSerializer(read_only=True)
     pedido_protocolo = serializers.CharField(source="pedido.protocolo", read_only=True)
     pedido_assunto = serializers.CharField(source="pedido.assunto", read_only=True)
+    anexos_referenciados = serializers.SerializerMethodField()
+    anexos_pedido_ids = serializers.ListField(child=serializers.IntegerField(), required=False, write_only=True)
 
     class Meta:
         model = Ciclo
         fields = "__all__"
         read_only_fields = ["id", "token_acesso", "criado_em", "atualizado_em"]
+
+    def get_anexos_referenciados(self, obj):
+        from apps.pedidos.serializers import AnexoPedidoSerializer
+        return AnexoPedidoSerializer(obj.anexos_pedido.all(), many=True).data
+
+    def create(self, validated_data):
+        anexos_ids = validated_data.pop("anexos_pedido_ids", None)
+        ciclo = super().create(validated_data)
+        if anexos_ids:
+            from apps.pedidos.models import AnexoPedido
+            anexos = AnexoPedido.objects.filter(id__in=anexos_ids, pedido=ciclo.pedido)
+            ciclo.anexos_pedido.set(anexos)
+        return ciclo

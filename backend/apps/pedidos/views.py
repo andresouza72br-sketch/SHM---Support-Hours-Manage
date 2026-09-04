@@ -37,16 +37,43 @@ class PedidoViewSet(viewsets.ModelViewSet):
         return PedidoListSerializer
 
     def perform_create(self, serializer):
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from rest_framework.exceptions import ValidationError as DRFValidationError
         user = self.request.user
         validated_data = serializer.validated_data
-        pedido = PedidoService.criar_pedido(
-            contrato=validated_data.get("contrato"),
-            assunto=validated_data.get("assunto", ""),
-            descricao=validated_data.get("descricao", ""),
-            usuario=user,
-            prioridade=validated_data.get("prioridade", "media"),
-        )
+        arquivos = self.request.FILES.getlist("arquivos")
+        if not arquivos:
+            arquivos = self.request.FILES.getlist("anexos")
+        try:
+            pedido = PedidoService.criar_pedido(
+                contrato=validated_data.get("contrato"),
+                assunto=validated_data.get("assunto", ""),
+                descricao=validated_data.get("descricao", ""),
+                usuario=user,
+                prioridade=validated_data.get("prioridade", "media"),
+                arquivos=arquivos,
+            )
+        except DjangoValidationError as e:
+            msg = e.messages[0] if hasattr(e, "messages") and e.messages else str(e)
+            raise DRFValidationError({"detail": msg})
         serializer.instance = pedido
+
+    @action(detail=True, methods=["post"])
+    def adicionar_anexos(self, request, pk=None):
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        pedido = self.get_object()
+        arquivos = request.FILES.getlist("arquivos")
+        if not arquivos:
+            arquivos = request.FILES.getlist("anexos")
+        if not arquivos:
+            return Response({"detail": "Nenhum arquivo enviado."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            anexos = PedidoService.adicionar_anexos_ao_pedido(pedido, arquivos, request.user)
+        except DjangoValidationError as e:
+            msg = e.messages[0] if hasattr(e, "messages") and e.messages else str(e)
+            return Response({"detail": msg}, status=status.HTTP_400_BAD_REQUEST)
+        from apps.pedidos.serializers import AnexoPedidoSerializer
+        return Response(AnexoPedidoSerializer(anexos, many=True).data, status=status.HTTP_201_CREATED)
 
     def get_queryset(self):
         user = self.request.user

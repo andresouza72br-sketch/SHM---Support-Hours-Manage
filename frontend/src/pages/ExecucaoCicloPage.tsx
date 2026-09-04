@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Send, Trash2, Clock, MessageSquare, Loader2 } from 'lucide-react'
+import { Plus, Send, Trash2, Clock, MessageSquare, Loader2 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { clientService } from '../api/client'
@@ -88,51 +88,65 @@ export function ExecucaoCicloPage() {
 
   return (
     <AppLayout showSidebar={false}>
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div>
-          <Link to="/admin/dashboard" className="inline-flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 mb-3 group">
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition" />
-            <span>Voltar ao Painel Operacional</span>
-          </Link>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className="text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-200 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 shadow-sm">
-                  {ciclo.pedido_protocolo || `Pedido #${ciclo.pedido}`}
-                </span>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-400 max-w-sm truncate" title={ciclo.pedido_assunto}>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Title & Top Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 px-2.5 py-1 rounded-md border border-indigo-200 dark:border-indigo-800">
+                Operação SHM
+              </span>
+              <span className="text-xs font-bold text-slate-400">•</span>
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                Execução de Ciclos & Apontamentos
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1 flex items-center gap-2 flex-wrap">
+              <span>Execução de {ciclo.tipo_display}</span>
+              <span className="text-xs font-black px-3 py-1 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 rounded-lg uppercase tracking-wider border border-indigo-200 dark:border-indigo-800/60 self-center">
+                {ciclo.status_display}
+              </span>
+            </h1>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-0.5">
+              Manutenção de pedidos, gestão de ciclos, arquivos e lançamento de horas técnicas
+            </p>
+
+            {/* Badges de Identificação */}
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
+              <span className="text-xs font-mono font-black bg-indigo-100 dark:bg-indigo-950/80 text-indigo-950 dark:text-indigo-300 px-2.5 py-1 rounded-md border border-indigo-300 dark:border-indigo-800/60">
+                {ciclo.pedido_protocolo || `Pedido #${ciclo.pedido}`}
+              </span>
+              {ciclo.pedido_assunto && (
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/90 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700/60 truncate max-w-sm" title={ciclo.pedido_assunto}>
                   {ciclo.pedido_assunto}
                 </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2 flex-wrap">
-                Execução de {ciclo.tipo_display}
-                <span className="text-sm font-black px-3.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 rounded-full uppercase tracking-wider border border-indigo-200 dark:border-indigo-800/60 self-center">
-                  {ciclo.status_display}
-                </span>
-              </h1>
-              <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-2 leading-relaxed bg-white/50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700/50">
-                {ciclo.contexto || 'Nenhum contexto detalhado fornecido.'}
+              )}
+            </div>
+
+            {ciclo.contexto && (
+              <p className="text-sm text-slate-600 dark:text-slate-400 font-medium mt-3 leading-relaxed bg-white/70 dark:bg-slate-800/70 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700/60 max-w-2xl">
+                {ciclo.contexto}
               </p>
+            )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center self-start sm:self-auto shrink-0 mt-1">
+            <div className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800/60 px-4 py-2.5 rounded-2xl flex flex-col items-center justify-center min-w-[120px] shadow-2xs">
+              <span className="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-400 tracking-wider">Orçamento Aprovado</span>
+              <span className="text-xl font-black text-slate-900 dark:text-white">{Number(ciclo.horas_estimadas).toFixed(1)}h</span>
             </div>
-            
-            <div className="flex flex-col gap-2 items-start sm:items-end self-start sm:self-auto shrink-0 mt-2 sm:mt-0">
-              <div className="bg-gradient-to-br from-indigo-500/10 to-violet-500/10 dark:from-indigo-500/20 dark:to-violet-500/20 border border-indigo-200 dark:border-indigo-700/50 p-3 rounded-2xl flex flex-col items-center justify-center min-w-[120px] shadow-sm">
-                <span className="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-300 tracking-wider">Orçamento Aprovado</span>
-                <span className="text-2xl font-black text-indigo-900 dark:text-indigo-100">{Number(ciclo.horas_estimadas).toFixed(1)}h</span>
-              </div>
-              
-              <Link
-                to={`/pedidos/${ciclo.pedido}?ciclo=${ciclo.id}`}
-                className="w-full justify-center inline-flex items-center gap-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold text-xs px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs transition cursor-pointer"
-                title={`${totalComentarios} comentário(s) neste ciclo`}
-              >
-                <MessageSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <span>Ver Comentários</span>
-                <span className="bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-black px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800/60">
-                  {totalComentarios}
-                </span>
-              </Link>
-            </div>
+
+            <Link
+              to={`/pedidos/${ciclo.pedido}?ciclo=${ciclo.id}`}
+              className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 font-black text-xs px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 shadow-2xs transition cursor-pointer"
+              title={`${totalComentarios} comentário(s) neste ciclo`}
+            >
+              <MessageSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Ver Comentários</span>
+              <span className="bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-black px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800/60">
+                {totalComentarios}
+              </span>
+            </Link>
           </div>
         </div>
 

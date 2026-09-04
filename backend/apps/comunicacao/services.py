@@ -11,9 +11,29 @@ class ComentarioService:
     """Camada de serviço isolada para operações de comunicação e comentários."""
 
     @staticmethod
-    def criar_comentario(serializer, autor):
-        """Salva o comentário associando o autor e despacha notificações de forma resiliente."""
+    @transaction.atomic
+    def criar_comentario(serializer, autor, arquivos=None):
+        """Salva o comentário associando o autor, anexa até 3 arquivos com validação de 25 MB e despacha notificações."""
+        if arquivos:
+            from django.core.exceptions import ValidationError
+            from apps.core.validators import validar_arquivo_anexo
+            if len(arquivos) > 3:
+                raise ValidationError("Limite máximo de 3 arquivos por comentário/resposta excedido.")
+            for arq in arquivos:
+                validar_arquivo_anexo(arq)
+
         comentario = serializer.save(autor=autor)
+
+        if arquivos:
+            from apps.comunicacao.models import AnexoComentario
+            for arq in arquivos:
+                AnexoComentario.objects.create(
+                    comentario=comentario,
+                    arquivo=arq,
+                    nome_original=getattr(arq, "name", "anexo"),
+                    tamanho=getattr(arq, "size", 0),
+                )
+
         try:
             from apps.notificacoes.services import NotificacaoService
             NotificacaoService.notificar_novo_comentario(comentario)
