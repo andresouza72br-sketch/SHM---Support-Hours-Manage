@@ -60,3 +60,13 @@
 ### RN-07: Central Declarativa de Notificações 🟢
 - Os eventos do sistema são classificados em 6 categorias de domínio.
 - As regras de despacho respeitam os toggles configurados por evento para envio por e-mail e geração de notificação in-app, além da matriz de destinatários por papel.
+
+### RN-08: Invariante Universal In-App — Sininho sem Auto-Alerta 🟢
+- O usuário autor da ação conectado **nunca** recebe notificações no sininho in-app (`Notification`) decorrentes de suas próprias ações (`destinatarios_in_app.discard(autor)`).
+- A regra é estrita e independe das permissões do usuário ou dos papéis RBAC habilitados na configuração do evento, protegendo a credibilidade do sininho contra auto-alertas e ruído.
+
+### RN-09: Supressão Declarativa de E-mail para o Autor da Ação 🟢
+- O modelo `ConfiguracaoNotificacao` disponibiliza o controle booleano `nao_enviar_autor` (com padrão `True` nos 14 eventos operacionais e `False` nos 8 eventos de convites/autenticação/sistema).
+- Quando `nao_enviar_autor == True`, a resolução de destinatários expurga o usuário autor de `destinatarios_usuarios` e elimina seu e-mail da lista de cópia (`emails_cc`) com comparação case-insensitive.
+- Administradores da empresa podem desativar a supressão por evento via interface administrativa caso desejem receber cópia de comprovação por e-mail.
+

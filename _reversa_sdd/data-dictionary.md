@@ -199,3 +199,4 @@
 | `notificar_emails_cc` | Boolean | Não | True | Notifica lista de e-mails em cópia |
 | `emails_adicionais` | JSONField | Não | [] | Lista de e-mails fixos extras |
 | `bloqueado_edicao` | Boolean | Não | False | Evento essencial do sistema |
+| `nao_enviar_autor` | Boolean | Não | True | Supressão de e-mail e cópias (CC) para o autor da ação que disparou o evento |

@@ -236,6 +236,7 @@ class ContratoService:
             )
 
             if enviar_in_app and dest_users:
+                dest_in_app = [u for u in dest_users if not (autor and hasattr(autor, "id") and u.id == autor.id)]
                 notifs = [
                     Notification(
                         usuario=u,
@@ -243,7 +244,7 @@ class ContratoService:
                         mensagem=f"{quantidade:.1f}h do contrato encerrado {contrato_origem.numero} foram aproveitadas no contrato {contrato_destino.numero}.",
                         url=f"/contratos/{contrato_destino.id}/extrato",
                     )
-                    for u in dest_users
+                    for u in dest_in_app
                 ]
                 if notifs:
                     Notification.objects.bulk_create(notifs)
@@ -320,6 +321,7 @@ class ContratoService:
             )
 
             if enviar_in_app and dest_users:
+                dest_in_app = [u for u in dest_users if not (autor and hasattr(autor, "id") and u.id == autor.id)]
                 notifs = [
                     Notification(
                         usuario=u,
@@ -327,7 +329,7 @@ class ContratoService:
                         mensagem=f"{quantidade:.1f}h foram abatidas do contrato {contrato_novo.numero} para quitação de saldo devedor do contrato {contrato_devedor.numero}.",
                         url=f"/contratos/{contrato_novo.id}/extrato",
                     )
-                    for u in dest_users
+                    for u in dest_in_app
                 ]
                 if notifs:
                     Notification.objects.bulk_create(notifs)

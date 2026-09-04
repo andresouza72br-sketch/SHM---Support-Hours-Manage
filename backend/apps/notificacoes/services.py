@@ -86,6 +86,10 @@ class NotificacaoService:
         mensagem = f"{autor_nome} ({origem}) abriu um novo pedido{contrato_info}: \"{desc_resumo}\""
 
         if enviar_in_app and destinatarios_set:
+            destinatarios_in_app = [
+                dest for dest in destinatarios_set
+                if not (autor and hasattr(autor, "id") and dest.id == autor.id)
+            ]
             notificacoes = [
                 Notification(
                     usuario=dest,
@@ -94,7 +98,7 @@ class NotificacaoService:
                     url=url_destino,
                     lida=False,
                 )
-                for dest in destinatarios_set
+                for dest in destinatarios_in_app
             ]
             if notificacoes:
                 Notification.objects.bulk_create(notificacoes)
@@ -148,6 +152,10 @@ class NotificacaoService:
 
         # Cria as notificações no banco em lote
         if enviar_in_app and destinatarios_set:
+            destinatarios_in_app = [
+                dest for dest in destinatarios_set
+                if not (autor and hasattr(autor, "id") and dest.id == autor.id)
+            ]
             notificacoes = [
                 Notification(
                     usuario=dest,
@@ -156,7 +164,7 @@ class NotificacaoService:
                     url=url_destino,
                     lida=False,
                 )
-                for dest in destinatarios_set
+                for dest in destinatarios_in_app
             ]
             if notificacoes:
                 Notification.objects.bulk_create(notificacoes)
@@ -173,7 +181,7 @@ class NotificacaoService:
 
 
     @staticmethod
-    def _obter_destinatarios_email_por_grupo(grupo: str, pedido, ciclo, autor=None):
+    def _obter_destinatarios_email_por_grupo(grupo: str, pedido, ciclo, autor=None, nao_enviar_autor: bool = True):
         """
         Coleta destinatários de e-mail conforme a regra de governança B2B do evento.
         """
@@ -196,7 +204,7 @@ class NotificacaoService:
                 cliente=pedido.cliente,
                 is_active=True,
             ))
-        if autor:
+        if nao_enviar_autor and autor:
             destinatarios.discard(autor)
         return destinatarios
 
@@ -385,8 +393,15 @@ class NotificacaoService:
 
         destinatarios_set = dests_cfg if dests_cfg else NotificacaoService._obter_destinatarios_envolvidos(pedido, ciclo=ciclo, autor=autor)
 
+        cfg_obj = NotificacaoConfigService.obter_configuracao(codigo_config)
+        nao_enviar_autor = getattr(cfg_obj, "nao_enviar_autor", True) if cfg_obj else True
+
         if enviar_in_app and destinatarios_set and payload.get("titulo"):
             url_notificacao_app = f"/pedidos/{pedido.id}?ciclo={ciclo.id}"
+            destinatarios_in_app = [
+                dest for dest in destinatarios_set
+                if not (autor and hasattr(autor, "id") and dest.id == autor.id)
+            ]
             notificacoes = [
                 Notification(
                     usuario=dest,
@@ -395,7 +410,7 @@ class NotificacaoService:
                     url=url_notificacao_app,
                     lida=False,
                 )
-                for dest in destinatarios_set
+                for dest in destinatarios_in_app
             ]
             if notificacoes:
                 Notification.objects.bulk_create(notificacoes)
@@ -410,6 +425,7 @@ class NotificacaoService:
                     pedido=pedido,
                     ciclo=ciclo,
                     autor=autor,
+                    nao_enviar_autor=nao_enviar_autor,
                 )
             else:
                 destinatarios_email = set(destinatarios_set)

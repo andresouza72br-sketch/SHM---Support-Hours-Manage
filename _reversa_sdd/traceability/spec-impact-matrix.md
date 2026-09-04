@@ -16,3 +16,5 @@
 | `ciclos` (Transição de Status) | `pedidos` | Sincronização de Status | O status do pedido pai é recalculado a partir do estado coletivo dos ciclos |
 | `contratos` (Upload Documento) | `contratos` (Auditoria) | Registro SHA-256 | Upload calcula hash SHA-256 e grava evento no `ContratoAuditLog` |
 | `notificacoes` (Gatilho) | `accounts` / `contratos` | Resolução de Destinatários | `ConfiguracaoNotificacao` filtra e resolve destinatários consultando papéis RBAC e lista CC |
+| `notificacoes` (Supressão Autor) | `accounts` / `notificacoes` | Filtro de Auto-Alerta | Expurga o autor logado de `destinatarios_in_app` (invariante do sininho) e de `destinatarios_usuarios`/`emails_cc` quando `nao_enviar_autor = True` |
+

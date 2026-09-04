@@ -457,6 +457,24 @@ export function ConfiguracoesNotificacoesPage() {
                       className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
                     />
                   </label>
+
+                  {/* Controle de Envio para o Autor */}
+                  <label className="flex items-center justify-between p-3 rounded-xl border border-amber-200/80 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/40 cursor-pointer transition">
+                    <div className="pr-2">
+                      <div className="text-xs font-extrabold text-amber-900 dark:text-amber-200">
+                        Não enviar para o autor (Quem executou a ação)
+                      </div>
+                      <div className="text-[11px] text-amber-700/80 dark:text-amber-400 mt-0.5">
+                        Quando ativo, quem disparou a ação não recebe cópia por e-mail deste evento.
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={eventoSelecionado.nao_enviar_autor}
+                      onChange={() => handleTogglePapel('nao_enviar_autor')}
+                      className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-amber-300 dark:border-amber-700"
+                    />
+                  </label>
                 </div>
 
                 {/* E-mails Adicionais Fixos */}

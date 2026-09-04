@@ -36,6 +36,7 @@ class ConfiguracaoNotificacaoSerializer(serializers.ModelSerializer):
             "notificar_cliente_comum",
             "notificar_gestor_contrato",
             "notificar_emails_cc",
+            "nao_enviar_autor",
             "emails_adicionais",
             "bloqueado_edicao",
             "criado_em",

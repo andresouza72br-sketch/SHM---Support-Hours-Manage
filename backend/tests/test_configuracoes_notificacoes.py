@@ -241,4 +241,127 @@ class TestConfiguracoesNotificacoes:
         assert proximo_amanha == datetime(2026, 9, 4, 8, 0, 0, tzinfo=tz)
         assert (proximo_amanha - agora_depois).total_seconds() == 23.5 * 3600
 
+    def test_calibracao_defaults_nao_enviar_autor(self):
+        """
+        Valida que os defaults calibrados atendem aos requisitos de domínio:
+        Ações operacionais/críticas ativas (True) e convites/ações com usuários inativas (False).
+        """
+        from apps.notificacoes.config_service import CONFIGURACOES_PADRAO
+        mapa_defaults = {item["codigo"]: item["nao_enviar_autor"] for item in CONFIGURACOES_PADRAO}
+
+        # Operações críticas ativas por padrão
+        assert mapa_defaults["PEDIDO_CRIADO"] is True
+        assert mapa_defaults["COMENTARIO_CRIADO"] is True
+        assert mapa_defaults["ORCAMENTO_APRESENTADO"] is True
+        assert mapa_defaults["ORCAMENTO_APROVADO"] is True
+        assert mapa_defaults["ORCAMENTO_REJEITADO"] is True
+        assert mapa_defaults["EXECUCAO_INICIADA"] is True
+        assert mapa_defaults["ACEITE_SOLICITADO"] is True
+        assert mapa_defaults["CICLO_ACEITO"] is True
+        assert mapa_defaults["ACEITE_RECUSADO"] is True
+        assert mapa_defaults["CONTRATO_ACEITE_SOLICITADO"] is True
+        assert mapa_defaults["CONTRATO_ATIVADO"] is True
+        assert mapa_defaults["CONTRATO_MIGRACAO_SALDO"] is True
+        assert mapa_defaults["CONTRATO_COMPENSACAO_DEBITO"] is True
+        assert mapa_defaults["AVALIACAO_ATENDIMENTO"] is True
+
+        # Ações com usuários e rotinas de sistema inativas por padrão
+        assert mapa_defaults["CLIENTE_CONVITE_USUARIO"] is False
+        assert mapa_defaults["CLIENTE_APROVACAO_CADASTRO"] is False
+        assert mapa_defaults["CLIENTE_CADASTRO_CONFIRMADO"] is False
+        assert mapa_defaults["CONTRATO_CONVITE_CONFIRMACAO"] is False
+        assert mapa_defaults["AUTH_MAGIC_LOGIN"] is False
+        assert mapa_defaults["CONTRATO_EXPIRACAO_PROXIMA"] is False
+        assert mapa_defaults["SALDO_ALERTA_80_PORCENTO"] is False
+        assert mapa_defaults["SALDO_ESGOTADO_OU_NEGATIVO"] is False
+
+    def test_nao_enviar_autor_ativo_suprime_email_e_cc_do_autor(self):
+        """
+        Quando nao_enviar_autor = True, o autor não deve constar nos destinatários
+        de usuários nem na lista de e-mails em cópia (CC).
+        """
+        cfg = ConfiguracaoNotificacao.objects.get(codigo="PEDIDO_CRIADO")
+        assert cfg.nao_enviar_autor is True
+
+        # Configura o contrato com o e-mail do admin em CC
+        self.contrato.emails_notificacao = [self.admin.email, "outro@parceiro.com"]
+        self.contrato.save(update_fields=["emails_notificacao"])
+
+        enviar_email, enviar_in_app, dest_users, emails_cc = NotificacaoConfigService.resolver_destinatarios_evento(
+            codigo="PEDIDO_CRIADO",
+            contrato=self.contrato,
+            cliente=self.cliente,
+            autor=self.admin,
+        )
+
+        assert enviar_email is True
+        assert self.admin not in dest_users
+        assert self.admin.email not in emails_cc
+        assert "outro@parceiro.com" in emails_cc
+
+    def test_nao_enviar_autor_inativo_permite_email_para_autor(self):
+        """
+        Quando o administrador desativa nao_enviar_autor (False), o autor pode
+        receber e-mail caso pertença aos papéis da matriz ou esteja em CC.
+        """
+        cfg = ConfiguracaoNotificacao.objects.get(codigo="PEDIDO_CRIADO")
+        cfg.nao_enviar_autor = False
+        cfg.save(update_fields=["nao_enviar_autor"])
+
+        enviar_email, enviar_in_app, dest_users, emails_cc = NotificacaoConfigService.resolver_destinatarios_evento(
+            codigo="PEDIDO_CRIADO",
+            contrato=self.contrato,
+            cliente=self.cliente,
+            autor=self.admin,
+        )
+
+        assert enviar_email is True
+        # Admin está contemplado em notificar_empresa_admin, portanto agora recebe o e-mail
+        assert self.admin in dest_users
+
+    def test_invariante_in_app_nunca_notifica_autor_no_sininho_mesmo_com_toggle_desativado(self):
+        """
+        Regra geral mandatória: Notificações app NUNCA colocam no sininho do usuário autor
+        logado no SHM, mesmo se nao_enviar_autor estiver configurado como False.
+        """
+        from apps.pedidos.services import PedidoService
+
+        cfg = ConfiguracaoNotificacao.objects.get(codigo="PEDIDO_CRIADO")
+        cfg.nao_enviar_autor = False
+        cfg.save(update_fields=["nao_enviar_autor"])
+
+        Notification.objects.all().delete()
+        pedido = PedidoService.criar_pedido(
+            cliente=self.cliente,
+            contrato=self.contrato,
+            assunto="Demanda de Homologação de Alertas",
+            descricao="Verificando regra mandatória do sininho",
+            usuario=self.admin,
+        )
+        assert pedido is not None
+
+        # O autor (admin) NUNCA deve receber no sininho (in-app)
+        assert not Notification.objects.filter(usuario=self.admin, titulo__contains="Novo Pedido").exists()
+        # O técnico deve receber normalmente
+        assert Notification.objects.filter(usuario=self.tecnico, titulo__contains="Novo Pedido").exists()
+
+    def test_patch_api_nao_enviar_autor(self):
+        """
+        Valida que o endpoint REST aceita atualização do campo nao_enviar_autor via PATCH.
+        """
+        self.client.force_authenticate(user=self.admin)
+        cfg = ConfiguracaoNotificacao.objects.get(codigo="COMENTARIO_CRIADO")
+        assert cfg.nao_enviar_autor is True
+
+        res = self.client.patch(
+            f"/api/v1/notificacoes/configuracoes-notificacoes/{cfg.id}/",
+            {"nao_enviar_autor": False},
+        )
+        assert res.status_code == 200
+        assert res.data["nao_enviar_autor"] is False
+
+        cfg.refresh_from_db()
+        assert cfg.nao_enviar_autor is False
+
+
 

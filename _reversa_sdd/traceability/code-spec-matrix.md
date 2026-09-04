@@ -28,11 +28,16 @@
 | `backend/apps/notificacoes/models.py` | `notificacoes/` | 🟢 CONFIRMADO |
 | `backend/apps/notificacoes/views.py` | `notificacoes/` | 🟢 CONFIRMADO |
 | `backend/apps/notificacoes/services.py` | `notificacoes/` | 🟢 CONFIRMADO |
+| `backend/apps/notificacoes/config_service.py` | `notificacoes/` | 🟢 CONFIRMADO |
+| `backend/apps/notificacoes/serializers.py` | `notificacoes/` | 🟢 CONFIRMADO |
+| `backend/apps/notificacoes/migrations/0004_configuracaonotificacao_nao_enviar_autor.py` | `notificacoes/` | 🟢 CONFIRMADO |
 | `backend/apps/core/models.py` | `core/` | 🟢 CONFIRMADO |
 | `backend/tests/test_migracao_saldo.py` | `saldo/` & `contratos/` | 🟢 CONFIRMADO |
 | `backend/tests/test_contratos_features.py` | `contratos/` | 🟢 CONFIRMADO |
 | `backend/tests/test_workflow_e_ciclos.py` | `ciclos/` & `pedidos/` | 🟢 CONFIRMADO |
+| `backend/tests/test_configuracoes_notificacoes.py` | `notificacoes/` | 🟢 CONFIRMADO |
 | `frontend/src/App.tsx` | `frontend/` | 🟢 CONFIRMADO |
+| `frontend/src/types/index.ts` | `frontend/` & `notificacoes/` | 🟢 CONFIRMADO |
 | `frontend/src/pages/AdminDashboardPage.tsx` | `frontend/` | 🟢 CONFIRMADO |
 | `frontend/src/pages/ConfiguracoesNotificacoesPage.tsx` | `frontend/` & `notificacoes/` | 🟢 CONFIRMADO |
 | `frontend/src/pages/ExtratoContratoPage.tsx` | `frontend/` & `saldo/` | 🟢 CONFIRMADO |
@@ -40,3 +45,4 @@
 | `frontend/src/components/contratos/DocumentosContratoModal.tsx` | `frontend/` & `contratos/` | 🟢 CONFIRMADO |
 | `frontend/src/components/contratos/TimelineAuditoriaContrato.tsx` | `frontend/` & `contratos/` | 🟢 CONFIRMADO |
 | `frontend/src/api/client.ts` | `frontend/` | 🟢 CONFIRMADO |
+

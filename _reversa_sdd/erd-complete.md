@@ -47,5 +47,6 @@ erDiagram
         boolean notificar_emails_cc
         json emails_adicionais
         boolean bloqueado_edicao
+        boolean nao_enviar_autor
     }
 ```

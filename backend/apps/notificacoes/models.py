@@ -64,6 +64,11 @@ class ConfiguracaoNotificacao(TimeStampedModel):
     notificar_cliente_comum = models.BooleanField("notificar solicitantes do cliente", default=False)
     notificar_gestor_contrato = models.BooleanField("notificar gestor do contrato", default=True)
     notificar_emails_cc = models.BooleanField("enviar cópia para lista CC do contrato/cliente", default=True)
+    nao_enviar_autor = models.BooleanField(
+        "não enviar para o autor da ação",
+        default=True,
+        help_text="Quando ativo, impede o envio de e-mails para o usuário que realizou a ação disparadora.",
+    )
 
     emails_adicionais = models.JSONField("e-mails fixos adicionais", default=list, blank=True)
     bloqueado_edicao = models.BooleanField("evento obrigatório do sistema", default=False)

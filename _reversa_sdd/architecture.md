@@ -38,5 +38,5 @@ graph TD
 
 1. **Service Layer Pattern:** A lógica de negócio e as orquestrações transacionais residem nas classes `*Service` (ex: `SaldoService`, `CicloService`, `ContratoService`, `PedidoService`), mantendo as Views do DRF enxutas e focadas em validação HTTP e serialização.
 2. **Isolamento ACID & Locks Pessimistas:** Operações contábeis que alteram saldo ou transferem horas entre contratos utilizam `select_for_update()` com ordenação estrita de IDs (`_obter_par_contratos_com_lock_ordenado`) para garantir consistência e imunidade a deadlocks.
-3. **Desacoplamento por Eventos/Notificações:** Transições de status de ciclos, alertas de saldo e eventos contratuais delegam o disparo para o `NotificacaoService`, desacoplando a regra de negócio da entrega multicanal.
+3. **Desacoplamento por Eventos, Notificações e Supressão do Autor:** Transições de status de ciclos, alertas de saldo e eventos contratuais delegam o disparo para o `NotificacaoService` e `NotificacaoConfigService`, aplicando a invariante universal in-app (sininho livre de auto-notificações) e a governança declarativa de supressão de e-mail para o autor da ação (`nao_enviar_autor`).
 4. **Armazenamento de Provas Criptográficas:** Uploads contratuais persistem o hash SHA-256 no banco e o arquivo físico em storage, viabilizando conferência forense a qualquer tempo.
