@@ -407,3 +407,64 @@ export interface ConfiguracaoNotificacao {
   criado_em: string
   atualizado_em: string
 }
+
+export type NivelRelevanciaAudit = 'N1' | 'N2' | 'N3'
+
+export interface ForensicAuditLog {
+  id: string
+  sequencia: number
+  tipo_evento: string
+  tipo_evento_display?: string
+  nivel_relevancia: NivelRelevanciaAudit
+  descricao: string
+  justificativa?: string | null
+  usuario_nome?: string | null
+  usuario_role?: string | null
+  ip_origem?: string | null
+  user_agent?: string | null
+  timestamp: string
+  payload_hash: string
+  previous_hash: string
+  current_hash: string
+  particao?: string
+  contrato?: number | null
+  cliente?: number | null
+}
+
+export interface AuditIntegrityVerification {
+  status: 'integro' | 'rompido'
+  contrato_numero?: string
+  total_registros_verificados?: number
+  tempo_verificacao_ms?: number
+  ultimo_hash?: string
+  mensagem: string
+  verificado_em: string
+  registro_falha_sequencia?: number
+  registro_falha_id?: string
+  hash_calculado?: string
+  hash_armazenado?: string
+}
+
+export interface AuditDailySeal {
+  id: string
+  data_referencia: string
+  particao: string
+  ultimo_registro_id: string
+  ultima_sequencia: number
+  ultimo_hash: string
+  total_eventos_dia: number
+  selo_digest: string
+  selado_em: string
+}
+
+export interface AuditPanelIntegrity {
+  total_particoes: number
+  particoes_integras: number
+  particoes_rompidas: number
+  total_eventos_auditados: number
+  ultimo_selo_diario?: {
+    data_referencia: string
+    selado_em: string
+    selo_digest: string
+  } | null
+}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   FileText,
   Download,
@@ -19,13 +19,20 @@ import {
   X,
   Layers,
   XCircle,
+  RefreshCw,
+  Link2,
+  Binary,
+  Copy,
+  Check,
 } from 'lucide-react'
-import type { ContratoAuditLog } from '../../types'
+import type { ContratoAuditLog, ForensicAuditLog, AuditIntegrityVerification } from '../../types'
+import { clientService } from '../../api/client'
 import { ScrollToTopButton } from '../ui/ScrollToTopButton'
 
 interface TimelineAuditoriaContratoProps {
   logs: ContratoAuditLog[]
   isLoading?: boolean
+  contratoId?: number
 }
 
 type CategoriaEvento = 'todas' | 'documentos' | 'governanca' | 'notificacoes' | 'relatorios'
@@ -104,22 +111,105 @@ function getEventBadgeColor(tipo: string) {
   }
 }
 
-export function TimelineAuditoriaContrato({ logs = [], isLoading = false }: TimelineAuditoriaContratoProps) {
+export function TimelineAuditoriaContrato({ logs = [], isLoading = false, contratoId }: TimelineAuditoriaContratoProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [categoria, setCategoria] = useState<CategoriaEvento>('todas')
   const timelineContainerRef = useRef<HTMLDivElement>(null)
 
+  // Estado Pericial de Integridade Criptográfica (SHA-256)
+  const [verificacao, setVerificacao] = useState<AuditIntegrityVerification | null>(null)
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [trilhaForense, setTrilhaForense] = useState<ForensicAuditLog[]>([])
+  const [exibirForense, setExibirForense] = useState(false)
+  const [loadingForense, setLoadingForense] = useState(false)
+  const [copiedHash, setCopiedHash] = useState<string | null>(null)
+
+  const handleVerificarIntegridade = async () => {
+    if (!contratoId) return
+    setIsVerifying(true)
+    try {
+      const res = await clientService.contratos.verificarIntegridade(contratoId)
+      setVerificacao(res)
+    } catch (err: any) {
+      if (err?.response?.data) {
+        setVerificacao(err.response.data)
+      } else {
+        setVerificacao({
+          status: 'rompido',
+          mensagem: 'Falha na comunicação com o serviço de verificação pericial.',
+          verificado_em: new Date().toISOString(),
+        })
+      }
+    } finally {
+      setIsVerifying(false)
+    }
+  }
+
+  const handleToggleForense = async () => {
+    if (!exibirForense && trilhaForense.length === 0 && contratoId) {
+      setLoadingForense(true)
+      try {
+        const forensicData = await clientService.contratos.trilhaForense(contratoId)
+        setTrilhaForense(forensicData)
+      } catch (err) {
+        console.error('Falha ao carregar trilha forense:', err)
+      } finally {
+        setLoadingForense(false)
+      }
+    }
+    setExibirForense((prev) => !prev)
+  }
+
+  useEffect(() => {
+    if (contratoId) {
+      handleVerificarIntegridade()
+    }
+  }, [contratoId])
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedHash(text)
+    setTimeout(() => setCopiedHash(null), 2000)
+  }
+
+  // Se exibirForense estiver ativo e houver trilha forense carregada, mapeia para o formato de exibição
+  const logsAtivos = useMemo(() => {
+    if (exibirForense && trilhaForense.length > 0) {
+      return trilhaForense.map((fl) => ({
+        id: fl.id as any,
+        contrato: (fl.contrato || 0) as any,
+        tipo_evento: fl.tipo_evento,
+        tipo_evento_display: fl.tipo_evento_display || fl.tipo_evento,
+        descricao: fl.descricao,
+        justificativa: fl.justificativa,
+        usuario_nome: fl.usuario_nome,
+        usuario_role: fl.usuario_role,
+        ip_origem: fl.ip_origem,
+        user_agent: fl.user_agent,
+        timestamp: fl.timestamp,
+        documento_nome: null,
+        documento_hash: fl.payload_hash,
+        // Metadados específicos periciais
+        _sequencia: fl.sequencia,
+        _previous_hash: fl.previous_hash,
+        _current_hash: fl.current_hash,
+        _nivel: fl.nivel_relevancia,
+      }))
+    }
+    return logs
+  }, [exibirForense, trilhaForense, logs])
+
   // Contagem por categoria
   const contagens = useMemo(() => {
     const counts: Record<CategoriaEvento, number> = {
-      todas: logs.length,
+      todas: logsAtivos.length,
       documentos: 0,
       governanca: 0,
       notificacoes: 0,
       relatorios: 0,
     }
 
-    logs.forEach((log) => {
+    logsAtivos.forEach((log) => {
       const tipo = log.tipo_evento
       if (EVENTOS_POR_CATEGORIA.documentos.includes(tipo)) counts.documentos += 1
       if (EVENTOS_POR_CATEGORIA.governanca.includes(tipo)) counts.governanca += 1
@@ -128,11 +218,11 @@ export function TimelineAuditoriaContrato({ logs = [], isLoading = false }: Time
     })
 
     return counts
-  }, [logs])
+  }, [logsAtivos])
 
   // Filtragem combinada por categoria e termo de busca
   const logsFiltrados = useMemo(() => {
-    return logs.filter((log) => {
+    return logsAtivos.filter((log) => {
       // Filtro de Categoria
       if (categoria !== 'todas') {
         const permitidos = EVENTOS_POR_CATEGORIA[categoria]
@@ -169,13 +259,13 @@ export function TimelineAuditoriaContrato({ logs = [], isLoading = false }: Time
 
       return true
     })
-  }, [logs, categoria, searchTerm])
+  }, [logsAtivos, categoria, searchTerm])
 
   if (isLoading) {
     return <div className="p-6 text-center text-xs text-slate-500 italic">Carregando trilha de auditoria...</div>
   }
 
-  if (logs.length === 0) {
+  if (logs.length === 0 && !contratoId) {
     return (
       <div className="p-6 text-center text-slate-500 dark:text-slate-400 text-xs italic bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
         Nenhum registro de auditoria disponível para este contrato.
@@ -195,6 +285,119 @@ export function TimelineAuditoriaContrato({ logs = [], isLoading = false }: Time
 
   return (
     <div className="space-y-4">
+      {/* Selo Pericial de Integridade Criptográfica (RN-16) */}
+      {contratoId && (
+        <div
+          className={`p-4 rounded-2xl border transition-all ${
+            verificacao?.status === 'integro'
+              ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/60 shadow-xs'
+              : verificacao?.status === 'rompido'
+              ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800'
+              : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700'
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3">
+              <div
+                className={`p-2 rounded-xl flex items-center justify-center shrink-0 ${
+                  verificacao?.status === 'integro'
+                    ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300'
+                    : verificacao?.status === 'rompido'
+                    ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300'
+                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                {isVerifying ? (
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                ) : verificacao?.status === 'integro' ? (
+                  <ShieldCheck className="w-5 h-5" />
+                ) : (
+                  <AlertOctagon className="w-5 h-5" />
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                    {verificacao?.status === 'integro'
+                      ? 'Trilha Pericial 100% Íntegra'
+                      : verificacao?.status === 'rompido'
+                      ? 'Alerta Pericial: Cadeia Rompida'
+                      : 'Verificação Criptográfica da Cadeia'}
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-300 font-bold">
+                    RFC 8785 • SHA-256
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                  {verificacao?.mensagem || 'Aguardando verificação matemática dos elos periciais...'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-center">
+              <button
+                type="button"
+                onClick={handleToggleForense}
+                disabled={loadingForense}
+                className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition cursor-pointer flex items-center gap-1.5 ${
+                  exibirForense
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                    : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Binary className="w-3.5 h-3.5" />
+                <span>{exibirForense ? 'Modo Normal' : 'Ver Elos Forenses'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleVerificarIntegridade}
+                disabled={isVerifying}
+                title="Recalcular dispersões canônicas de toda a partição"
+                className="text-xs font-bold px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin' : ''}`} />
+                <span>{isVerifying ? 'Verificando...' : 'Re-verificar'}</span>
+              </button>
+            </div>
+          </div>
+
+          {verificacao && verificacao.status === 'integro' && (
+            <div className="mt-3 pt-3 border-t border-emerald-200/60 dark:border-emerald-800/40 flex flex-wrap items-center gap-4 text-[11px] font-mono text-emerald-800 dark:text-emerald-300">
+              <span>
+                <strong>Registros Verificados:</strong> {verificacao.total_registros_verificados ?? logs.length}
+              </span>
+              {verificacao.tempo_verificacao_ms !== undefined && (
+                <span>
+                  <strong>Tempo:</strong> {verificacao.tempo_verificacao_ms} ms
+                </span>
+              )}
+              {verificacao.ultimo_hash && (
+                <span className="flex items-center gap-1">
+                  <strong>Último Elo:</strong>
+                  <span className="bg-emerald-100/70 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded text-[10px]">
+                    {verificacao.ultimo_hash.substring(0, 16)}...{verificacao.ultimo_hash.substring(verificacao.ultimo_hash.length - 8)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(verificacao.ultimo_hash!)}
+                    className="p-1 hover:text-emerald-950 dark:hover:text-white transition cursor-pointer"
+                    title="Copiar Hash Completo SHA-256"
+                  >
+                    {copiedHash === verificacao.ultimo_hash ? (
+                      <Check className="w-3 h-3 text-emerald-600" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Barra de Filtros e Busca */}
       <div className="space-y-3 p-3.5 bg-slate-50/80 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/70">
         {/* Campo de Busca Textual */}
@@ -347,6 +550,46 @@ export function TimelineAuditoriaContrato({ logs = [], isLoading = false }: Time
                     <div className="mt-2 p-3 bg-rose-50/80 dark:bg-rose-950/40 border-l-4 border-rose-600 rounded-r-xl text-xs text-rose-900 dark:text-rose-200">
                       <span className="font-black text-[11px] block uppercase tracking-wider mb-0.5">Justificativa Formal:</span>
                       <p className="italic">{log.justificativa}</p>
+                    </div>
+                  )}
+
+                  {/* Elo Criptográfico Pericial (SHA-256 Chained Hash) */}
+                  {((log as any)._previous_hash || (log as any)._current_hash) && (
+                    <div className="mt-2.5 p-2.5 bg-slate-900 text-slate-200 rounded-xl font-mono text-[10px] space-y-1.5 border border-slate-800 shadow-inner">
+                      <div className="flex items-center justify-between text-indigo-400 font-bold border-b border-slate-800 pb-1">
+                        <span className="flex items-center gap-1.5">
+                          <Link2 className="w-3 h-3 text-indigo-400" />
+                          <span>Elo Pericial #{(log as any)._sequencia}</span>
+                        </span>
+                        {(log as any)._nivel && (
+                          <span
+                            className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                              (log as any)._nivel === 'N1'
+                                ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                                : (log as any)._nivel === 'N2'
+                                ? 'bg-amber-950 text-amber-300 border border-amber-800'
+                                : 'bg-slate-800 text-slate-300'
+                            }`}
+                          >
+                            {(log as any)._nivel}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-0.5 text-[9px]">
+                        <div className="flex items-center gap-1.5 text-slate-400 truncate">
+                          <span className="text-slate-500 font-semibold w-16 shrink-0">Previous:</span>
+                          <span className="truncate" title={(log as any)._previous_hash}>
+                            {(log as any)._previous_hash}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-emerald-400 truncate font-semibold">
+                          <span className="text-emerald-500 font-bold w-16 shrink-0">Current:</span>
+                          <span className="truncate" title={(log as any)._current_hash}>
+                            {(log as any)._current_hash}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   )}
 
