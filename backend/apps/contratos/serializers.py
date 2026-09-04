@@ -7,6 +7,8 @@ from apps.contratos.models import (
     AceiteLink,
     TipoDocumentoContrato,
     ContratoEmailNotificacao,
+    ForensicAuditLog,
+    AuditDailySeal,
 )
 
 class ContratoPDFSerializer(serializers.ModelSerializer):
@@ -231,3 +233,48 @@ class ContratoSerializer(serializers.ModelSerializer):
             or 0
         )
         return float(abs(total))
+
+
+class ForensicAuditLogSerializer(serializers.ModelSerializer):
+    tipo_evento_display = serializers.CharField(source="get_tipo_evento_display", read_only=True)
+
+    class Meta:
+        model = ForensicAuditLog
+        fields = [
+            "id",
+            "sequencia",
+            "tipo_evento",
+            "tipo_evento_display",
+            "nivel_relevancia",
+            "descricao",
+            "justificativa",
+            "usuario_nome",
+            "usuario_role",
+            "ip_origem",
+            "user_agent",
+            "timestamp",
+            "payload_hash",
+            "previous_hash",
+            "current_hash",
+            "particao",
+            "contrato",
+            "cliente",
+        ]
+        read_only_fields = fields
+
+
+class AuditDailySealSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AuditDailySeal
+        fields = [
+            "id",
+            "data_referencia",
+            "particao",
+            "ultimo_registro_id",
+            "ultima_sequencia",
+            "ultimo_hash",
+            "total_eventos_dia",
+            "selo_digest",
+            "selado_em",
+        ]
+        read_only_fields = fields
