@@ -54,7 +54,35 @@ class ComentarioViewSet(viewsets.ModelViewSet):
         return ctx
 
     def perform_create(self, serializer):
-        ComentarioService.criar_comentario(serializer, self.request.user)
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+        arquivos = self.request.FILES.getlist("arquivos")
+        if not arquivos:
+            arquivos = self.request.FILES.getlist("anexos")
+        try:
+            ComentarioService.criar_comentario(serializer, self.request.user, arquivos=arquivos)
+        except DjangoValidationError as e:
+            msg = e.messages[0] if hasattr(e, "messages") and e.messages else str(e)
+            raise DRFValidationError({"detail": msg})
+
+    @action(detail=True, methods=["delete", "post"], permission_classes=[permissions.IsAuthenticated, IsAuthorOrReadOnly])
+    def remover_anexo(self, request, pk=None):
+        comentario = self.get_object()
+        anexo_id = request.data.get("anexo_id") or request.query_params.get("anexo_id")
+        if not anexo_id:
+            return Response({"detail": "anexo_id é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
+        from apps.comunicacao.models import AnexoComentario
+        try:
+            anexo = AnexoComentario.objects.get(id=anexo_id, comentario=comentario)
+        except AnexoComentario.DoesNotExist:
+            return Response({"detail": "Anexo não encontrado neste comentário."}, status=status.HTTP_404_NOT_FOUND)
+
+        anexo.delete()
+        return Response({
+            "detail": "Anexo removido do comentário e excluído do storage com sucesso.",
+            "comentario_id": str(comentario.id),
+            "anexo_id": str(anexo_id),
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
     def reagir(self, request, pk=None):

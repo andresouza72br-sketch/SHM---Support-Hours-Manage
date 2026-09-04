@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, ShieldAlert, ChevronRight, ArrowDown, ArrowUp } from 'lucide-react'
 import type { Contrato } from '../../types'
+import { ScrollToTopButton } from '../ui/ScrollToTopButton'
 
 interface SidebarContratosProps {
   contratos: Contrato[]
@@ -183,7 +184,7 @@ export function SidebarContratos({ contratos = [], contratoSelecionado, onSelect
       onMouseUp={handleScrollMouseUp}
       onMouseLeave={handleScrollMouseLeave}
       style={{ '--sidebar-width': `${width}px` } as React.CSSProperties}
-      className={`relative w-full md:w-[var(--sidebar-width)] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col p-3.5 shrink-0 overflow-y-auto ${
+      className={`relative w-full md:w-[var(--sidebar-width)] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col p-3.5 shrink-0 overflow-y-auto scroll-smooth ${
         isResizing || isVerticalDragging ? 'select-none' : ''
       } ${
         isVerticalDragging ? 'cursor-grabbing' : 'cursor-grab'
@@ -191,6 +192,11 @@ export function SidebarContratos({ contratos = [], contratoSelecionado, onSelect
         isResizing ? '' : 'transition-[width] duration-75'
       }`}
     >
+      <ScrollToTopButton
+        targetRef={asideRef}
+        title="Rolar para o topo dos contratos"
+        className="sticky top-1 left-1/2 -translate-x-1/2 mb-1"
+      />
       {/* Barra de redimensionamento (apenas desktop) */}
       <div
         data-resizer="true"

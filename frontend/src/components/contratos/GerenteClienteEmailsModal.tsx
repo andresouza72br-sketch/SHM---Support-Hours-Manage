@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Mail,
   Plus,
@@ -16,6 +16,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 import { useToast } from '../../contexts/ToastContext'
 import type { Contrato, EmailNotificacao } from '../../types'
+import { ScrollToTopButton } from '../ui/ScrollToTopButton'
 
 interface GerenteClienteEmailsModalProps {
   contrato: Contrato | null
@@ -26,6 +27,7 @@ interface GerenteClienteEmailsModalProps {
 export function GerenteClienteEmailsModal({ contrato, isOpen, onClose }: GerenteClienteEmailsModalProps) {
   const toast = useToast()
   const queryClient = useQueryClient()
+  const emailsListRef = useRef<HTMLDivElement>(null)
 
   const [emails, setEmails] = useState<EmailNotificacao[]>(() => {
     if (!contrato) return []
@@ -177,7 +179,7 @@ export function GerenteClienteEmailsModal({ contrato, isOpen, onClose }: Gerente
             <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
             <div className="text-[11px] leading-relaxed space-y-1">
               <p>
-                Marque com o <strong>check</strong> os e-mails da sua equipe que devem receber alertas de saldo baixo, chamados, relatórios e extratos periódicos deste contrato.
+                Marque com o <strong>check</strong> os e-mails da sua equipe que devem receber alertas de saldo baixo, pedidos, relatórios e extratos periódicos deste contrato.
               </p>
               <p className="text-indigo-700 dark:text-indigo-300 font-semibold">
                 ✉️ Todo novo e-mail cadastrado recebe automaticamente um <strong>Magic Link com validade de 15 dias</strong> para confirmar o aceite.
@@ -233,7 +235,13 @@ export function GerenteClienteEmailsModal({ contrato, isOpen, onClose }: Gerente
               </span>
             </div>
 
-            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+            <div className="relative">
+              <ScrollToTopButton
+                targetRef={emailsListRef}
+                title="Rolar para o início dos destinatários"
+                className="absolute top-2 left-1/2 -translate-x-1/2 z-20"
+              />
+              <div ref={emailsListRef} className="space-y-2.5 max-h-72 overflow-y-auto pr-1 scroll-smooth">
               {emails.map((item, index) => {
                 const status = item.status || 'pendente'
                 const isConfirmado = status === 'confirmado'
@@ -345,6 +353,7 @@ export function GerenteClienteEmailsModal({ contrato, isOpen, onClose }: Gerente
               )}
             </div>
           </div>
+        </div>
         </div>
 
         {/* Footer */}

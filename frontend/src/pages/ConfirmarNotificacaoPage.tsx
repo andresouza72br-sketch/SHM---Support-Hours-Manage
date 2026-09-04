@@ -238,7 +238,7 @@ export function ConfirmarNotificacaoPage() {
                       <span>Abertura de Pedidos</span>
                     </div>
                     <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                      Avisos de novos chamados, orçamentos técnicos e aprovação de ciclos.
+                      Avisos de novos pedidos, orçamentos técnicos e aprovação de ciclos.
                     </p>
                   </div>
 

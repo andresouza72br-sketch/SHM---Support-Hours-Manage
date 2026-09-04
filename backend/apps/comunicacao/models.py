@@ -36,6 +36,19 @@ class AnexoComentario(TimeStampedModel):
         db_table = "shm_anexo_comentario"
 
 
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+@receiver(post_delete, sender=AnexoComentario)
+def remover_arquivo_fisico_anexo_comentario(sender, instance, **kwargs):
+    """Remove o arquivo físico em storage quando a linha de AnexoComentario for excluída."""
+    if instance.arquivo:
+        try:
+            instance.arquivo.delete(save=False)
+        except Exception:
+            pass
+
+
 class ReacaoComentario(TimeStampedModel):
     """Reação (like/emoji) de um usuário a um comentário. Toggle único por (comentário, autor, tipo)."""
 

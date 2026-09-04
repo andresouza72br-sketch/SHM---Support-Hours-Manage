@@ -1,7 +1,9 @@
 import logging
 from django.db import transaction
 from django.utils import timezone
-from apps.pedidos.models import Pedido, StatusPedido
+from django.core.exceptions import ValidationError
+from apps.pedidos.models import Pedido, StatusPedido, AnexoPedido
+from apps.core.validators import validar_arquivo_anexo
 
 logger = logging.getLogger(__name__)
 
@@ -46,11 +48,18 @@ class PedidoService:
         usuario,
         prioridade: str = "media",
         cliente=None,
+        arquivos=None,
     ) -> Pedido:
         """
         Cria um novo pedido de suporte com protocolo sequencial OSYYYYMMNNNN,
-        vincula o cliente correto e dispara o evento de notificação.
+        vincula o cliente correto, armazena até 10 arquivos anexos e dispara evento de notificação.
         """
+        if arquivos:
+            if len(arquivos) > 10:
+                raise ValidationError("Limite máximo de 10 arquivos por pedido excedido.")
+            for arq in arquivos:
+                validar_arquivo_anexo(arq)
+
         if not cliente:
             cliente = PedidoService.resolver_cliente_para_pedido(usuario, contrato)
 
@@ -65,12 +74,47 @@ class PedidoService:
             criado_por=usuario,
             status=StatusPedido.ABERTO,
         )
+
+        if arquivos:
+            for arq in arquivos:
+                AnexoPedido.objects.create(
+                    pedido=pedido,
+                    arquivo=arq,
+                    nome_original=getattr(arq, "name", "anexo"),
+                    tamanho=getattr(arq, "size", 0),
+                    criado_por=usuario,
+                )
+
         try:
             from apps.notificacoes.services import NotificacaoService
             NotificacaoService.notificar_novo_pedido(pedido)
         except Exception as e:
             logger.warning("Falha ao disparar notificação de novo pedido #%s: %s", pedido.protocolo, e, exc_info=True)
         return pedido
+
+    @staticmethod
+    @transaction.atomic
+    def adicionar_anexos_ao_pedido(pedido: Pedido, arquivos: list, usuario) -> list:
+        """Adiciona arquivos a um pedido existente respeitando o teto de 10 anexos totais."""
+        if not arquivos:
+            return []
+        total_atual = pedido.anexos.count()
+        if total_atual + len(arquivos) > 10:
+            raise ValidationError(
+                f"O pedido já possui {total_atual} anexo(s). Com os {len(arquivos)} enviados, ultrapassaria o limite máximo de 10 anexos."
+            )
+        anexos_criados = []
+        for arq in arquivos:
+            validar_arquivo_anexo(arq)
+            anexo = AnexoPedido.objects.create(
+                pedido=pedido,
+                arquivo=arq,
+                nome_original=getattr(arq, "name", "anexo"),
+                tamanho=getattr(arq, "size", 0),
+                criado_por=usuario,
+            )
+            anexos_criados.append(anexo)
+        return anexos_criados
 
     @staticmethod
     @transaction.atomic

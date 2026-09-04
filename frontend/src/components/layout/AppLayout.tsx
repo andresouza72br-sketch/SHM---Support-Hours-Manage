@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Header } from './Header'
 import { SidebarContratos } from './SidebarContratos'
 import { useQuery } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
+import { ScrollToTopButton } from '../ui/ScrollToTopButton'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -20,6 +22,15 @@ export function AppLayout({
   const [internalContrato, setInternalContrato] = useState<number | null>(null)
   const selected = contratoSelecionado !== undefined ? contratoSelecionado : internalContrato
   const setSelected = onSelectContrato || setInternalContrato
+  const mainRef = useRef<HTMLElement>(null)
+  const location = useLocation()
+
+  // Reseta o scroll do main ao mudar de rota
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTo({ top: 0, behavior: 'instant' })
+    }
+  }, [location.pathname])
 
   const { data: contratos = [] } = useQuery({
     queryKey: ['contratos'],
@@ -42,9 +53,12 @@ export function AppLayout({
             onSelectContrato={setSelected}
           />
         )}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {children}
-        </main>
+        <div className="flex-1 min-w-0 relative flex flex-col overflow-hidden">
+          <ScrollToTopButton targetRef={mainRef} title="Rolar para o topo da página" />
+          <main ref={mainRef} className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8 scroll-smooth">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   )

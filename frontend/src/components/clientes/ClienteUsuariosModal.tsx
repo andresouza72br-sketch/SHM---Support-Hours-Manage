@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import {
   Users,
   X,
@@ -20,6 +20,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Cliente, ClienteUser, UserRole } from '../../types'
 import { ConfirmModal } from '../ui/ConfirmModal'
+import { ScrollToTopButton } from '../ui/ScrollToTopButton'
 
 interface ClienteUsuariosModalProps {
   cliente: Cliente | null
@@ -31,6 +32,7 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
   const toast = useToast()
   const { user: currentUser } = useAuth()
   const queryClient = useQueryClient()
+  const modalBodyRef = useRef<HTMLDivElement>(null)
 
   const [novoEmail, setNovoEmail] = useState('')
   const [novoNome, setNovoNome] = useState('')
@@ -211,7 +213,13 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
+          <ScrollToTopButton
+            targetRef={modalBodyRef}
+            title="Rolar para o início dos colaboradores"
+            className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20"
+          />
+          <div ref={modalBodyRef} className="flex-1 overflow-y-auto p-6 space-y-5 scroll-smooth">
           {/* Add User Form Drawer */}
           {showAddForm && (
             <form
@@ -257,7 +265,7 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
                     onChange={(e) => setNovoRole(e.target.value as UserRole)}
                     className="w-full text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs cursor-pointer"
                   >
-                    <option value="CLIENTE_ANALISTA">Cliente — Analista (Abre chamados e comenta)</option>
+                    <option value="CLIENTE_ANALISTA">Cliente — Analista (Abre pedidos e comenta)</option>
                     <option value="CLIENTE_GERENTE">Cliente — Gerente (Aprova orçamentos/aceites e gere equipe)</option>
                   </select>
                 </div>
@@ -527,6 +535,7 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
             )}
           </div>
         </div>
+      </div>
 
         {/* Footer */}
         <div className="p-4 sm:px-6 bg-slate-50 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-800 flex justify-end">
@@ -579,7 +588,7 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
                 Tem certeza que deseja alterar o papel de <strong>{usuarioParaAlterarPapel?.user.first_name || usuarioParaAlterarPapel?.user.email}</strong> para <strong>Analista</strong>?
               </p>
               <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200">
-                ⚠️ <strong>Atenção:</strong> O usuário perderá a capacidade de aprovar orçamentos e aceites de ciclos, mantendo apenas acesso para abertura e acompanhamento de chamados.
+                ⚠️ <strong>Atenção:</strong> O usuário perderá a capacidade de aprovar orçamentos e aceites de ciclos, mantendo apenas acesso para abertura e acompanhamento de pedidos.
               </div>
             </div>
           )

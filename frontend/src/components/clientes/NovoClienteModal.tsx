@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Building2,
   X,
@@ -24,6 +24,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 import { useToast } from '../../contexts/ToastContext'
 import type { Cliente, EmailNotificacao, StatusCliente } from '../../types'
+import { ScrollToTopButton } from '../ui/ScrollToTopButton'
 
 interface NovoClienteModalProps {
   isOpen: boolean
@@ -42,6 +43,7 @@ export function NovoClienteModal({
   onOpenUsuariosModal,
 }: NovoClienteModalProps) {
   const toast = useToast()
+  const formScrollRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
   const isEditing = Boolean(clienteParaEditar)
 
@@ -494,8 +496,13 @@ export function NovoClienteModal({
         )}
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
-          <div className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 flex flex-col justify-center">
+        <form onSubmit={handleSubmit} className="relative flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+          <ScrollToTopButton
+            targetRef={formScrollRef}
+            title="Rolar para o início do formulário"
+            className="absolute top-4 right-6 z-20"
+          />
+          <div ref={formScrollRef} className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 flex flex-col justify-center scroll-smooth">
             <div className="w-full max-w-3xl mx-auto my-auto">
               {/* TAB 1: DADOS GERAIS & FISCAIS */}
               {activeTab === 'geral' && (
@@ -1211,7 +1218,7 @@ export function NovoClienteModal({
                   className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-3 font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs cursor-pointer"
                 >
                   <option value="pendente_aprovacao">🟡 Pendente de Aprovação (Aguardando Magic Link de 7 dias)</option>
-                  <option value="ativo">🟢 Ativo (Operação regular e abertura de chamados permitida)</option>
+                  <option value="ativo">🟢 Ativo (Operação regular e abertura de pedidos permitida)</option>
                   <option value="suspenso">🟡 Suspenso (Acesso congelado temporariamente / pendências)</option>
                   <option value="inativo">🔴 Inativo (Conta descontinuada / sem atendimento ativo)</option>
                 </select>

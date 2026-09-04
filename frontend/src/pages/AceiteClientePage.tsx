@@ -168,7 +168,7 @@ export function AceiteClientePage() {
               <p className="text-xs text-slate-600 dark:text-slate-300 max-w-lg mx-auto leading-relaxed">
                 O cadastro de <strong>{cliente.display_name}</strong> foi formalizado em{' '}
                 <strong>{formatarDataHora(usado_em || cliente.aprovado_em)}</strong>. O endereço de e-mail{' '}
-                <strong>{cliente.email_contato}</strong> foi autenticado e a conta está ativa para acompanhamento de chamados e suporte.
+                <strong>{cliente.email_contato}</strong> foi autenticado e a conta está ativa para acompanhamento de pedidos e suporte.
               </p>
 
               <div className="pt-2">

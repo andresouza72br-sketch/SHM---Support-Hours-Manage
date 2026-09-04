@@ -72,18 +72,17 @@ export function KanbanBoard({ pedidosPorStatus = {}, isLoading }: KanbanBoardPro
 
   return (
     <div className="flex-1 flex flex-col h-full space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header Title & Top Actions */}
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Painel de Pedidos</h1>
-          </div>
-          <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Acompanhe as fases de triagem, orçamento, execução e aceite de ciclos</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            Painel de Pedidos
+          </h1>
         </div>
 
         <button
           onClick={() => navigate('/pedidos/novo')}
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs px-5 py-3 rounded-2xl shadow-lg shadow-indigo-500/20 transition duration-150 cursor-pointer"
+          className="px-5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition flex items-center gap-2 cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Novo Pedido</span>
@@ -97,7 +96,7 @@ export function KanbanBoard({ pedidosPorStatus = {}, isLoading }: KanbanBoardPro
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
-        className={`flex gap-3.5 items-start overflow-x-auto pb-6 pt-1 select-none ${
+        className={`flex gap-3.5 items-start overflow-x-auto pb-6 pt-1 select-none w-full ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
       >
@@ -108,7 +107,7 @@ export function KanbanBoard({ pedidosPorStatus = {}, isLoading }: KanbanBoardPro
           return (
             <div
               key={col.id}
-              className={`w-[260px] min-w-[250px] xl:flex-1 rounded-3xl border ${col.border} ${col.bg} p-3.5 flex flex-col min-h-[550px] shadow-xs shrink-0 transition-colors`}
+              className={`flex-1 min-w-[260px] rounded-3xl border ${col.border} ${col.bg} p-3.5 flex flex-col min-h-[550px] shadow-xs shrink-0 transition-colors`}
             >
               {/* Column Header */}
               <div className="flex items-center justify-between mb-3 px-1 pt-1 min-w-0">

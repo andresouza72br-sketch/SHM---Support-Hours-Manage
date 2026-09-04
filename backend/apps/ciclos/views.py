@@ -13,7 +13,7 @@ from apps.core.permissions import IsEmpresaUser, IsClienteGerente
 from apps.core.utils import get_client_ip, get_client_user_agent
 
 class CicloViewSet(viewsets.ModelViewSet):
-    queryset = Ciclo.objects.select_related("pedido", "operador").prefetch_related("tarefas").all()
+    queryset = Ciclo.objects.select_related("pedido", "operador").prefetch_related("tarefas", "anexos_pedido").all()
     serializer_class = CicloSerializer
 
     def perform_create(self, serializer):
@@ -22,8 +22,52 @@ class CicloViewSet(viewsets.ModelViewSet):
         from apps.pedidos.services import PedidoService
         PedidoService.sincronizar_status_pedido(ciclo.pedido)
 
-        # Agora, a emissão do orçamento para o cliente (apresentar_orcamento)
-        # só ocorre mediante ação explícita (botão "Emitir Orçamento").
+    @action(detail=True, methods=["post"], permission_classes=[IsEmpresaUser])
+    def referenciar_anexo(self, request, pk=None):
+        """Associa um anexo do pedido a este ciclo (suporta multi-referência)."""
+        ciclo = self.get_object()
+        anexo_id = request.data.get("anexo_id")
+        if not anexo_id:
+            return Response({"detail": "anexo_id é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
+        from apps.pedidos.models import AnexoPedido
+        try:
+            anexo = AnexoPedido.objects.get(id=anexo_id)
+        except AnexoPedido.DoesNotExist:
+            return Response({"detail": "Anexo não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+        if anexo.pedido_id != ciclo.pedido_id:
+            return Response(
+                {"detail": "O anexo informado não pertence ao pedido vinculado a este ciclo."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        ciclo.anexos_pedido.add(anexo)
+        return Response({
+            "detail": "Anexo referenciado ao ciclo com sucesso.",
+            "ciclo_id": ciclo.id,
+            "anexo_id": anexo.id,
+            "total_referenciados": ciclo.anexos_pedido.count(),
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsEmpresaUser])
+    def desvincular_anexo(self, request, pk=None):
+        """Remove a referência do anexo para este ciclo específico."""
+        ciclo = self.get_object()
+        anexo_id = request.data.get("anexo_id")
+        if not anexo_id:
+            return Response({"detail": "anexo_id é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
+        from apps.pedidos.models import AnexoPedido
+        try:
+            anexo = AnexoPedido.objects.get(id=anexo_id)
+        except AnexoPedido.DoesNotExist:
+            return Response({"detail": "Anexo não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+        ciclo.anexos_pedido.remove(anexo)
+        return Response({
+            "detail": "Referência do anexo desvinculada do ciclo com sucesso.",
+            "ciclo_id": ciclo.id,
+            "anexo_id": anexo.id,
+        }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["post"], permission_classes=[IsEmpresaUser])
     def apresentar_orcamento(self, request, pk=None):

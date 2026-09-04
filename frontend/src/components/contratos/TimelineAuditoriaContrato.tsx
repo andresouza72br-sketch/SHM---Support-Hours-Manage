@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import {
   FileText,
   Download,
@@ -21,6 +21,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import type { ContratoAuditLog } from '../../types'
+import { ScrollToTopButton } from '../ui/ScrollToTopButton'
 
 interface TimelineAuditoriaContratoProps {
   logs: ContratoAuditLog[]
@@ -106,6 +107,7 @@ function getEventBadgeColor(tipo: string) {
 export function TimelineAuditoriaContrato({ logs = [], isLoading = false }: TimelineAuditoriaContratoProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [categoria, setCategoria] = useState<CategoriaEvento>('todas')
+  const timelineContainerRef = useRef<HTMLDivElement>(null)
 
   // Contagem por categoria
   const contagens = useMemo(() => {
@@ -289,7 +291,16 @@ export function TimelineAuditoriaContrato({ logs = [], isLoading = false }: Time
           </button>
         </div>
       ) : (
-        <div className="max-h-[385px] overflow-y-auto pr-3 pl-6 space-y-4 relative before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+        <div className="relative">
+          <ScrollToTopButton
+            targetRef={timelineContainerRef}
+            title="Rolar para o início da auditoria"
+            className="absolute top-2.5 left-1/2 -translate-x-1/2 z-20"
+          />
+          <div
+            ref={timelineContainerRef}
+            className="max-h-[385px] overflow-y-auto pr-3 pl-6 space-y-4 relative before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 scroll-smooth"
+          >
           {logsFiltrados.map((log) => {
             const icon = getEventIcon(log.tipo_evento)
             const badgeColor = getEventBadgeColor(log.tipo_evento)
@@ -370,6 +381,7 @@ export function TimelineAuditoriaContrato({ logs = [], isLoading = false }: Time
               </div>
             )
           })}
+          </div>
         </div>
       )}
     </div>

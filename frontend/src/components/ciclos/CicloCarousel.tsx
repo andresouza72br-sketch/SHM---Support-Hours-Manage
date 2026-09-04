@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft,
@@ -17,14 +17,80 @@ import {
   CornerDownRight,
   Star,
   Play,
+  Paperclip,
+  Download,
+  Music,
+  Image as ImageIcon,
+  Archive,
+  FileText,
 } from 'lucide-react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { type Ciclo, type Pedido, type Comentario, getUserRoleBadgeInfo } from '../../types'
+import { ScrollToTopButton } from '../ui/ScrollToTopButton'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
+
+const MAX_ARQUIVOS_COMENTARIO = 3
+const MAX_ARQUIVO_BYTES = 25 * 1024 * 1024 // 25 MB
+
+const EXTENSOES_PERMITIDAS = new Set([
+  'pdf', 'docx', 'doc', 'xlsx', 'xls', 'csv', 'txt', 'odt', 'ods', 'rtf',
+  'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg',
+  'mp3', 'wav', 'ogg', 'm4a',
+  'zip', 'rar', '7z', 'tar', 'gz',
+])
+
+const EXTENSOES_PROIBIDAS = new Set([
+  'exe', 'bat', 'cmd', 'sh', 'bin', 'com', 'scr', 'vbs', 'js', 'msi', 'jar', 'apk',
+])
+
+function validarArquivo(file: File): string | null {
+  const ext = file.name.split('.').pop()?.toLowerCase() || ''
+  if (EXTENSOES_PROIBIDAS.has(ext)) {
+    return `O arquivo "${file.name}" possui formato executável proibido.`
+  }
+  if (!EXTENSOES_PERMITIDAS.has(ext)) {
+    return `O arquivo "${file.name}" possui extensão (.${ext}) não permitida.`
+  }
+  if (file.size > MAX_ARQUIVO_BYTES) {
+    return `O arquivo "${file.name}" excede o limite máximo de 25 MB.`
+  }
+  return null
+}
+
+function formatarTamanho(bytes: number): string {
+  if (!bytes) return '0 B'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function isAudioFile(nome: string): boolean {
+  const ext = nome.split('.').pop()?.toLowerCase() || ''
+  return ['mp3', 'wav', 'ogg', 'm4a'].includes(ext)
+}
+
+function isImageFile(nome: string): boolean {
+  const ext = nome.split('.').pop()?.toLowerCase() || ''
+  return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext)
+}
+
+function getCommentFileIcon(nome: string) {
+  const ext = nome.split('.').pop()?.toLowerCase() || ''
+  if (isAudioFile(nome)) {
+    return <Music className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+  }
+  if (isImageFile(nome)) {
+    return <ImageIcon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+  }
+  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+    return <Archive className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+  }
+  return <FileText className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+}
 
 function getCicloStatusDot(status: string) {
   switch (status) {
@@ -204,15 +270,78 @@ interface CommentItemProps {
   cicloAtual: Ciclo
   isReply?: boolean
   onRefresh: () => void
+  commentsContainerRef?: React.RefObject<HTMLDivElement | null>
 }
 
-function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: CommentItemProps) {
+function CommentItem({
+  c,
+  user,
+  cicloAtual,
+  isReply = false,
+  onRefresh,
+  commentsContainerRef,
+}: CommentItemProps) {
   const toast = useToast()
+  const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState('')
   const [deletingConfirm, setDeletingConfirm] = useState(false)
   const [replyOpen, setReplyOpen] = useState(false)
   const [replyText, setReplyText] = useState('')
+  const [replyArquivos, setReplyArquivos] = useState<File[]>([])
+  const replyFileInputRef = useRef<HTMLInputElement>(null)
+  const replyInputRef = useRef<HTMLInputElement>(null)
+  const replyBoxRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (replyOpen && !isReply) {
+      // 1. Focar o campo de texto sem jump brusco da página
+      replyInputRef.current?.focus({ preventScroll: true })
+
+      // 2. Rolar suavemente o container de comentários para exibir o campo completamente
+      const scrollToReply = () => {
+        if (replyBoxRef.current && commentsContainerRef?.current) {
+          const container = commentsContainerRef.current
+          const target = replyBoxRef.current
+
+          const containerRect = container.getBoundingClientRect()
+          const targetRect = target.getBoundingClientRect()
+
+          const offsetBottom = targetRect.bottom - containerRect.bottom
+          const offsetTop = targetRect.top - containerRect.top
+
+          if (offsetBottom > 0) {
+            container.scrollBy({
+              top: offsetBottom + 28,
+              behavior: 'smooth',
+            })
+          } else if (offsetTop < 0) {
+            container.scrollBy({
+              top: offsetTop - 16,
+              behavior: 'smooth',
+            })
+          }
+
+          // Se estiver cortado na janela do navegador
+          const windowOffset = targetRect.bottom - window.innerHeight
+          if (windowOffset > 0) {
+            window.scrollBy({
+              top: windowOffset + 32,
+              behavior: 'smooth',
+            })
+          }
+        }
+      }
+
+      requestAnimationFrame(scrollToReply)
+      const t1 = setTimeout(scrollToReply, 50)
+      const t2 = setTimeout(scrollToReply, 160)
+      return () => {
+        clearTimeout(t1)
+        clearTimeout(t2)
+      }
+    }
+  }, [replyOpen, isReply, commentsContainerRef])
 
   const isOwner = Boolean(
     user &&
@@ -228,6 +357,16 @@ function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: Commen
     onError: (err: any) => toast.error(err?.response?.data?.detail || 'Erro ao editar comentário.', 'Falha'),
   })
 
+  const removerAnexoMutation = useMutation({
+    mutationFn: (anexoId: string) => clientService.comunicacao.removerAnexo(c.id, anexoId),
+    onSuccess: () => {
+      onRefresh()
+      toast.success('Anexo removido do comentário!', 'Anexo Excluído')
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.detail || 'Erro ao remover anexo.', 'Falha'),
+  })
+
   const excluirMutation = useMutation({
     mutationFn: () => clientService.comunicacao.delete(c.id),
     onSuccess: () => { setDeletingConfirm(false); onRefresh() },
@@ -241,15 +380,69 @@ function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: Commen
   })
 
   const responderMutation = useMutation({
-    mutationFn: () =>
-      clientService.comunicacao.create({
+    mutationFn: () => {
+      const textoFinal = replyText.trim() || (replyArquivos.length > 0 ? 'Arquivo(s) anexado(s)' : '')
+      if (replyArquivos.length > 0) {
+        const formData = new FormData()
+        formData.append('ciclo', String(cicloAtual.id))
+        formData.append('texto', textoFinal)
+        formData.append('parent', c.id)
+        for (const f of replyArquivos) {
+          formData.append('arquivos', f)
+          formData.append('anexos', f)
+        }
+        return clientService.comunicacao.create(formData)
+      }
+      return clientService.comunicacao.create({
         ciclo: cicloAtual.id,
-        texto: replyText.trim(),
+        texto: textoFinal,
         parent: c.id,
-      }),
-    onSuccess: () => { setReplyText(''); setReplyOpen(false); onRefresh(); toast.success('Resposta publicada!', 'Resposta') },
-    onError: () => toast.error('Erro ao publicar resposta.', 'Falha'),
+      })
+    },
+    onSuccess: (newReply: any) => {
+      setReplyText('')
+      setReplyArquivos([])
+      setReplyOpen(false)
+      if (newReply && cicloAtual) {
+        queryClient.setQueryData(['comentarios', cicloAtual.id], (old: any) => {
+          if (!Array.isArray(old)) return old
+          return old.map((parent: any) => {
+            if (parent.id === c.id) {
+              const respostas = Array.isArray(parent.respostas) ? parent.respostas : []
+              if (!respostas.some((r: any) => r.id === newReply.id)) {
+                return { ...parent, respostas: [...respostas, newReply] }
+              }
+            }
+            return parent
+          })
+        })
+      }
+      onRefresh()
+      toast.success('Resposta publicada!', 'Resposta')
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.detail || 'Erro ao publicar resposta.', 'Falha'),
   })
+
+  const handleReplyFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return
+    const selected = Array.from(e.target.files)
+    if (replyArquivos.length + selected.length > MAX_ARQUIVOS_COMENTARIO) {
+      toast.error(`Você pode anexar no máximo ${MAX_ARQUIVOS_COMENTARIO} arquivos por resposta.`, 'Limite Excedido')
+      e.target.value = ''
+      return
+    }
+    for (const f of selected) {
+      const err = validarArquivo(f)
+      if (err) {
+        toast.error(err, 'Arquivo Inválido')
+        e.target.value = ''
+        return
+      }
+    }
+    setReplyArquivos((prev) => [...prev, ...selected])
+    e.target.value = ''
+  }
 
   const indentClass = isReply ? 'ml-6 border-l-2 border-indigo-200 dark:border-indigo-800/50 pl-4' : ''
 
@@ -264,7 +457,7 @@ function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: Commen
               <span>Excluir Comentário</span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-              Tem certeza que deseja apagar este comentário? Esta ação não pode ser desfeita.
+              Tem certeza que deseja apagar este comentário? Todos os arquivos anexados a ele também serão excluídos permanentemente.
             </p>
             <div className="flex justify-end gap-2.5 pt-2">
               <button onClick={() => setDeletingConfirm(false)} className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer">
@@ -357,6 +550,36 @@ function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: Commen
               onChange={(e) => setEditText(e.target.value)}
               className="w-full text-xs p-3 bg-white dark:bg-slate-800 border border-indigo-300 dark:border-indigo-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 dark:text-slate-100"
             />
+            {/* Anexos durante edição (com remoção individual) */}
+            {c.anexos && c.anexos.length > 0 && (
+              <div className="space-y-1 pt-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Anexos da mensagem (clique para apagar):
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {c.anexos.map((anexo) => (
+                    <div
+                      key={anexo.id}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-950 dark:text-rose-200 text-xs"
+                    >
+                      {getCommentFileIcon(anexo.nome_original)}
+                      <span className="truncate max-w-[130px] font-semibold" title={anexo.nome_original}>
+                        {anexo.nome_original}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={removerAnexoMutation.isPending}
+                        onClick={() => removerAnexoMutation.mutate(anexo.id)}
+                        className="p-0.5 text-rose-600 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-200 rounded transition cursor-pointer"
+                        title="Apagar este arquivo da mensagem"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <button onClick={() => { setIsEditing(false); setEditText('') }} className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
                 <X className="w-3 h-3" /><span>Cancelar</span>
@@ -371,7 +594,73 @@ function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: Commen
             </div>
           </div>
         ) : (
-          <p className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">{c.texto}</p>
+          <div className="space-y-2">
+            <p className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">{c.texto}</p>
+
+            {/* Anexos em modo visualização */}
+            {c.anexos && c.anexos.length > 0 && (
+              <div className="pt-1 space-y-1.5">
+                <div className="flex flex-wrap gap-2">
+                  {c.anexos.map((anexo) => {
+                    const isAudio = isAudioFile(anexo.nome_original)
+                    const isImg = isImageFile(anexo.nome_original)
+                    return (
+                      <div
+                        key={anexo.id}
+                        className="flex flex-col gap-1 p-2 rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-2xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          {getCommentFileIcon(anexo.nome_original)}
+                          <span
+                            className="font-bold text-xs truncate max-w-[140px] sm:max-w-[200px] text-slate-900 dark:text-slate-100"
+                            title={anexo.nome_original}
+                          >
+                            {anexo.nome_original}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            ({formatarTamanho(anexo.tamanho)})
+                          </span>
+                          <a
+                            href={anexo.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download
+                            className="p-1 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-300 rounded transition ml-auto"
+                            title="Baixar anexo"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                        {isAudio && (
+                          <audio
+                            controls
+                            src={anexo.url}
+                            preload="metadata"
+                            className="w-full max-w-[260px] h-7 mt-0.5"
+                          />
+                        )}
+                        {isImg && (
+                          <a
+                            href={anexo.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block max-w-[180px] max-h-28 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 hover:opacity-90 transition mt-0.5"
+                          >
+                            <img
+                              src={anexo.url}
+                              alt={anexo.nome_original}
+                              className="object-cover w-full h-full"
+                              loading="lazy"
+                            />
+                          </a>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Actions: Like + Reply */}
@@ -393,10 +682,14 @@ function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: Commen
             {!isReply && (
               <button
                 onClick={() => setReplyOpen(!replyOpen)}
-                className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
+                className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border transition cursor-pointer ${
+                  replyOpen
+                    ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
               >
                 <CornerDownRight className="w-3 h-3" />
-                <span>Responder</span>
+                <span>{replyOpen ? 'Cancelar' : 'Responder'}</span>
                 {(c.respostas?.length ?? 0) > 0 && (
                   <span className="bg-indigo-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
                     {c.respostas!.length}
@@ -408,27 +701,95 @@ function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: Commen
         )}
       </div>
 
-      {/* Reply input (inline) */}
+      {/* Replies (em ordem cronológica) */}
+      {!isReply && (c.respostas?.length ?? 0) > 0 && (
+        <div className="space-y-2 pt-0.5">
+          {[...c.respostas!]
+            .sort((a, b) => new Date(a.criado_em).getTime() - new Date(b.criado_em).getTime())
+            .map((r) => (
+              <CommentItem
+                key={r.id}
+                c={r}
+                user={user}
+                cicloAtual={cicloAtual}
+                isReply
+                onRefresh={onRefresh}
+                commentsContainerRef={commentsContainerRef}
+              />
+            ))}
+        </div>
+      )}
+
+      {/* Reply input (inline com foco automático e rolagem visível garantida) */}
       {replyOpen && !isReply && (
-        <div className="ml-6 flex gap-2 items-start">
-          <CornerDownRight className="w-4 h-4 text-slate-400 mt-2.5 shrink-0" />
-          <div className="flex-1 flex gap-2">
+        <div
+          ref={replyBoxRef}
+          className="ml-6 space-y-2.5 p-3 rounded-2xl bg-slate-50/90 dark:bg-slate-800/90 border border-indigo-200/80 dark:border-indigo-800/60 shadow-xs"
+        >
+          {/* Header da resposta com identificação e botão cancelar */}
+          <div className="flex items-center justify-between text-[11px] font-bold text-indigo-600 dark:text-indigo-400 pb-0.5">
+            <span className="flex items-center gap-1.5">
+              <CornerDownRight className="w-3.5 h-3.5" />
+              <span>
+                Respondendo a <strong className="font-extrabold text-slate-900 dark:text-slate-100">{c.autor_nome}</strong>
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setReplyOpen(false)
+                setReplyText('')
+                setReplyArquivos([])
+              }}
+              className="text-slate-400 hover:text-rose-500 text-[10px] font-semibold flex items-center gap-1 cursor-pointer px-1.5 py-0.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
+              title="Cancelar resposta (Esc)"
+            >
+              <X className="w-3 h-3" />
+              <span>Cancelar</span>
+            </button>
+          </div>
+
+          <div className="flex gap-2 items-center">
             <input
+              ref={replyInputRef}
               type="text"
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey && replyText.trim()) {
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  setReplyOpen(false)
+                  setReplyText('')
+                  setReplyArquivos([])
+                } else if (e.key === 'Enter' && !e.shiftKey && (replyText.trim() || replyArquivos.length > 0)) {
                   e.preventDefault()
                   responderMutation.mutate()
                 }
               }}
               disabled={responderMutation.isPending}
               placeholder={`Responder a ${c.autor_nome}...`}
-              className="flex-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 dark:text-slate-100 disabled:opacity-60"
+              className="flex-1 text-xs bg-white dark:bg-slate-900 border border-slate-300/80 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 dark:text-slate-100 disabled:opacity-60"
+            />
+
+            <input
+              ref={replyFileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleReplyFiles}
             />
             <button
-              disabled={!replyText.trim() || responderMutation.isPending}
+              type="button"
+              disabled={responderMutation.isPending || replyArquivos.length >= MAX_ARQUIVOS_COMENTARIO}
+              onClick={() => replyFileInputRef.current?.click()}
+              className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer disabled:opacity-40 shrink-0"
+              title={`Anexar arquivo (até ${MAX_ARQUIVOS_COMENTARIO}, máx 25 MB cada)`}
+            >
+              <Paperclip className="w-4 h-4" />
+            </button>
+
+            <button
+              disabled={(!replyText.trim() && replyArquivos.length === 0) || responderMutation.isPending}
               onClick={() => responderMutation.mutate()}
               className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl disabled:opacity-50 disabled:cursor-wait transition cursor-pointer shadow-sm shrink-0"
               title="Publicar resposta"
@@ -436,15 +797,32 @@ function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: Commen
               {responderMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             </button>
           </div>
-        </div>
-      )}
 
-      {/* Replies */}
-      {!isReply && (c.respostas?.length ?? 0) > 0 && (
-        <div className="space-y-2 pt-0.5">
-          {c.respostas!.map((r) => (
-            <CommentItem key={r.id} c={r} user={user} cicloAtual={cicloAtual} isReply onRefresh={onRefresh} />
-          ))}
+          {/* Prévia de anexos na resposta */}
+          {replyArquivos.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1 border-t border-indigo-100 dark:border-indigo-900/50">
+              {replyArquivos.map((file, idx) => (
+                <div
+                  key={idx}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800/60 text-indigo-950 dark:text-indigo-200 text-xs font-semibold"
+                >
+                  {getCommentFileIcon(file.name)}
+                  <span className="truncate max-w-[120px]" title={file.name}>{file.name}</span>
+                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono">
+                    ({formatarTamanho(file.size)})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setReplyArquivos((prev) => prev.filter((_, i) => i !== idx))}
+                    className="p-0.5 text-indigo-400 hover:text-rose-500 rounded transition cursor-pointer"
+                    title="Remover anexo"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -489,6 +867,31 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
   const [modalType, setModalType] = useState<'rejeitar' | 'recusar' | 'aceitar_excecao' | null>(null)
   const [justificativa, setJustificativa] = useState('')
   const [comentarioTexto, setComentarioTexto] = useState('')
+  const [comentarioArquivos, setComentarioArquivos] = useState<File[]>([])
+  const mainFileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleMainFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return
+    const selected = Array.from(e.target.files)
+    if (comentarioArquivos.length + selected.length > MAX_ARQUIVOS_COMENTARIO) {
+      toast.error(
+        `Você pode anexar no máximo ${MAX_ARQUIVOS_COMENTARIO} arquivos por comentário.`,
+        'Limite Excedido'
+      )
+      e.target.value = ''
+      return
+    }
+    for (const f of selected) {
+      const err = validarArquivo(f)
+      if (err) {
+        toast.error(err, 'Arquivo Inválido')
+        e.target.value = ''
+        return
+      }
+    }
+    setComentarioArquivos((prev) => [...prev, ...selected])
+    e.target.value = ''
+  }
 
   // Avaliação modal (aparece automaticamente após aceite bem-sucedido)
   const [showAvaliacaoModal, setShowAvaliacaoModal] = useState(false)
@@ -503,13 +906,51 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
     refetchInterval: 4000,
   })
 
-  const comentarios = Array.isArray(rawComentarios) ? rawComentarios : []
+  // Garante que a lista de mensagens raiz esteja sempre ordenada por criado_em crescente (a mais recente sempre como a última)
+  const rawComentariosList = Array.isArray(rawComentarios) ? rawComentarios : []
+  const comentarios = useMemo(() => {
+    return [...rawComentariosList].sort(
+      (a, b) => new Date(a.criado_em).getTime() - new Date(b.criado_em).getTime()
+    )
+  }, [rawComentariosList])
+
   const totalMensagens = comentarios.reduce((acc, c) => acc + 1 + (c.respostas?.length || 0), 0)
   const totalLikes = comentarios.reduce((acc, c) => {
     const mainLikes = c.reacoes_count || 0
     const replyLikes = (c.respostas || []).reduce((rAcc, r) => rAcc + (r.reacoes_count || 0), 0)
     return acc + mainLikes + replyLikes
   }, 0)
+
+  const commentsContainerRef = useRef<HTMLDivElement>(null)
+  const commentsEndRef = useRef<HTMLDivElement>(null)
+  const prevTotalMensagensRef = useRef<number>(0)
+  const prevCicloIdRef = useRef<number | null>(null)
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const performScroll = () => {
+      if (commentsContainerRef.current) {
+        commentsContainerRef.current.scrollTo({
+          top: commentsContainerRef.current.scrollHeight,
+          behavior,
+        })
+      }
+    }
+    requestAnimationFrame(performScroll)
+    setTimeout(performScroll, 50)
+    setTimeout(performScroll, 200)
+  }, [])
+
+  useEffect(() => {
+    const isNewCiclo = cicloAtual?.id !== prevCicloIdRef.current
+    const hasNewMessages = totalMensagens > prevTotalMensagensRef.current
+
+    if (totalMensagens > 0 && (isNewCiclo || hasNewMessages)) {
+      scrollToBottom(hasNewMessages && !isNewCiclo ? 'smooth' : 'auto')
+    }
+
+    prevTotalMensagensRef.current = totalMensagens
+    prevCicloIdRef.current = cicloAtual?.id || null
+  }, [totalMensagens, cicloAtual?.id, scrollToBottom])
 
   const horasEstimadasNum = Number(cicloAtual?.horas_estimadas) || 0
   const horasRealizadasNum = Number(cicloAtual?.horas_realizadas) || 0
@@ -588,13 +1029,45 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
   })
 
   const comentarioMutation = useMutation({
-    mutationFn: ({ cicloId, texto }: { cicloId: number; texto: string }) =>
-      clientService.comunicacao.create({ ciclo: cicloId, texto }),
-    onSuccess: () => {
-      setComentarioTexto('')
-      refreshData()
+    mutationFn: ({
+      cicloId,
+      texto,
+      arquivos,
+    }: {
+      cicloId: number
+      texto: string
+      arquivos?: File[]
+    }) => {
+      if (arquivos && arquivos.length > 0) {
+        const textoFinal = texto.trim() || 'Arquivo(s) anexado(s)'
+        const formData = new FormData()
+        formData.append('ciclo', String(cicloId))
+        formData.append('texto', textoFinal)
+        for (const f of arquivos) {
+          formData.append('arquivos', f)
+          formData.append('anexos', f)
+        }
+        return clientService.comunicacao.create(formData)
+      }
+      return clientService.comunicacao.create({ ciclo: cicloId, texto: texto.trim() })
     },
-    onError: () => toast.error('Erro ao enviar comentário.', 'Falha'),
+    onSuccess: (newComentario: any) => {
+      setComentarioTexto('')
+      setComentarioArquivos([])
+      if (newComentario && cicloAtual) {
+        queryClient.setQueryData(['comentarios', cicloAtual.id], (old: any) => {
+          const list = Array.isArray(old) ? old : []
+          if (!list.some((item: any) => item.id === newComentario.id)) {
+            return [...list, newComentario]
+          }
+          return list
+        })
+      }
+      refreshData()
+      scrollToBottom('smooth')
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.detail || 'Erro ao enviar comentário.', 'Falha'),
   })
 
   const reenviarMagicLinkMutation = useMutation({
@@ -848,6 +1321,42 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
             )}
           </div>
         </div>
+
+        {/* Documentos Vinculados ao Ciclo */}
+        {cicloAtual.anexos_referenciados && cicloAtual.anexos_referenciados.length > 0 && (
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80">
+            <div className="flex items-center gap-2 mb-2.5 text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <Paperclip className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Documentos Vinculados a este Ciclo ({cicloAtual.anexos_referenciados.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              {cicloAtual.anexos_referenciados.map((anexo) => (
+                <div
+                  key={anexo.id}
+                  className="inline-flex items-center gap-2 p-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs shadow-2xs"
+                >
+                  {getCommentFileIcon(anexo.nome_original)}
+                  <span className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[180px]" title={anexo.nome_original}>
+                    {anexo.nome_original}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    ({formatarTamanho(anexo.tamanho)})
+                  </span>
+                  <a
+                    href={anexo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download
+                    className="p-1 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition ml-1"
+                    title="Baixar documento"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Rating badge on accepted cycle */}
         {cicloAtual.status === 'aceito' && (
@@ -1129,52 +1638,133 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
           </div>
         </div>
 
-        {/* Lista de Comentários */}
-        <div className="space-y-3.5 max-h-[480px] overflow-y-auto pr-1">
-          {comentarios.map((c) => (
-            <CommentItem
-              key={c.id}
-              c={c}
-              user={user}
-              cicloAtual={cicloAtual}
-              onRefresh={refreshData}
-            />
-          ))}
+        {/* Container Relativo com Botão Flutuante e Lista de Comentários */}
+        <div className="relative">
+          <ScrollToTopButton
+            targetRef={commentsContainerRef}
+            title="Rolar para o início das mensagens"
+            className="absolute top-2.5 left-1/2 -translate-x-1/2"
+          />
 
-          {totalMensagens === 0 && (
-            <div className="p-8 text-center text-slate-400 dark:text-slate-500 text-xs italic bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 space-y-1.5">
-              <MessageSquare className="w-6 h-6 mx-auto text-slate-300 dark:text-slate-600" />
-              <p>Nenhuma mensagem registrada neste ciclo. Todos os usuários da empresa e do cliente podem comentar abaixo.</p>
-            </div>
-          )}
+          {/* Lista de Comentários */}
+          <div
+            ref={commentsContainerRef}
+            className="space-y-3.5 max-h-[480px] overflow-y-auto pr-1 scroll-smooth"
+          >
+            {comentarios.map((c) => (
+              <CommentItem
+                key={c.id}
+                c={c}
+                user={user}
+                cicloAtual={cicloAtual}
+                onRefresh={refreshData}
+                commentsContainerRef={commentsContainerRef}
+              />
+            ))}
+            <div ref={commentsEndRef} />
+
+            {totalMensagens === 0 && (
+              <div className="p-8 text-center text-slate-400 dark:text-slate-500 text-xs italic bg-slate-50/50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 space-y-1.5">
+                <MessageSquare className="w-6 h-6 mx-auto text-slate-300 dark:text-slate-600" />
+                <p>Nenhuma mensagem registrada neste ciclo. Todos os usuários da empresa e do cliente podem comentar abaixo.</p>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Formulário de Novo Comentário */}
+        {/* Formulário de Novo Comentário com Anexo */}
         <form
           onSubmit={(e) => {
             e.preventDefault()
-            if (comentarioTexto.trim() && cicloAtual) {
-              comentarioMutation.mutate({ cicloId: cicloAtual.id, texto: comentarioTexto.trim() })
+            if ((comentarioTexto.trim() || comentarioArquivos.length > 0) && cicloAtual) {
+              comentarioMutation.mutate({
+                cicloId: cicloAtual.id,
+                texto: comentarioTexto.trim(),
+                arquivos: comentarioArquivos,
+              })
             }
           }}
-          className="flex gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800"
+          className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800"
         >
-          <input
-            type="text"
-            disabled={comentarioMutation.isPending}
-            value={comentarioTexto}
-            onChange={(e) => setComentarioTexto(e.target.value)}
-            placeholder={comentarioMutation.isPending ? 'Enviando comentário...' : 'Escreva uma mensagem ou observação sobre este ciclo (visível para todos)...'}
-            className="flex-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 dark:text-slate-100 disabled:opacity-60"
-          />
-          <button
-            type="submit"
-            disabled={!comentarioTexto.trim() || comentarioMutation.isPending}
-            className="inline-flex items-center justify-center bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white p-3 rounded-2xl disabled:opacity-50 disabled:cursor-wait transition cursor-pointer shadow-sm shadow-indigo-500/20 shrink-0"
-            title={comentarioMutation.isPending ? 'Enviando comentário...' : 'Publicar Comentário'}
-          >
-            {comentarioMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          </button>
+          <div className="flex gap-2.5">
+            <input
+              type="text"
+              disabled={comentarioMutation.isPending}
+              value={comentarioTexto}
+              onChange={(e) => setComentarioTexto(e.target.value)}
+              placeholder={
+                comentarioMutation.isPending
+                  ? 'Enviando comentário...'
+                  : 'Escreva uma mensagem ou observação sobre este ciclo (visível para todos)...'
+              }
+              className="flex-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 dark:text-slate-100 disabled:opacity-60"
+            />
+
+            <input
+              ref={mainFileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleMainFiles}
+            />
+
+            <button
+              type="button"
+              disabled={comentarioMutation.isPending || comentarioArquivos.length >= MAX_ARQUIVOS_COMENTARIO}
+              onClick={() => mainFileInputRef.current?.click()}
+              className="inline-flex items-center justify-center p-3 rounded-2xl border border-slate-300/80 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer disabled:opacity-40 shrink-0"
+              title={`Anexar arquivo (até ${MAX_ARQUIVOS_COMENTARIO} arquivos, máx 25 MB cada)`}
+            >
+              <Paperclip className="w-4 h-4" />
+            </button>
+
+            <button
+              type="submit"
+              disabled={
+                (!comentarioTexto.trim() && comentarioArquivos.length === 0) ||
+                comentarioMutation.isPending
+              }
+              className="inline-flex items-center justify-center bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white p-3 rounded-2xl disabled:opacity-50 disabled:cursor-wait transition cursor-pointer shadow-sm shadow-indigo-500/20 shrink-0"
+              title={comentarioMutation.isPending ? 'Enviando comentário...' : 'Publicar Comentário'}
+            >
+              {comentarioMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+
+          {/* Chips de arquivos selecionados no novo comentário */}
+          {comentarioArquivos.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                Anexos:
+              </span>
+              {comentarioArquivos.map((file, idx) => (
+                <div
+                  key={idx}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 text-indigo-950 dark:text-indigo-200 text-xs font-semibold"
+                >
+                  {getCommentFileIcon(file.name)}
+                  <span className="truncate max-w-[140px]" title={file.name}>
+                    {file.name}
+                  </span>
+                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono">
+                    ({formatarTamanho(file.size)})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setComentarioArquivos((prev) => prev.filter((_, i) => i !== idx))}
+                    className="p-0.5 text-indigo-400 hover:text-rose-500 rounded transition cursor-pointer"
+                    title="Remover anexo"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </form>
       </div>
     </div>
