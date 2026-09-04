@@ -30,6 +30,7 @@ import { CancelarContratoModal } from '../components/contratos/CancelarContratoM
 import { DocumentosContratoModal } from '../components/contratos/DocumentosContratoModal'
 import { GerenteClienteEmailsModal } from '../components/contratos/GerenteClienteEmailsModal'
 import { MigracaoSaldoModal } from '../components/contratos/MigracaoSaldoModal'
+import { ConfirmModal } from '../components/ui/ConfirmModal'
 
 type StatusFilter = 'todos' | 'ativo' | 'concluido' | 'cancelado' | 'pendente_aceite'
 
@@ -49,6 +50,7 @@ export function ContratosPage() {
   const [documentosModalContrato, setDocumentosModalContrato] = useState<Contrato | null>(null)
   const [emailsModalContrato, setEmailsModalContrato] = useState<Contrato | null>(null)
   const [migracaoModalContrato, setMigracaoModalContrato] = useState<Contrato | null>(null)
+  const [concluirModalContrato, setConcluirModalContrato] = useState<Contrato | null>(null)
 
 
   const isEmpresaAdmin = user?.role === 'EMPRESA_ADMIN' || user?.is_superuser || user?.is_staff
@@ -78,6 +80,7 @@ export function ContratosPage() {
       queryClient.invalidateQueries({ queryKey: ['contratos'] })
       queryClient.invalidateQueries({ queryKey: ['extrato'] })
       toast.success(`Contrato ${data.contrato?.numero || ''} concluído com sucesso!`, 'Contrato Concluído')
+      setConcluirModalContrato(null)
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.detail || 'Erro ao concluir contrato.', 'Erro')
@@ -507,11 +510,7 @@ export function ContratosPage() {
 
                           <button
                             disabled={concluirMutation.isPending}
-                            onClick={() => {
-                              if (window.confirm(`Deseja marcar o contrato ${c.numero} como Concluído?`)) {
-                                concluirMutation.mutate(c.id)
-                              }
-                            }}
+                            onClick={() => setConcluirModalContrato(c)}
                             className="p-1.5 text-slate-600 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition cursor-pointer"
                             title="Concluir Contrato"
                           >
@@ -580,6 +579,37 @@ export function ContratosPage() {
         isOpen={Boolean(migracaoModalContrato)}
         onClose={() => setMigracaoModalContrato(null)}
         contratoDestino={migracaoModalContrato}
+      />
+
+      {/* Modal de Confirmação: Concluir Contrato */}
+      <ConfirmModal
+        isOpen={Boolean(concluirModalContrato)}
+        onClose={() => setConcluirModalContrato(null)}
+        onConfirm={() => {
+          if (concluirModalContrato) {
+            concluirMutation.mutate(concluirModalContrato.id)
+          }
+        }}
+        title="Concluir Contrato"
+        badge={
+          concluirModalContrato
+            ? `${concluirModalContrato.numero} — ${concluirModalContrato.cliente_nome || ''}`
+            : undefined
+        }
+        variant="success"
+        icon={CheckCheck}
+        confirmText="Confirmar Conclusão"
+        isLoading={concluirMutation.isPending}
+        description={
+          <div className="space-y-2">
+            <p>
+              Deseja realmente marcar o contrato <strong>{concluirModalContrato?.numero}</strong> como <strong>Concluído</strong>?
+            </p>
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-900 dark:text-emerald-200 leading-relaxed">
+              🔒 <strong>Encerramento de Vigência:</strong> O contrato será encerrado no sistema, mantendo todo o histórico de lançamentos, faturamento e relatórios auditáveis, mas bloqueando novas alterações cadastrais e novas aberturas de chamados.
+            </div>
+          </div>
+        }
       />
     </AppLayout>
   )

@@ -19,6 +19,7 @@ import { clientService } from '../../api/client'
 import { useToast } from '../../contexts/ToastContext'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Cliente, ClienteUser, UserRole } from '../../types'
+import { ConfirmModal } from '../ui/ConfirmModal'
 
 interface ClienteUsuariosModalProps {
   cliente: Cliente | null
@@ -39,6 +40,12 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
   const [error, setError] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
+
+  const [usuarioParaAlterarPapel, setUsuarioParaAlterarPapel] = useState<{
+    user: ClienteUser
+    novoRole: 'CLIENTE_GERENTE' | 'CLIENTE_ANALISTA'
+  } | null>(null)
+  const [usuarioParaAlternarStatus, setUsuarioParaAlternarStatus] = useState<ClienteUser | null>(null)
 
   const isEmpresaAdmin =
     currentUser?.role === 'EMPRESA_ADMIN' || currentUser?.is_superuser || currentUser?.is_staff
@@ -85,6 +92,7 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
       queryClient.invalidateQueries({ queryKey: ['cliente_usuarios', cliente?.id] })
       queryClient.invalidateQueries({ queryKey: ['clientes'] })
       toast.success(res.detail, 'Status Atualizado')
+      setUsuarioParaAlternarStatus(null)
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.detail || 'Erro ao alterar status do usuário.', 'Erro')
@@ -112,6 +120,7 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['cliente_usuarios', cliente?.id] })
       toast.success(res.detail || 'Perfil do usuário atualizado!', 'Perfil Atualizado')
+      setUsuarioParaAlterarPapel(null)
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.detail || 'Erro ao atualizar perfil.', 'Erro')
@@ -474,19 +483,13 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
 
                           {/* Alternar Papel */}
                           <button
+                            disabled={isCurrentUser}
                             onClick={() => {
+                              if (isCurrentUser) return
                               const novo = isGerente ? 'CLIENTE_ANALISTA' : 'CLIENTE_GERENTE'
-                              if (
-                                window.confirm(
-                                  `Deseja alterar o perfil de ${u.first_name} para ${
-                                    novo === 'CLIENTE_GERENTE' ? 'Gerente' : 'Analista'
-                                  }?`
-                                )
-                              ) {
-                                updateRoleMutation.mutate({ userId: u.id, role: novo })
-                              }
+                              setUsuarioParaAlterarPapel({ user: u, novoRole: novo })
                             }}
-                            className="px-2.5 py-1.5 text-slate-700 dark:text-slate-200 hover:text-violet-600 dark:hover:text-violet-400 bg-slate-100 dark:bg-slate-700/70 hover:bg-violet-50 dark:hover:bg-violet-950/60 border border-slate-200 dark:border-slate-600 rounded-xl transition cursor-pointer text-xs flex items-center gap-1"
+                            className="px-2.5 py-1.5 text-slate-700 dark:text-slate-200 hover:text-violet-600 dark:hover:text-violet-400 bg-slate-100 dark:bg-slate-700/70 hover:bg-violet-50 dark:hover:bg-violet-950/60 border border-slate-200 dark:border-slate-600 rounded-xl transition cursor-pointer text-xs flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                             title={isCurrentUser ? 'Você não pode alterar seu próprio papel' : `Alternar entre Gerente e Analista (Mudar para ${isGerente ? 'Analista' : 'Gerente'})`}
                           >
                             <Shield className="w-3.5 h-3.5" />
@@ -496,7 +499,7 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
                           {/* Bloquear / Desbloquear */}
                           {!isCurrentUser && (
                             <button
-                              onClick={() => toggleStatusMutation.mutate(u.id)}
+                              onClick={() => setUsuarioParaAlternarStatus(u)}
                               className={`p-2 rounded-xl transition cursor-pointer text-xs flex items-center justify-center border ${
                                 u.is_active
                                   ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-rose-50 dark:hover:bg-rose-950/60 hover:text-rose-600 dark:hover:text-rose-400 border-emerald-200 dark:border-emerald-800/80 hover:border-rose-300 dark:hover:border-rose-800'
@@ -535,6 +538,81 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
           </button>
         </div>
       </div>
+
+      {/* Modal de Confirmação: Alterar Papel do Usuário */}
+      <ConfirmModal
+        isOpen={Boolean(usuarioParaAlterarPapel)}
+        onClose={() => setUsuarioParaAlterarPapel(null)}
+        onConfirm={() => {
+          if (usuarioParaAlterarPapel) {
+            updateRoleMutation.mutate({
+              userId: usuarioParaAlterarPapel.user.id,
+              role: usuarioParaAlterarPapel.novoRole,
+            })
+          }
+        }}
+        title="Alterar Perfil de Acesso"
+        badge={
+          usuarioParaAlterarPapel
+            ? `${usuarioParaAlterarPapel.user.first_name || usuarioParaAlterarPapel.user.email} → ${
+                usuarioParaAlterarPapel.novoRole === 'CLIENTE_GERENTE' ? 'Gerente' : 'Analista'
+              }`
+            : undefined
+        }
+        variant={usuarioParaAlterarPapel?.novoRole === 'CLIENTE_GERENTE' ? 'primary' : 'warning'}
+        icon={Shield}
+        confirmText="Confirmar Alteração"
+        isLoading={updateRoleMutation.isPending}
+        description={
+          usuarioParaAlterarPapel?.novoRole === 'CLIENTE_GERENTE' ? (
+            <div className="space-y-2">
+              <p>
+                Tem certeza que deseja promover <strong>{usuarioParaAlterarPapel.user.first_name || usuarioParaAlterarPapel.user.email}</strong> para o papel de <strong>Gerente</strong>?
+              </p>
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-800 text-[11px] text-indigo-900 dark:text-indigo-200">
+                ✨ <strong>Privilégios de Gerente:</strong> Poderá aprovar orçamentos, assinar aceites de conclusão de ciclos e gerenciar os demais usuários vinculados a esta empresa.
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p>
+                Tem certeza que deseja alterar o papel de <strong>{usuarioParaAlterarPapel?.user.first_name || usuarioParaAlterarPapel?.user.email}</strong> para <strong>Analista</strong>?
+              </p>
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200">
+                ⚠️ <strong>Atenção:</strong> O usuário perderá a capacidade de aprovar orçamentos e aceites de ciclos, mantendo apenas acesso para abertura e acompanhamento de chamados.
+              </div>
+            </div>
+          )
+        }
+      />
+
+      {/* Modal de Confirmação: Bloquear / Desbloquear Usuário */}
+      <ConfirmModal
+        isOpen={Boolean(usuarioParaAlternarStatus)}
+        onClose={() => setUsuarioParaAlternarStatus(null)}
+        onConfirm={() => {
+          if (usuarioParaAlternarStatus) {
+            toggleStatusMutation.mutate(usuarioParaAlternarStatus.id)
+          }
+        }}
+        title={usuarioParaAlternarStatus?.is_active ? 'Bloquear Acesso do Usuário' : 'Liberar Acesso do Usuário'}
+        badge={usuarioParaAlternarStatus?.email}
+        variant={usuarioParaAlternarStatus?.is_active ? 'danger' : 'success'}
+        icon={usuarioParaAlternarStatus?.is_active ? Lock : Unlock}
+        confirmText={usuarioParaAlternarStatus?.is_active ? 'Confirmar Bloqueio' : 'Confirmar Liberação'}
+        isLoading={toggleStatusMutation.isPending}
+        description={
+          usuarioParaAlternarStatus?.is_active ? (
+            <p>
+              Deseja realmente <strong>bloquear o acesso</strong> de <strong>{usuarioParaAlternarStatus.first_name || usuarioParaAlternarStatus.email}</strong>? O usuário será impedido de realizar login e acessar os contratos da empresa até que seu acesso seja liberado novamente.
+            </p>
+          ) : (
+            <p>
+              Deseja realmente <strong>liberar o acesso</strong> de <strong>{usuarioParaAlternarStatus?.first_name || usuarioParaAlternarStatus?.email}</strong>? O usuário voltará a ter permissão para acessar o sistema normalmente.
+            </p>
+          )
+        }
+      />
     </div>
   )
 }

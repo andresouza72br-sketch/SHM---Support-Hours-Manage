@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
+import { ConfirmModal } from '../components/ui/ConfirmModal'
 import { clientService } from '../api/client'
 import { useToast } from '../contexts/ToastContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -47,6 +48,7 @@ export function ConfiguracoesNotificacoesPage() {
   const [categoriaAtiva, setCategoriaAtiva] = useState<string>('todas')
   const [eventoSelecionado, setEventoSelecionado] = useState<ConfiguracaoNotificacao | null>(null)
   const [novoEmailAdicional, setNovoEmailAdicional] = useState('')
+  const [showResetModal, setShowResetModal] = useState(false)
 
   // Consulta as configurações
   const { data: configuracoes = [], isLoading } = useQuery({
@@ -79,6 +81,7 @@ export function ConfiguracoesNotificacoesPage() {
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['configuracoes-notificacoes'] })
       setEventoSelecionado(null)
+      setShowResetModal(false)
       toast.success(`Todas as ${res.total} configurações foram restauradas para o padrão.`, 'Padrões Restaurados')
     },
     onError: () => {
@@ -179,13 +182,9 @@ export function ConfiguracoesNotificacoesPage() {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                if (window.confirm('Deseja realmente restaurar todas as notificações para as configurações originais de fábrica?')) {
-                  resetMutation.mutate()
-                }
-              }}
+              onClick={() => setShowResetModal(true)}
               disabled={resetMutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
             >
               {resetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
               Restaurar Padrões
@@ -545,6 +544,28 @@ export function ConfiguracoesNotificacoesPage() {
             </div>
           </div>
         )}
+
+        {/* Modal de Confirmação: Restaurar Padrões de Notificações */}
+        <ConfirmModal
+          isOpen={showResetModal}
+          onClose={() => setShowResetModal(false)}
+          onConfirm={() => resetMutation.mutate()}
+          title="Restaurar Configurações de Fábrica"
+          variant="danger"
+          icon={RotateCcw}
+          confirmText="Restaurar Padrões"
+          isLoading={resetMutation.isPending}
+          description={
+            <div className="space-y-2">
+              <p>
+                Deseja realmente restaurar todas as notificações para as configurações originais de fábrica?
+              </p>
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 rounded-xl border border-rose-200 dark:border-rose-800 text-[11px] text-rose-900 dark:text-rose-200 leading-relaxed">
+                ⚠️ <strong>Atenção:</strong> Todas as regras personalizadas de templates, disparos de e-mail e matriz de destinatários corporativos serão redefinidas para o padrão inicial do SHM.
+              </div>
+            </div>
+          }
+        />
       </div>
     </AppLayout>
   )
