@@ -206,6 +206,34 @@ class ContratoService:
         )
 
         try:
+            from apps.contratos.forensic_service import ForensicAuditService
+            from apps.contratos.models import NivelRelevanciaAudit
+            ForensicAuditService.registrar_evento(
+                tipo_evento="SALDO_MIGRACAO_ENVIO",
+                descricao=f"Migração de {quantidade:.2f}h para o contrato {contrato_destino.numero} formalizada por {usuario_str}.",
+                nivel_relevancia=NivelRelevanciaAudit.N1,
+                contrato=contrato_origem,
+                usuario=autor,
+                justificativa=motivo,
+                dados_payload={"quantidade": quantidade, "destino_id": contrato_destino.id, "destino_numero": contrato_destino.numero},
+                ip_origem=ip_origem,
+                user_agent=user_agent,
+            )
+            ForensicAuditService.registrar_evento(
+                tipo_evento="SALDO_MIGRACAO_RECEBIMENTO",
+                descricao=f"Recebimento de {quantidade:.2f}h do contrato encerrado {contrato_origem.numero} formalizada por {usuario_str}.",
+                nivel_relevancia=NivelRelevanciaAudit.N1,
+                contrato=contrato_destino,
+                usuario=autor,
+                justificativa=motivo,
+                dados_payload={"quantidade": quantidade, "origem_id": contrato_origem.id, "origem_numero": contrato_origem.numero},
+                ip_origem=ip_origem,
+                user_agent=user_agent,
+            )
+        except Exception as f_err:
+            logger.warning("Falha ao registrar auditoria forense na migração: %s", f_err)
+
+        try:
             from apps.contratos.email_service import ContratoEmailNotificacaoService
             ContratoEmailNotificacaoService.enviar_email_migracao_saldo(
                 contrato_origem=contrato_origem,
@@ -289,6 +317,34 @@ class ContratoService:
             ip_origem=ip_origem,
             user_agent=user_agent,
         )
+
+        try:
+            from apps.contratos.forensic_service import ForensicAuditService
+            from apps.contratos.models import NivelRelevanciaAudit
+            ForensicAuditService.registrar_evento(
+                tipo_evento="SALDO_COMPENSACAO_ABATIMENTO",
+                descricao=f"Abatimento de {quantidade:.2f}h da franquia inicial para quitação de saldo devedor do contrato {contrato_devedor.numero} por {usuario_str}.",
+                nivel_relevancia=NivelRelevanciaAudit.N1,
+                contrato=contrato_novo,
+                usuario=autor,
+                justificativa=motivo,
+                dados_payload={"quantidade": quantidade, "contrato_devedor_id": contrato_devedor.id, "contrato_devedor_numero": contrato_devedor.numero},
+                ip_origem=ip_origem,
+                user_agent=user_agent,
+            )
+            ForensicAuditService.registrar_evento(
+                tipo_evento="SALDO_COMPENSACAO_QUITACAO",
+                descricao=f"Quitação de saldo devedor de {quantidade:.2f}h através de compensação de horas do novo contrato {contrato_novo.numero} por {usuario_str}.",
+                nivel_relevancia=NivelRelevanciaAudit.N1,
+                contrato=contrato_devedor,
+                usuario=autor,
+                justificativa=motivo,
+                dados_payload={"quantidade": quantidade, "contrato_novo_id": contrato_novo.id, "contrato_novo_numero": contrato_novo.numero},
+                ip_origem=ip_origem,
+                user_agent=user_agent,
+            )
+        except Exception as f_err:
+            logger.warning("Falha ao registrar auditoria forense na compensação: %s", f_err)
 
         try:
             from apps.contratos.email_service import ContratoEmailNotificacaoService

@@ -150,11 +150,11 @@ class ClienteService:
                 "detail": f"Não é possível excluir o cliente '{cliente.display_name}' pois ele possui {total_pedidos} pedido(s) vinculado(s) no sistema."
             })
 
-        # 3. Justificativa obrigatória (mínimo 5 caracteres)
+        # 3. Justificativa obrigatória (mínimo 10 caracteres para operações críticas N1)
         justificativa_limpa = (justificativa or "").strip()
-        if not justificativa_limpa or len(justificativa_limpa) < 5:
+        if not justificativa_limpa or len(justificativa_limpa) < 10:
             raise ValidationError({
-                "justificativa": "A justificativa de exclusão é obrigatória e deve conter no mínimo 5 caracteres."
+                "justificativa": "A justificativa de exclusão é obrigatória e deve conter no mínimo 10 caracteres."
             })
 
         # 4. Captura de Auditoria Forense
@@ -179,6 +179,35 @@ class ClienteService:
             ip_origem=ip,
             user_agent=user_agent,
         )
+
+        # Enlace criptográfico pericial SHA-256 na partição pericial do cliente
+        try:
+            from apps.contratos.forensic_service import ForensicAuditService, NivelRelevanciaAudit
+            ForensicAuditService.registrar_evento(
+                tipo_evento="CLIENTE_EXCLUSAO",
+                descricao=f"Cliente '{nome_cliente}' ({doc_cliente or 'Sem documento'}) excluído definitivamente por {usuario_nome} ({usuario_role}).",
+                nivel_relevancia=NivelRelevanciaAudit.N1,
+                particao=f"cliente:{cliente_id}",
+                usuario=usuario,
+                usuario_nome=usuario_nome,
+                usuario_email=usuario_email,
+                usuario_role=usuario_role,
+                justificativa=justificativa_limpa,
+                dados_payload={
+                    "cliente_id": cliente_id,
+                    "nome_cliente": nome_cliente,
+                    "documento": doc_cliente,
+                    "tipo": cliente.tipo,
+                    "email": cliente.email_contato,
+                    "operador": usuario_nome,
+                    "motivo": justificativa_limpa,
+                },
+                ip_origem=ip,
+                user_agent=user_agent,
+            )
+        except Exception as forensic_err:
+            logger.error("Falha ao registrar auditoria forense criptográfica na exclusão de cliente: %s", forensic_err, exc_info=True)
+            raise
 
         # 5. Notificar Administradores da Empresa
         admin_filter = User.objects.filter(role=UserRole.EMPRESA_ADMIN, is_active=True)
