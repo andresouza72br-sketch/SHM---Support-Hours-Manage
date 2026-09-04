@@ -118,6 +118,7 @@ class Command(BaseCommand):
             }
         )
         gerente_acme.email = "gerente@acme.com"
+        gerente_acme.role = UserRole.CLIENTE_GERENTE
         gerente_acme.set_password("cliente123")
         gerente_acme.is_active = True
         gerente_acme.save()
@@ -133,6 +134,7 @@ class Command(BaseCommand):
             }
         )
         analista_acme.email = "analista@acme.com"
+        analista_acme.role = UserRole.CLIENTE_ANALISTA
         analista_acme.set_password("cliente123")
         analista_acme.is_active = True
         analista_acme.save()

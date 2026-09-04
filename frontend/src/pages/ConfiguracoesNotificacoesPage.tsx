@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Bell,
@@ -19,6 +20,7 @@ import {
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
 import { useToast } from '../contexts/ToastContext'
+import { useAuth } from '../contexts/AuthContext'
 import type { ConfiguracaoNotificacao } from '../types'
 
 
@@ -33,6 +35,13 @@ const CATEGORIAS: { id: string; label: string; icon: any }[] = [
 ]
 
 export function ConfiguracoesNotificacoesPage() {
+  const { user, isEmpresaGerente } = useAuth()
+  const isGerenteEmpresa = Boolean(isEmpresaGerente || user?.role === 'EMPRESA_ADMIN' || user?.is_superuser)
+
+  if (!isGerenteEmpresa) {
+    return <Navigate to="/dashboard" replace />
+  }
+
   const toast = useToast()
   const queryClient = useQueryClient()
   const [categoriaAtiva, setCategoriaAtiva] = useState<string>('todas')
@@ -363,100 +372,108 @@ export function ConfiguracoesNotificacoesPage() {
         {eventoSelecionado && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
             <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-              <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <div>
-                  <h3 className="font-black text-slate-900 dark:text-white text-base">
+              <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                     Matriz de Destinatários
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  </span>
+                  <h3 className="font-black text-slate-900 dark:text-white text-base leading-snug mt-0.5 truncate" title={eventoSelecionado.nome}>
                     {eventoSelecionado.nome}
-                  </p>
+                  </h3>
+                  {eventoSelecionado.descricao && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                      {eventoSelecionado.descricao}
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={() => setEventoSelecionado(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
                 <div className="space-y-2">
                   <div className="text-xs font-black uppercase text-slate-400 tracking-wider">
                     Papéis que Recebem este Evento
                   </div>
 
-                  <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Administradores da Empresa
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={eventoSelecionado.notificar_empresa_admin}
-                      onChange={() => handleTogglePapel('notificar_empresa_admin')}
-                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                    />
-                  </label>
+                  {/* Lista de checkboxes dos papéis com scroll para melhor ajuste de altura */}
+                  <div className="max-h-52 overflow-y-auto pr-1.5 space-y-2">
+                    <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Administradores da Empresa
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={eventoSelecionado.notificar_empresa_admin}
+                        onChange={() => handleTogglePapel('notificar_empresa_admin')}
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                      />
+                    </label>
 
-                  <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Técnicos da Empresa
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={eventoSelecionado.notificar_empresa_tecnico}
-                      onChange={() => handleTogglePapel('notificar_empresa_tecnico')}
-                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                    />
-                  </label>
+                    <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Técnicos da Empresa
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={eventoSelecionado.notificar_empresa_tecnico}
+                        onChange={() => handleTogglePapel('notificar_empresa_tecnico')}
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                      />
+                    </label>
 
-                  <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Gerentes / Aprovadores do Cliente
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={eventoSelecionado.notificar_cliente_gerente}
-                      onChange={() => handleTogglePapel('notificar_cliente_gerente')}
-                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                    />
-                  </label>
+                    <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Gerentes / Aprovadores do Cliente
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={eventoSelecionado.notificar_cliente_gerente}
+                        onChange={() => handleTogglePapel('notificar_cliente_gerente')}
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                      />
+                    </label>
 
-                  <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Solicitantes Comuns do Cliente
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={eventoSelecionado.notificar_cliente_comum}
-                      onChange={() => handleTogglePapel('notificar_cliente_comum')}
-                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                    />
-                  </label>
+                    <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Solicitantes Comuns do Cliente
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={eventoSelecionado.notificar_cliente_comum}
+                        onChange={() => handleTogglePapel('notificar_cliente_comum')}
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                      />
+                    </label>
 
-                  <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Gestor do Contrato
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={eventoSelecionado.notificar_gestor_contrato}
-                      onChange={() => handleTogglePapel('notificar_gestor_contrato')}
-                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                    />
-                  </label>
+                    <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Gestor do Contrato
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={eventoSelecionado.notificar_gestor_contrato}
+                        onChange={() => handleTogglePapel('notificar_gestor_contrato')}
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                      />
+                    </label>
 
-                  <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Enviar Cópia para E-mails da Lista do Contrato (CC)
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={eventoSelecionado.notificar_emails_cc}
-                      onChange={() => handleTogglePapel('notificar_emails_cc')}
-                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                    />
-                  </label>
+                    <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Enviar Cópia para E-mails da Lista do Contrato (CC)
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={eventoSelecionado.notificar_emails_cc}
+                        onChange={() => handleTogglePapel('notificar_emails_cc')}
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                      />
+                    </label>
+                  </div>
 
                   {/* Controle de Envio para o Autor */}
                   <label className="flex items-center justify-between p-3 rounded-xl border border-amber-200/80 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/40 cursor-pointer transition">

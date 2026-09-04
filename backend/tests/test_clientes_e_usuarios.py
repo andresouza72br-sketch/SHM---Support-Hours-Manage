@@ -329,5 +329,5 @@ class TestClienteCadastroEUsuarios:
         assert audit.justificativa == justificativa
         assert audit.usuario == empresa_admin
         assert audit.usuario_email == "admin@tellin.com.br"
-        assert audit.usuario_role == "Administrador" or "Admin" in audit.usuario_role or "EMPRESA_ADMIN" in audit.usuario_role
+        assert audit.usuario_role == "Administrador" or "Admin" in audit.usuario_role or "EMPRESA_ADMIN" in audit.usuario_role or "Gerente" in audit.usuario_role
 

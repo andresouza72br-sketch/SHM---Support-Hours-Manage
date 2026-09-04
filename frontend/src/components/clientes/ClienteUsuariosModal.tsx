@@ -420,6 +420,9 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
                                 Você
                               </span>
                             )}
+                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60">
+                              Cliente
+                            </span>
                             <span
                               className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
                                 isGerente
@@ -427,7 +430,7 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
                                   : 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
                               }`}
                             >
-                              {isGerente ? 'Gerente / Tomador' : 'Analista'}
+                              {isGerente ? 'Gerente' : 'Analista'}
                             </span>
                             {!u.is_active && (
                               <span className="text-[9px] font-black bg-rose-100 dark:bg-rose-950/70 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 px-2 py-0.5 rounded-full uppercase">
@@ -458,10 +461,14 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
                           <button
                             disabled={resendInviteMutation.isPending}
                             onClick={() => resendInviteMutation.mutate(u.id)}
-                            className="px-2.5 py-1.5 text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 bg-slate-100 dark:bg-slate-700/70 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 border border-slate-200 dark:border-slate-600 rounded-xl transition cursor-pointer text-xs flex items-center gap-1"
-                            title="Reenviar link seguro de acesso por e-mail"
+                            className="px-2.5 py-1.5 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 bg-slate-100 dark:bg-slate-700/70 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 border border-slate-200 dark:border-slate-600 rounded-xl transition cursor-pointer text-xs flex items-center gap-1 disabled:opacity-50"
+                            title="Reenviar e-mail com link de ativação/login mágico"
                           >
-                            <Send className="w-3.5 h-3.5" />
+                            {resendInviteMutation.isPending ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Send className="w-3.5 h-3.5" />
+                            )}
                             <span className="hidden lg:inline text-[10px] font-bold">Reenviar Link</span>
                           </button>
 
@@ -472,7 +479,7 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
                               if (
                                 window.confirm(
                                   `Deseja alterar o perfil de ${u.first_name} para ${
-                                    novo === 'CLIENTE_GERENTE' ? 'Gerente / Tomador' : 'Analista'
+                                    novo === 'CLIENTE_GERENTE' ? 'Gerente' : 'Analista'
                                   }?`
                                 )
                               ) {
@@ -480,7 +487,7 @@ export function ClienteUsuariosModal({ cliente, isOpen, onClose }: ClienteUsuari
                               }
                             }}
                             className="px-2.5 py-1.5 text-slate-700 dark:text-slate-200 hover:text-violet-600 dark:hover:text-violet-400 bg-slate-100 dark:bg-slate-700/70 hover:bg-violet-50 dark:hover:bg-violet-950/60 border border-slate-200 dark:border-slate-600 rounded-xl transition cursor-pointer text-xs flex items-center gap-1"
-                            title="Alternar entre Gerente e Analista"
+                            title={isCurrentUser ? 'Você não pode alterar seu próprio papel' : `Alternar entre Gerente e Analista (Mudar para ${isGerente ? 'Analista' : 'Gerente'})`}
                           >
                             <Shield className="w-3.5 h-3.5" />
                             <span className="hidden lg:inline text-[10px] font-bold">Mudar Perfil</span>

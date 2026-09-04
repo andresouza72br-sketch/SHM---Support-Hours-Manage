@@ -33,7 +33,7 @@ class ClienteUserCreateSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=150, required=True)
     last_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
     role = serializers.ChoiceField(
-        choices=[(UserRole.CLIENTE_GERENTE, "Gerente / Tomador"), (UserRole.CLIENTE_ANALISTA, "Analista / Operacional")],
+        choices=[(UserRole.CLIENTE_GERENTE, "Gerente"), (UserRole.CLIENTE_ANALISTA, "Analista")],
         default=UserRole.CLIENTE_ANALISTA,
     )
     telefone = serializers.CharField(max_length=20, required=False, allow_blank=True, default="")
