@@ -22,7 +22,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
-import type { Ciclo, Pedido, Comentario } from '../../types'
+import { type Ciclo, type Pedido, type Comentario, getUserRoleBadgeInfo } from '../../types'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -293,9 +293,31 @@ function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: Commen
           <div className="flex flex-wrap items-center gap-2">
             <CommentAvatar avatarUrl={c.autor_avatar_url} nome={c.autor_nome} />
             <span className="font-black text-slate-900 dark:text-white">{c.autor_nome}</span>
-            <span className="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-300 font-bold px-2 py-0.5 rounded-md border border-slate-300 dark:border-slate-600">
-              {c.autor_role?.split('—')[0] || c.autor_role}
-            </span>
+            {(() => {
+              const info = getUserRoleBadgeInfo(c.autor_role)
+              return (
+                <div className="flex items-center gap-1">
+                  <span
+                    className={`text-[9px] font-black px-1.5 py-0.2 rounded-md border tracking-wider uppercase ${
+                      info.org === 'Empresa'
+                        ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/50'
+                        : 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border-sky-200/80 dark:border-sky-800/50'
+                    }`}
+                  >
+                    {info.org}
+                  </span>
+                  <span
+                    className={`text-[9px] font-black px-1.5 py-0.2 rounded-md border tracking-wider uppercase ${
+                      info.roleType === 'Gerente'
+                        ? 'bg-violet-100 dark:bg-violet-950/60 text-violet-800 dark:text-violet-300 border-violet-200 dark:border-violet-800/60'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
+                    }`}
+                  >
+                    {info.roleType}
+                  </span>
+                </div>
+              )
+            })()}
             {isOwner && (
               <span className="text-[9px] bg-indigo-600 text-white font-black px-1.5 py-0.5 rounded uppercase tracking-wider">Você</span>
             )}

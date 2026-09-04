@@ -19,6 +19,62 @@ export interface User {
   is_cliente?: boolean
 }
 
+export interface UserRoleBadgeInfo {
+  org: 'Cliente' | 'Empresa'
+  roleType: 'Gerente' | 'Analista'
+  fullLabel: string
+}
+
+export function getUserRoleBadgeInfo(user?: {
+  role?: string
+  role_display?: string
+  is_empresa?: boolean
+  is_cliente?: boolean
+  is_superuser?: boolean
+  is_staff?: boolean
+} | string | null): UserRoleBadgeInfo {
+  if (!user) {
+    return {
+      org: 'Cliente',
+      roleType: 'Analista',
+      fullLabel: 'Cliente • Analista',
+    }
+  }
+
+  const rawString =
+    typeof user === 'string'
+      ? user
+      : `${user?.role || ''} ${user?.role_display || ''}`.trim()
+  const lower = rawString.toLowerCase()
+
+  const isSuperuser = typeof user === 'object' ? Boolean(user?.is_superuser || user?.is_staff) : false
+  const isEmpresaExplicit = typeof user === 'object' ? Boolean(user?.is_empresa) : false
+
+  const isEmpresa =
+    isEmpresaExplicit ||
+    isSuperuser ||
+    lower.includes('empresa') ||
+    lower.includes('tecnico') ||
+    lower.includes('técnico') ||
+    (typeof user === 'object' && (user?.role === 'EMPRESA_ADMIN' || user?.role === 'EMPRESA_TECNICO'))
+
+  const isGerente =
+    isSuperuser ||
+    lower.includes('gerente') ||
+    lower.includes('admin') ||
+    lower.includes('tomador') ||
+    (typeof user === 'object' && (user?.role === 'EMPRESA_ADMIN' || user?.role === 'CLIENTE_GERENTE'))
+
+  const org: 'Cliente' | 'Empresa' = isEmpresa ? 'Empresa' : 'Cliente'
+  const roleType: 'Gerente' | 'Analista' = isGerente ? 'Gerente' : 'Analista'
+
+  return {
+    org,
+    roleType,
+    fullLabel: `${org} • ${roleType}`,
+  }
+}
+
 export interface EmailNotificacao {
   id?: number
   email: string

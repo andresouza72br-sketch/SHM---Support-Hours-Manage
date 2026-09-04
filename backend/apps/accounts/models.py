@@ -1,13 +1,14 @@
+# -*- coding: utf-8 -*-
 import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 
 class UserRole(models.TextChoices):
-    EMPRESA_ADMIN = "EMPRESA_ADMIN", "Empresa — Gerente / Administrador"
-    EMPRESA_TECNICO = "EMPRESA_TECNICO", "Empresa — Técnico / Analista"
-    CLIENTE_GERENTE = "CLIENTE_GERENTE", "Cliente — Gerente / Tomador"
-    CLIENTE_ANALISTA = "CLIENTE_ANALISTA", "Cliente — Analista / Usuário"
+    EMPRESA_ADMIN = "EMPRESA_ADMIN", "Empresa — Gerente"
+    EMPRESA_TECNICO = "EMPRESA_TECNICO", "Empresa — Analista"
+    CLIENTE_GERENTE = "CLIENTE_GERENTE", "Cliente — Gerente"
+    CLIENTE_ANALISTA = "CLIENTE_ANALISTA", "Cliente — Analista"
 
 class User(AbstractUser):
     role = models.CharField(
