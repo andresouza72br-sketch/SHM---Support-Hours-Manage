@@ -31,8 +31,8 @@ $ITEMS_TO_MANAGE = @(
     "_reversa_bugs",
     "_reversa_docs",
     ".reversa",
-    ".agents\skills",
-    ".claude\skills",
+    ".agents",
+    ".claude",
     ".worktree-copy"
 )
 

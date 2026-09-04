@@ -184,8 +184,7 @@ projeto-SHM/
 ├── tools/                    # Utilitários de desenvolvimento, banco, testes e automação
 │   ├── mail-server/          # Servidor SMTP local para captura de e-mails em dev
 │   ├── database/             # Scripts de reset e seed determinístico (base limpa)
-│   ├── scripts/              # Utilitários de automação e git-hooks de governança
-│   └── docs-testing/         # Roteiro oficial de testes manuais e documentação de QA
+│   └── scripts/              # Utilitários de automação e git-hooks de governança
 │
 └── docs/                     # Documentação de API, Workflow e Guias
 ```
