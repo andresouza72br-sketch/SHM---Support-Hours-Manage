@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.serializers.json import DjangoJSONEncoder
 from django.core.validators import FileExtensionValidator
 from django.utils import timezone
 from apps.core.models import TimeStampedModel
@@ -231,6 +232,127 @@ class ContratoAuditLog(models.Model):
 
     def __str__(self):
         return f"[{self.timestamp.strftime('%d/%m/%Y %H:%M')}] {self.get_tipo_evento_display()} - {self.contrato.numero}"
+
+
+class NivelRelevanciaAudit(models.TextChoices):
+    N1 = "N1", "Nível 1 - Crítico"
+    N2 = "N2", "Nível 2 - Operacional"
+    N3 = "N3", "Nível 3 - Informativo"
+
+
+class ForensicAuditLogQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        raise ValidationError(
+            "Registros de auditoria forense são estritamente imutáveis (append-only). Alterações são proibidas."
+        )
+
+    def delete(self):
+        raise ValidationError(
+            "Registros de auditoria forense são estritamente imutáveis (append-only). Exclusões são proibidas."
+        )
+
+
+class ForensicAuditLog(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    particao = models.CharField("partição de auditoria", max_length=64, db_index=True)
+    contrato = models.ForeignKey(
+        Contrato,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="trilha_forense",
+        verbose_name="contrato auditado",
+    )
+    cliente = models.ForeignKey(
+        "clientes.Cliente",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="trilha_forense",
+        verbose_name="cliente tomador",
+    )
+    sequencia = models.BigIntegerField("sequência pericial", db_index=True)
+    tipo_evento = models.CharField("tipo de evento", max_length=60, db_index=True)
+    nivel_relevancia = models.CharField(
+        "nível de relevância",
+        max_length=10,
+        choices=NivelRelevanciaAudit.choices,
+        default=NivelRelevanciaAudit.N1,
+        db_index=True,
+    )
+    descricao = models.TextField("descrição do evento")
+    justificativa = models.TextField("justificativa técnica", blank=True, null=True)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="auditorias_forenses",
+        verbose_name="operador",
+    )
+    usuario_nome = models.CharField("nome do operador", max_length=150, blank=True, null=True)
+    usuario_email = models.EmailField("e-mail do operador", blank=True, null=True)
+    usuario_role = models.CharField("papel do operador", max_length=50, blank=True, null=True)
+    ip_origem = models.GenericIPAddressField("IP de origem", null=True, blank=True)
+    user_agent = models.TextField("User-Agent", null=True, blank=True)
+    dados_payload = models.JSONField("carga útil de contexto", default=dict, blank=True, encoder=DjangoJSONEncoder)
+    payload_hash = models.CharField("hash SHA-256 do payload", max_length=64)
+    previous_hash = models.CharField("hash SHA-256 anterior", max_length=64, db_index=True)
+    current_hash = models.CharField("hash SHA-256 atual", max_length=64, unique=True, db_index=True)
+    timestamp = models.DateTimeField("data e hora UTC", default=timezone.now, db_index=True)
+
+    objects = ForensicAuditLogQuerySet.as_manager()
+
+    class Meta:
+        db_table = "shm_forensic_audit_trail"
+        ordering = ["particao", "sequencia"]
+        verbose_name = "registro pericial de auditoria forense"
+        verbose_name_plural = "registros periciais de auditoria forense"
+        constraints = [
+            models.UniqueConstraint(fields=["particao", "sequencia"], name="unique_particao_sequencia"),
+            models.UniqueConstraint(fields=["particao", "current_hash"], name="unique_particao_current_hash"),
+        ]
+
+    def __str__(self):
+        return f"[{self.particao} #{self.sequencia}] {self.tipo_evento} ({self.current_hash[:8]}...)"
+
+    def save(self, *args, **kwargs):
+        if self.pk and not self._state.adding:
+            # Check if this object already exists in database
+            if ForensicAuditLog.objects.filter(pk=self.pk).exists():
+                raise ValidationError(
+                    "Registros de auditoria forense são estritamente imutáveis (append-only). Alterações são proibidas."
+                )
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(
+            "Registros de auditoria forense são estritamente imutáveis (append-only). Exclusões são proibidas."
+        )
+
+
+class AuditDailySeal(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    data_referencia = models.DateField("data de referência", db_index=True)
+    particao = models.CharField("partição", max_length=64, db_index=True)
+    ultimo_registro_id = models.UUIDField("ID do último registro", null=True, blank=True)
+    ultima_sequencia = models.BigIntegerField("última sequência", default=0)
+    ultimo_hash = models.CharField("último hash", max_length=64)
+    total_eventos_dia = models.PositiveIntegerField("total de eventos do dia", default=0)
+    selo_digest = models.CharField("digest SHA-256 do selo", max_length=64)
+    selado_em = models.DateTimeField("selado em", auto_now_add=True)
+
+    class Meta:
+        db_table = "shm_audit_daily_seal"
+        ordering = ["-data_referencia", "particao"]
+        verbose_name = "selo diário de integridade"
+        verbose_name_plural = "selos diários de integridade"
+        constraints = [
+            models.UniqueConstraint(fields=["data_referencia", "particao"], name="unique_data_particao_seal")
+        ]
+
+    def __str__(self):
+        return f"Selo {self.data_referencia} [{self.particao}] -> {self.selo_digest[:8]}..."
 
 class AceiteLink(TimeStampedModel):
     contrato = models.ForeignKey(Contrato, on_delete=models.CASCADE, related_name="aceite_links")
