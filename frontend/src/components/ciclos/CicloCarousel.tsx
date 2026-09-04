@@ -270,9 +270,17 @@ interface CommentItemProps {
   cicloAtual: Ciclo
   isReply?: boolean
   onRefresh: () => void
+  commentsContainerRef?: React.RefObject<HTMLDivElement | null>
 }
 
-function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: CommentItemProps) {
+function CommentItem({
+  c,
+  user,
+  cicloAtual,
+  isReply = false,
+  onRefresh,
+  commentsContainerRef,
+}: CommentItemProps) {
   const toast = useToast()
   const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
@@ -282,6 +290,58 @@ function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: Commen
   const [replyText, setReplyText] = useState('')
   const [replyArquivos, setReplyArquivos] = useState<File[]>([])
   const replyFileInputRef = useRef<HTMLInputElement>(null)
+  const replyInputRef = useRef<HTMLInputElement>(null)
+  const replyBoxRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (replyOpen && !isReply) {
+      // 1. Focar o campo de texto sem jump brusco da página
+      replyInputRef.current?.focus({ preventScroll: true })
+
+      // 2. Rolar suavemente o container de comentários para exibir o campo completamente
+      const scrollToReply = () => {
+        if (replyBoxRef.current && commentsContainerRef?.current) {
+          const container = commentsContainerRef.current
+          const target = replyBoxRef.current
+
+          const containerRect = container.getBoundingClientRect()
+          const targetRect = target.getBoundingClientRect()
+
+          const offsetBottom = targetRect.bottom - containerRect.bottom
+          const offsetTop = targetRect.top - containerRect.top
+
+          if (offsetBottom > 0) {
+            container.scrollBy({
+              top: offsetBottom + 28,
+              behavior: 'smooth',
+            })
+          } else if (offsetTop < 0) {
+            container.scrollBy({
+              top: offsetTop - 16,
+              behavior: 'smooth',
+            })
+          }
+
+          // Se estiver cortado na janela do navegador
+          const windowOffset = targetRect.bottom - window.innerHeight
+          if (windowOffset > 0) {
+            window.scrollBy({
+              top: windowOffset + 32,
+              behavior: 'smooth',
+            })
+          }
+        }
+      }
+
+      requestAnimationFrame(scrollToReply)
+      const t1 = setTimeout(scrollToReply, 50)
+      const t2 = setTimeout(scrollToReply, 160)
+      return () => {
+        clearTimeout(t1)
+        clearTimeout(t2)
+      }
+    }
+  }, [replyOpen, isReply, commentsContainerRef])
 
   const isOwner = Boolean(
     user &&
@@ -622,10 +682,14 @@ function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: Commen
             {!isReply && (
               <button
                 onClick={() => setReplyOpen(!replyOpen)}
-                className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
+                className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border transition cursor-pointer ${
+                  replyOpen
+                    ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
               >
                 <CornerDownRight className="w-3 h-3" />
-                <span>Responder</span>
+                <span>{replyOpen ? 'Cancelar' : 'Responder'}</span>
                 {(c.respostas?.length ?? 0) > 0 && (
                   <span className="bg-indigo-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
                     {c.respostas!.length}
@@ -637,62 +701,110 @@ function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: Commen
         )}
       </div>
 
-      {/* Reply input (inline com anexos) */}
+      {/* Replies (em ordem cronológica) */}
+      {!isReply && (c.respostas?.length ?? 0) > 0 && (
+        <div className="space-y-2 pt-0.5">
+          {[...c.respostas!]
+            .sort((a, b) => new Date(a.criado_em).getTime() - new Date(b.criado_em).getTime())
+            .map((r) => (
+              <CommentItem
+                key={r.id}
+                c={r}
+                user={user}
+                cicloAtual={cicloAtual}
+                isReply
+                onRefresh={onRefresh}
+                commentsContainerRef={commentsContainerRef}
+              />
+            ))}
+        </div>
+      )}
+
+      {/* Reply input (inline com foco automático e rolagem visível garantida) */}
       {replyOpen && !isReply && (
-        <div className="ml-6 space-y-2">
-          <div className="flex gap-2 items-start">
-            <CornerDownRight className="w-4 h-4 text-slate-400 mt-2.5 shrink-0" />
-            <div className="flex-1 flex gap-2">
-              <input
-                type="text"
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey && (replyText.trim() || replyArquivos.length > 0)) {
-                    e.preventDefault()
-                    responderMutation.mutate()
-                  }
-                }}
-                disabled={responderMutation.isPending}
-                placeholder={`Responder a ${c.autor_nome}...`}
-                className="flex-1 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 dark:text-slate-100 disabled:opacity-60"
-              />
+        <div
+          ref={replyBoxRef}
+          className="ml-6 space-y-2.5 p-3 rounded-2xl bg-slate-50/90 dark:bg-slate-800/90 border border-indigo-200/80 dark:border-indigo-800/60 shadow-xs"
+        >
+          {/* Header da resposta com identificação e botão cancelar */}
+          <div className="flex items-center justify-between text-[11px] font-bold text-indigo-600 dark:text-indigo-400 pb-0.5">
+            <span className="flex items-center gap-1.5">
+              <CornerDownRight className="w-3.5 h-3.5" />
+              <span>
+                Respondendo a <strong className="font-extrabold text-slate-900 dark:text-slate-100">{c.autor_nome}</strong>
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setReplyOpen(false)
+                setReplyText('')
+                setReplyArquivos([])
+              }}
+              className="text-slate-400 hover:text-rose-500 text-[10px] font-semibold flex items-center gap-1 cursor-pointer px-1.5 py-0.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
+              title="Cancelar resposta (Esc)"
+            >
+              <X className="w-3 h-3" />
+              <span>Cancelar</span>
+            </button>
+          </div>
 
-              <input
-                ref={replyFileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={handleReplyFiles}
-              />
-              <button
-                type="button"
-                disabled={responderMutation.isPending || replyArquivos.length >= MAX_ARQUIVOS_COMENTARIO}
-                onClick={() => replyFileInputRef.current?.click()}
-                className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 transition cursor-pointer disabled:opacity-40 shrink-0"
-                title={`Anexar arquivo (até ${MAX_ARQUIVOS_COMENTARIO}, máx 25 MB cada)`}
-              >
-                <Paperclip className="w-4 h-4" />
-              </button>
+          <div className="flex gap-2 items-center">
+            <input
+              ref={replyInputRef}
+              type="text"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  setReplyOpen(false)
+                  setReplyText('')
+                  setReplyArquivos([])
+                } else if (e.key === 'Enter' && !e.shiftKey && (replyText.trim() || replyArquivos.length > 0)) {
+                  e.preventDefault()
+                  responderMutation.mutate()
+                }
+              }}
+              disabled={responderMutation.isPending}
+              placeholder={`Responder a ${c.autor_nome}...`}
+              className="flex-1 text-xs bg-white dark:bg-slate-900 border border-slate-300/80 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800 dark:text-slate-100 disabled:opacity-60"
+            />
 
-              <button
-                disabled={(!replyText.trim() && replyArquivos.length === 0) || responderMutation.isPending}
-                onClick={() => responderMutation.mutate()}
-                className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl disabled:opacity-50 disabled:cursor-wait transition cursor-pointer shadow-sm shrink-0"
-                title="Publicar resposta"
-              >
-                {responderMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-              </button>
-            </div>
+            <input
+              ref={replyFileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleReplyFiles}
+            />
+            <button
+              type="button"
+              disabled={responderMutation.isPending || replyArquivos.length >= MAX_ARQUIVOS_COMENTARIO}
+              onClick={() => replyFileInputRef.current?.click()}
+              className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer disabled:opacity-40 shrink-0"
+              title={`Anexar arquivo (até ${MAX_ARQUIVOS_COMENTARIO}, máx 25 MB cada)`}
+            >
+              <Paperclip className="w-4 h-4" />
+            </button>
+
+            <button
+              disabled={(!replyText.trim() && replyArquivos.length === 0) || responderMutation.isPending}
+              onClick={() => responderMutation.mutate()}
+              className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl disabled:opacity-50 disabled:cursor-wait transition cursor-pointer shadow-sm shrink-0"
+              title="Publicar resposta"
+            >
+              {responderMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+            </button>
           </div>
 
           {/* Prévia de anexos na resposta */}
           {replyArquivos.length > 0 && (
-            <div className="ml-6 flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 pt-1 border-t border-indigo-100 dark:border-indigo-900/50">
               {replyArquivos.map((file, idx) => (
                 <div
                   key={idx}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 text-indigo-950 dark:text-indigo-200 text-xs font-semibold"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800/60 text-indigo-950 dark:text-indigo-200 text-xs font-semibold"
                 >
                   {getCommentFileIcon(file.name)}
                   <span className="truncate max-w-[120px]" title={file.name}>{file.name}</span>
@@ -711,17 +823,6 @@ function CommentItem({ c, user, cicloAtual, isReply = false, onRefresh }: Commen
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Replies */}
-      {!isReply && (c.respostas?.length ?? 0) > 0 && (
-        <div className="space-y-2 pt-0.5">
-          {[...c.respostas!]
-            .sort((a, b) => new Date(a.criado_em).getTime() - new Date(b.criado_em).getTime())
-            .map((r) => (
-              <CommentItem key={r.id} c={r} user={user} cicloAtual={cicloAtual} isReply onRefresh={onRefresh} />
-            ))}
         </div>
       )}
     </div>
@@ -1557,6 +1658,7 @@ export function CicloCarousel({ pedido, ciclos }: CicloCarouselProps) {
                 user={user}
                 cicloAtual={cicloAtual}
                 onRefresh={refreshData}
+                commentsContainerRef={commentsContainerRef}
               />
             ))}
             <div ref={commentsEndRef} />
