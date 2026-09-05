@@ -200,3 +200,78 @@
 | `emails_adicionais` | JSONField | Não | [] | Lista de e-mails fixos extras |
 | `bloqueado_edicao` | Boolean | Não | False | Evento essencial do sistema |
 | `nao_enviar_autor` | Boolean | Não | True | Supressão de e-mail e cópias (CC) para o autor da ação que disparou o evento |
+
+---
+
+## 13. Tabela `shm_forensic_audit_trail` (Módulo Contratos / Auditoria Forense)
+
+| Campo | Tipo | Nulo | Padrão | Descrição / Regras |
+|---|---|---|---|---|
+| `id` | UUIDField | Não | uuid4 | Chave Primária PK |
+| `particao` | VarChar(64) | Não | - | Partição de isolamento pericial (ex: `contrato:12`) |
+| `contrato_id` | BigInt (FK) | Sim | NULL | FK para `shm_contrato` (PROTECT) |
+| `cliente_id` | BigInt (FK) | Sim | NULL | FK para `shm_cliente` (PROTECT) |
+| `sequencia` | BigInt | Não | - | Número sequencial estrito e monotônico na partição |
+| `tipo_evento` | VarChar(60) | Não | - | Tipo de evento (criação, aceite, migração, documento, etc.) |
+| `nivel_relevancia` | VarChar(10) | Não | N1 | N1 (Crítico/Legal), N2 (Operacional), N3 (Informativo) |
+| `descricao` | TextField | Não | - | Descrição humana do evento auditado |
+| `justificativa` | TextField | Sim | NULL | Justificativa técnica informada em operações de exceção |
+| `usuario_id` | BigInt (FK) | Sim | NULL | FK para `shm_user` (operador da ação) |
+| `usuario_nome` | VarChar(150) | Sim | NULL | Snapshot indelével do nome do operador |
+| `usuario_email` | VarChar(254) | Sim | NULL | Snapshot indelével do e-mail do operador |
+| `usuario_role` | VarChar(50) | Sim | NULL | Snapshot indelével do papel RBAC no momento da ação |
+| `ip_origem` | GenericIP | Sim | NULL | Endereço IP do cliente na requisição |
+| `user_agent` | TextField | Sim | NULL | User-Agent do navegador/cliente HTTP |
+| `dados_payload` | JSONField | Não | {} | Carga útil serializada do evento |
+| `payload_hash` | VarChar(64) | Não | - | Hash SHA-256 da canonicalização RFC 8785 do payload |
+| `previous_hash` | VarChar(64) | Não | - | Hash SHA-256 do registro antecessor (ou 64 zeros no gênesis) |
+| `current_hash` | VarChar(64) | Não | - | Hash SHA-256 do bloco atual (partição+seq+time+evento+prev+payload) |
+| `timestamp` | DateTime | Não | timezone.now | Data e hora exata em UTC da gravação indelével |
+
+---
+
+## 14. Tabela `shm_audit_daily_seal` (Módulo Contratos / Auditoria Forense)
+
+| Campo | Tipo | Nulo | Padrão | Descrição / Regras |
+|---|---|---|---|---|
+| `id` | UUIDField | Não | uuid4 | Chave Primária PK |
+| `data_referencia` | Date | Não | - | Data do calendário encerrada (ex: `2026-09-04`) |
+| `particao` | VarChar(64) | Não | - | Identificador da partição de auditoria |
+| `ultimo_registro_id` | UUIDField | Sim | NULL | ID do último registro carimbado na data |
+| `ultima_sequencia` | BigInt | Não | 0 | Sequência pericial alcançada no fechamento |
+| `ultimo_hash` | VarChar(64) | Não | - | Hash atual do topo da cadeia no fechamento diário |
+| `total_eventos_dia` | Integer | Não | 0 | Quantidade total de lançamentos registrados no dia |
+| `selo_digest` | VarChar(64) | Não | - | Digest SHA-256 consolidando o estado noturno da partição |
+| `selado_em` | DateTime | Não | auto_now_add | Timestamp UTC do fechamento noturno pelo cron/job |
+
+---
+
+## 15. Tabela `shm_contrato_email_notificacao` (Módulo Contratos)
+
+| Campo | Tipo | Nulo | Padrão | Descrição / Regras |
+|---|---|---|---|---|
+| `id` | BigAutoField | Não | Auto | Chave Primária PK |
+| `contrato_id` | BigInt (FK) | Não | - | FK para `shm_contrato` |
+| `email` | VarChar(254) | Não | - | E-mail do destinatário externo convidado |
+| `nome` | VarChar(150) | Sim | NULL | Nome ou cargo do destinatário |
+| `ativo` | Boolean | Não | True | Habilita recebimento de alertas do contrato |
+| `status` | VarChar(20) | Não | pendente | pendente, confirmado, recusado, revogado |
+| `token` | UUIDField | Não | uuid4 | Token seguro para confirmação pública do opt-in |
+| `expira_em` | DateTime | Não | - | Data de expiração do convite (7 dias) |
+| `confirmado_em` | DateTime | Sim | NULL | Data de confirmação do opt-in |
+| `confirmado_ip` | GenericIP | Sim | NULL | IP do dispositivo que confirmou o recebimento |
+
+---
+
+## 16. Tabelas de Anexos: `shm_anexo_pedido`, `shm_anexo_ciclo`, `shm_anexo_comentario` (Feature 004)
+
+| Campo Comum | Tipo | Nulo | Padrão | Descrição / Regras |
+|---|---|---|---|---|
+| `id` | BigAutoField | Não | Auto | Chave Primária PK |
+| `arquivo` | FileField | Não | - | Caminho relativo do arquivo no storage (S3/Media) |
+| `nome_original` | VarChar(255) | Não | - | Nome original do arquivo enviado pelo usuário |
+| `tamanho_bytes` | BigInt | Não | - | Tamanho exato em bytes |
+| `tipo_mime` | VarChar(100) | Não | - | Content-Type MIME detectado (PDF, PNG, JPG, ZIP, etc.) |
+| `criado_em` | DateTime | Não | auto_now_add | Timestamp UTC de upload |
+| `criado_por_id` | BigInt (FK) | Sim | NULL | FK para `shm_user` (autor do envio) |
+

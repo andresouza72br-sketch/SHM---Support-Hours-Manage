@@ -14,3 +14,7 @@ Gestão completa do ciclo de vida contratual, regras de vigência e carência de
 - **RF-CON-05 (Must):** Endpoint de verificação de integridade documental (`/verificar_integridade/`) que compara o hash persistido contra o hash recalculado do arquivo em storage 🟢.
 - **RF-CON-06 (Must):** Gestão de lista de e-mails de notificação (`ContratoEmailNotificacao`) com envio de convites de confirmação (tokens de 7 dias) e registro de opt-in 🟢.
 - **RF-CON-07 (Must):** Trilha de auditoria periciável (`ContratoAuditLog`) registrando eventos de criação, alteração, upload, exclusão de documentos, migrações de saldo e convites de notificação 🟢.
+- **RF-CON-08 (Must):** Trilha Forense Criptográfica Encadeada (`ForensicAuditLog`) utilizando o algoritmo determinístico RFC 8785 (JSON Canonicalization Scheme) e SHA-256 com monotonicidade estrita de sequência por partição 🟢.
+- **RF-CON-09 (Must):** Consolidação noturna via Selo Diário de Integridade (`AuditDailySeal`) às 23:59:59 com geração de `selo_digest` SHA-256 do topo da cadeia 🟢.
+- **RF-CON-10 (Must):** Garantia de Imutabilidade Estrita via gatilho PostgreSQL nativo (`trg_forensic_audit_immutability`) que rejeita comandos `UPDATE` e `DELETE` em nível de banco de dados 🟢.
+

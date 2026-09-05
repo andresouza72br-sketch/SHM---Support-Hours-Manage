@@ -14,3 +14,7 @@ Single Page Application (SPA) em React 19, TypeScript e Tailwind CSS, orientada 
 - **RF-FRT-05 (Must):** Painel de Gestão de Notificações (`ConfiguracoesNotificacoesPage`) com switches para ativação de canais e papéis 🟢.
 - **RF-FRT-06 (Must):** Cockpit Executivo (`AdminDashboardPage`) e Extrato Financeiro de Horas (`ExtratoContratoPage`) 🟢.
 - **RF-FRT-07 (Must):** Kanban Board com sincronização de status de chamados em tempo real 🟢.
+- **RF-FRT-08 (Must):** Página de Documentação da Auditoria Forense e Imutabilidade (`DocumentacaoAuditoriaPage`), acessível tanto pelo painel administrativo quanto em rota pública aberta (`/publico/auditoria-forense`) para peritos judiciais e autoridades 🟢.
+- **RF-FRT-09 (Must):** Sumário lateral da documentação (`DocumentacaoSidebarTOC`) posicionado de forma **flutuante fixa e centralizada verticalmente** na viewport (`max(5rem, calc(50vh - halfHeight))`), com rolagem suave calculada sem sobreposição de cabeçalho e trava anti-jitter no Scrollspy 🟢.
+- **RF-FRT-10 (Must):** Disponibilização e download direto em 1 clique do código-fonte do utilitário pericial autônomo offline em Python puro (`verificador_independente.py`) com zero dependências externas (`pip`) 🟢.
+

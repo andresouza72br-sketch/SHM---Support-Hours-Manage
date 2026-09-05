@@ -40,32 +40,40 @@ O SHM 2.5.0 é estruturado no padrão **Django Apps Modulares** no backend com a
   - Magic Link de Aceite Cadastral (7 dias): Disparado para e-mail do tomador aprovar o cadastro e ativar a organização sem login prévio 🟢.
   - Auditoria Forense (`ClienteAuditLog`): Registra criação, alteração, aprovação por magic link e exclusão (com justificativa obrigatória, IP, user-agent e autor) 🟢.
 
-### 2.3 Módulo `contratos` (Gestão Contratual, Vigência, Documentos e Auditoria)
-- **Modelos:** `Contrato`, `ContratoDocumento`, `ContratoAuditLog`, `AceiteLink`, `ContratoEmailNotificacao`, `ContratoPDF` 🟢.
+### 2.3 Módulo `contratos` (Gestão Contratual, Vigência, Trilha Forense, Documentos e Selo Noturno)
+- **Modelos:** `Contrato`, `ContratoDocumento`, `ContratoAuditLog`, `ForensicAuditLog`, `AuditDailySeal`, `AuditPartition`, `AceiteLink`, `ContratoEmailNotificacao`, `ContratoPDF` 🟢.
 - **Regras de Negócio & Algoritmos:**
   - Numeração padronizada `CT-YYYY-NNNN` 🟢.
   - Tipos: `novo`, `aditivo`, `renovacao`. Aditivos possuem FK recursiva `contrato_referencia` 🟢.
   - Carência de 30 dias (`data_fim_carencia`): Calculada na expiração do contrato. Durante a carência (`em_carencia = True`), o saldo positivo restante pode ser consumido em atendimentos de suporte sem bloqueio imediato 🟢.
   - Documentos & Integridade Criptográfica: Upload de arquivos gera hash SHA-256 (`hash_sha256`, `algoritmo_hash`) e endpoint de verificação `/verificar_integridade/` recalcula o hash do arquivo em disco e atesta integridade contra manipulação 🟢.
+  - **Trilha de Auditoria Forense com Hash Chaining (Feature 005):**
+    - Modelo `ForensicAuditLog` (tabela `shm_forensic_audit_trail`): Registra eventos de criação, aceite, alteração, upload/download/exclusão de documentos e migrações contábeis.
+    - Encadeamento Criptográfico: Cada registro armazena `previous_hash` e calcula `current_hash = SHA256(particao + sequencia + timestamp + evento + previous_hash + payload_hash)`.
+    - Canonicalização RFC 8785 (JCS): `payload_hash` é gerado sobre o JSON determinístico sem espaços e com chaves estritamente ordenadas lexicograficamente.
+    - Gatilhos Nativos PostgreSQL (`trg_forensic_audit_immutability`): Bloqueia incondicionalmente qualquer comando `UPDATE` ou `DELETE` em nível de banco (C/PLpgSQL).
+    - Selo Diário Noturno (`AuditDailySeal`): Job diário consolida o estado de cada partição às 23:59:59 com `selo_digest` SHA-256 do último hash e total de transações.
+    - Endpoints Periciais: `GET /api/v1/contratos/{id}/trilha_forense/` e `GET /api/v1/contratos/{id}/verificar_integridade_trilha/` para perícias e forças investigativas.
   - Gestão de E-mails de Notificação (`ContratoEmailNotificacao`): Destinatários adicionais convidados via token temporário com tela pública de opt-in (`ConfirmarNotificacaoPage`) 🟢.
   - QuerySets Especializados: `elegiveis_para_migracao` (saldo > 0, expirados ou vencidos) e `devedores` (saldo < 0) 🟢.
   - Auditoria Desacoplada: `ContratoService.notificar_e_auditar_migracao_saldo` e `notificar_e_auditar_compensacao_debito` para rastreabilidade de eventos contábeis 🟢.
 
-### 2.4 Módulo `pedidos` (Chamados de Suporte e Protocolos)
-- **Modelos:** `Pedido`, `AnexoPedido` 🟢.
+### 2.4 Módulo `pedidos` (Chamados de Suporte, Anexos e Protocolos)
+- **Modelos:** `Pedido`, `AnexoPedido` (Feature 004) 🟢.
 - **Regras de Negócio & Algoritmos:**
   - Geração de protocolo sequencial atômico diário/mensal: `OSYYYYMMNNNN` (ex: `OS2026090001`) via `PedidoService.gerar_protocolo()` 🟢.
   - Agrupador de Ciclos: Um pedido não tem esforço direto; ele é decomposto em 1 ou mais ciclos técnicos 🟢.
+  - Gestão de Anexos Multipart (`AnexoPedido`): Suporte a upload de evidências e especificações técnicas vinculadas ao chamado, com validação de tamanho e tipos de arquivo permitidos 🟢.
   - Sincronização Automática de Status (`PedidoService.sincronizar_status_pedido`): O status do pedido é recalculado automaticamente em cascata conforme os status dos seus ciclos (`aberto`, `em_orcamento`, `aguardando_aprovacao`, `em_execucao`, `aguardando_aceite`, `concluido`, `cancelado`) 🟢.
 
-### 2.5 Módulo `ciclos` (Workflow Atômico, Orçamento, Trava de Tolerância, Aceite e Avaliação)
-- **Modelos:** `Ciclo`, `CicloMagicLink`, `AvaliacaoCiclo` 🟢.
+### 2.5 Módulo `ciclos` (Workflow Atômico, Orçamento, Trava de Tolerância, Anexos, Aceite e Avaliação)
+- **Modelos:** `Ciclo`, `AnexoCiclo` (Feature 004), `CicloMagicLink`, `AvaliacaoCiclo` 🟢.
 - **Classificação:** `corretiva`, `evolutiva`, `preventiva`, `analise`, `consultoria`, `treinamento`, `teste` 🟢.
 - **Workflow Operacional:**
   1. Criação/Decomposição: Técnico define tipo e escopo (`orcado`).
   2. Apresentação de Orçamento: Técnico lança horas estimadas e emite Magic Link (`aguardando_aprovacao`).
   3. Aprovação pelo Cliente: Aprovação **não consome saldo** do contrato 🟢.
-  4. Execução Técnica: Apontamento de tarefas pelo técnico (`em_execucao`).
+  4. Execução Técnica: Apontamento de tarefas e anexos de entrega (`AnexoCiclo`) pelo técnico (`em_execucao`).
   5. **Trava de Tolerância de Horas Excedentes (Feature 001):**
      - Função `CicloService.validar_tolerancia_horas`: calcula o teto de tolerância de +30% sobre o orçamento (`horas_estimadas * 1.30`).
      - Se `horas_realizadas > limite_tolerancia`, aciona bloqueio: exige justificativa técnica obrigatória de excedente ao solicitar aceite, gravando evidência na timeline e alertando gestores 🟢.
@@ -83,14 +91,15 @@ O SHM 2.5.0 é estruturado no padrão **Django Apps Modulares** no backend com a
 - **Regras de Negócio & Algoritmos:**
   - **Ledger Append-Only Imutável:** Todas as transações usam `select_for_update()` para isolamento e atomicidade ACID 🟢.
   - **Lock Ordenado Anti-Deadlock (`_obter_par_contratos_com_lock_ordenado`):** Em transferências ou migrações concorrentes entre contratos, os locks pessimistas são adquiridos em ordem lexicográfica determinística pelo ID, evitando deadlocks em cenários de alta concorrência 🟢.
-  - **Migração de Saldo de Contratos Vencidos (Feature 002):** `SaldoService.migrar_saldo_contratos_vencidos` permite transferir saldo remanescente de contrato vencido/expirado para um novo contrato ativo do mesmo cliente, registrando lançamentos correlacionados no `HistoricoSaldo`, atualizando saldos e gravando no `ContratoAuditLog` 🟢.
+  - **Migração de Saldo de Contratos Vencidos (Feature 002):** `SaldoService.migrar_saldo_contratos_vencidos` permite transferir saldo remanescente de contrato vencido/expirado para um novo contrato ativo do mesmo cliente, registrando lançamentos correlacionados no `HistoricoSaldo`, atualizando saldos e gravando no `ContratoAuditLog` e `ForensicAuditLog` 🟢.
   - **Compensação de Débito Anterior:** `SaldoService.compensar_debito_contrato_anterior` quita saldo devedor/negativo de contrato anterior deduzindo da franquia inicial do novo contrato ativo 🟢.
   - **Gatilhos Automáticos de Alerta:** Ao consumir saldo, se atingir 80% da franquia ou zerar/negativar o saldo, o `NotificacaoService.notificar_alerta_saldo` é disparado imediatamente 🟢.
 
-### 2.8 Módulo `comunicacao` (Threads de Comentários e Reações)
-- **Modelos:** `Comentario`, `AnexoComentario`, `ReacaoComentario` 🟢.
+### 2.8 Módulo `comunicacao` (Threads de Comentários, Anexos e Reações)
+- **Modelos:** `Comentario`, `AnexoComentario` (Feature 004), `ReacaoComentario` 🟢.
 - **Recursos:**
   - Threading em árvore: FK recursiva `parent` para respostas aninhadas 🟢.
+  - Anexos em Mensagens (`AnexoComentario`): Compartilhamento de capturas de tela, logs e arquivos de evidência diretamente nas discussões do chamado 🟢.
   - Reações de emoji: Toggle atômico por usuário (`unique_together = [['comentario', 'autor', 'tipo']]`) 🟢.
   - Conversão em Tarefa: Endpoint `/converter_em_tarefa/` cria uma tarefa diretamente a partir de um comentário 🟢.
 
@@ -110,11 +119,24 @@ O SHM 2.5.0 é estruturado no padrão **Django Apps Modulares** no backend com a
 - **Modelos:** `TimeStampedModel` (abstract base com `criado_em`, `atualizado_em`) 🟢.
 - **Recursos:** Exception handler unificado que intercepta `ValidationError`, `PermissionDenied`, `NotFound` e exceções não tratadas retornando JSON com padrão RFC 7807 🟢.
 
-### 2.11 Módulo `frontend` (React 19 SPA)
+### 2.11 Módulo `frontend` (React 19 SPA & Interface Pericial)
 - **Arquitetura de Estado:** TanStack Query 5.66 com invalidação de cache estratégica após mutações 🟢.
 - **Componentes Chave:**
+  - `DocumentacaoAuditoriaPage.tsx` (Feature 006): Página oficial de auditoria forense e imutabilidade, com visão autenticada (painel do usuário) e rota pública para peritos e autoridades (`/publico/auditoria-forense`) 🟢.
+  - `DocumentacaoSidebarTOC.tsx`: Índice lateral **flutuante fixo centralizado verticalmente** na viewport (`max(5rem, calc(50vh - halfHeight))`), com scroll suave amortecido e trava de concorrência com o Scrollspy 🟢.
+  - `DocumentacaoConteudoGeral.tsx` & `DocumentacaoConteudoPericial.tsx`: Seções de negócio (Princípio da Proteção Mútua Bilateral) e manual pericial (Inversão da Caixa-Preta, Linha de Comando, Air-Gapped) 🟢.
+  - `verificador_script.ts`: Utilitário embutido que fornece download direto e cópia em 1 clique do script em Python puro (`verificador_independente.py`) 🟢.
   - `MigracaoSaldoModal.tsx`: Modal para migração e compensação contábil de saldo entre contratos com preview em tempo real e cálculo de impacto financeiro 🟢.
-  - `DocumentosContratoModal.tsx` & `TimelineAuditoriaContrato.tsx`: Gestão de anexos com cálculo/exibição de hash SHA-256 e linha do tempo de auditoria 🟢.
-  - `ConfiguracoesNotificacoesPage.tsx`: Painel interativo para governança de notificações e e-mails, com switches de canais e modal de Matriz de Destinatários incluindo o checkbox reativo "Não enviar para o autor (Quem executou a ação)" 🟢.
-  - `AdminDashboardPage.tsx`: Cockpit executivo com métricas de horas, contratos e saúde da operação 🟢.
+  - `DocumentosContratoModal.tsx` & `TimelineAuditoriaContrato.tsx`: Gestão de anexos com cálculo/exibição de hash SHA-256 e selo de integridade da trilha forense 🟢.
+  - `ConfiguracoesNotificacoesPage.tsx`: Painel interativo para governança de notificações e e-mails, com switches de canais e modal de Matriz de Destinatários incluindo o checkbox reativo "Não enviar para o autor" 🟢.
   - Kanban Board de 6 colunas, Carrossel de Ciclos e tema claro/escuro dinâmico 🟢.
+
+### 2.12 Módulo `auditoria_forense` (Cadeia de Custódia e Verificador Autônomo Offline)
+- **Enquadramento Normativo:** Código de Processo Penal (CPP arts. 158-A a 158-F — Cadeia de Custódia de Vestígios Digitais), Código de Processo Civil (CPC arts. 411 e 422 — Força Probatória de Documentos Digitais) e ISO/IEC 27037:2012 (Diretrizes para Identificação, Coleta, Aquisição e Preservação de Evidências Digitais) 🟢.
+- **Princípio da Inversão da Caixa-Preta:** Elimina o sigilo corporativo em litígios; o perito não precisa confiar no software nem em relatórios estáticos em PDF — ele extrai o payload JSON bruto e executa a verificação matemática em sua própria estação forense isolada 🟢.
+- **Algoritmo Determinístico do Verificador Independente (`verificador_independente.py`):**
+  - Implementado em Python 3 puro sem dependência de bibliotecas externas (zero pip).
+  - Executa canonicalização RFC 8785 serializando tipos de forma determinística: float sem zeros supérfluos, booleanos minúsculos, ordenação léxica de chaves UTF-8 e escape seguro de caracteres de controle.
+  - Valida a integridade encadeada: `H_0 = '0'*64`, `H_i = SHA256(particao + i + timestamp + evento + H_{i-1} + SHA256(JCS(payload)))`.
+  - Diagnóstico preciso: Em caso de adulteração retroativa de saldo ou data, identifica o ponto exato da quebra (`TAMPER DETECTED at sequence #N`).
+
