@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
-import { Bell, LogOut, LayoutDashboard, Layers, Loader2, FileText, CheckCheck, Building2, Settings, ChevronDown } from 'lucide-react'
+import { Bell, LogOut, LayoutDashboard, Layers, Loader2, FileText, CheckCheck, Building2, Settings, ChevronDown, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
@@ -523,9 +523,23 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
                   </div>
                 </div>
 
-                {/* Itens do Menu (Exclusivo para Gerente/Admin da Empresa) */}
-                {isGerenteEmpresa && (
-                  <div className="p-1.5 space-y-0.5">
+                {/* Itens de Navegação do Menu do Usuário */}
+                <div className="p-1.5 space-y-0.5">
+                  <Link
+                    to="/documentacao/auditoria-forense"
+                    onClick={() => setShowUserMenu(false)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition ${
+                      location.pathname === '/documentacao/auditoria-forense'
+                        ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-black'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <span>Documentação de Auditoria</span>
+                  </Link>
+
+                  {/* Exclusivo para Gerente/Admin da Empresa */}
+                  {isGerenteEmpresa && (
                     <Link
                       to="/admin/configuracoes/notificacoes"
                       onClick={() => setShowUserMenu(false)}
@@ -538,8 +552,8 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
                       <Settings className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
                       <span>Configurar Notificações</span>
                     </Link>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Ação de Logout */}
                 <div className="p-1.5 border-t border-slate-100 dark:border-slate-800">

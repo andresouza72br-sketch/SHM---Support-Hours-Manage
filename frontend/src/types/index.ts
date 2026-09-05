@@ -468,3 +468,13 @@ export interface AuditPanelIntegrity {
     selo_digest: string
   } | null
 }
+
+export type NivelDocumentacao = 'visao-geral' | 'tecnico-pericial'
+
+export interface TopicoDocumentacao {
+  id: string
+  numero: number
+  titulo: string
+  subtitulo?: string
+  nivel: NivelDocumentacao
+}

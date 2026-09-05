@@ -18,6 +18,9 @@ import { ConfirmarNotificacaoPage } from './pages/ConfirmarNotificacaoPage'
 import { AceiteContratoPage } from './pages/AceiteContratoPage'
 import { AceiteClientePage } from './pages/AceiteClientePage'
 import { ConfiguracoesNotificacoesPage } from './pages/ConfiguracoesNotificacoesPage'
+import { DocumentacaoAuditoriaPage } from './pages/DocumentacaoAuditoriaPage'
+
+
 
 
 
@@ -62,6 +65,11 @@ export default function App() {
               <Route path="/publico/cliente/:token" element={<AceiteClientePage />} />
               <Route path="/confirmar-notificacao/:token" element={<ConfirmarNotificacaoPage />} />
               <Route path="/publico/notificacao/:token" element={<ConfirmarNotificacaoPage />} />
+
+              {/* Rotas de Documentação da Auditoria Forense (Protegida e Pública) */}
+              <Route path="/documentacao/auditoria-forense" element={<ProtectedRoute><DocumentacaoAuditoriaPage /></ProtectedRoute>} />
+              <Route path="/documentacao/auditoria" element={<Navigate to="/documentacao/auditoria-forense" replace />} />
+              <Route path="/publico/auditoria-forense" element={<DocumentacaoAuditoriaPage isPublicView={true} />} />
 
               <Route path="/magic-link/:token" element={<MagicLinkPage />} />
               <Route path="/publico/ciclo/:token" element={<MagicLinkPage />} />
