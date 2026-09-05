@@ -50,13 +50,43 @@ A base contém estritamente os **4 usuários oficiais**, integrados aos botões 
 - **Número:** `CT-2026-0001`
 - **Franquia:** `100.00h`
 - **Saldo Inicial:** `100.00h`
-- **Integridade Criptográfica:** Documento assinado `Contrato_Prestacao_Servicos_Acme_2026.pdf` com hash SHA-256 autêntico e carimbo de auditoria em `ContratoAuditLog`.
+- **Documento Técnico Assinado:** `Contrato_Prestacao_Servicos_Acme_2026.pdf` com hash SHA-256 autêntico e verificação pericial.
 - **Ledger Contábil (`HistoricoSaldo`):** Registro de carga inicial de 100.00h com método `SISTEMA`, garantindo conciliação matemática no Extrato do Contrato.
+- **Trilha de Auditoria Forense Encadeada (*Hash Chaining* — RN-10 a RN-16):**
+  A base já nasce com a corrente criptográfica particionada (`contrato:1` e `cliente:1`) estritamente encadeada e matematicamente íntegra:
+  1. **Elo #1 (Sequência 1):** Criação cadastral do contrato com Bloco Gênese (`0000000000000000000000000000000000000000000000000000000000000000`).
+  2. **Elo #2 (Sequência 2):** Upload do contrato assinado com dispersão SHA-256 do arquivo PDF.
+  3. **Elo #3 (Sequência 3):** Carga inicial de franquia no saldo (100.00h no livro-razão).
+  4. **Selo Diário Ativo (`AuditDailySeal`):** Lavrado com digest SHA-256 consolidando os registros do dia.
+
+---
+
+## 🛡️ Auditoria Forense e Perícia Criptográfica em Testes
+
+Quando você executa os cenários de teste na aplicação, a cadeia pericial evolui de forma contínua e inquebrável:
+
+- **No Aceite Final da OS 01 (Fluxo A3):** Ao aprovar o aceite de 6.00h, o sistema debita as horas no saldo (`100.00h -> 94.00h`) e gera compulsoriamente o **Elo #4** na partição `contrato:1`, apontando seu `previous_hash` para o hash do Elo #3.
+- **Autoverificação da Cadeia:** O script `reset_db.ps1` já roda automaticamente a verificação pericial matemática ao término da semeadura.
+- **Comandos de Gerenciamento Pericial (CLI):**
+
+```powershell
+# 1. Verificar integridade pericial de todas as partições:
+python backend/manage.py audit_verify_integrity
+
+# 2. Verificar integridade isolada da partição do contrato Acme:
+python backend/manage.py audit_verify_integrity --contrato-id=1
+
+# 3. Lavrar ou atualizar o selo diário consolidado das partições:
+python backend/manage.py audit_seal_daily
+```
+
+---
 
 ### 3. Cenários de Teste Estruturados
 
 | Protocolo | Status | Ciclo / Horas | Objetivo do Teste |
 |---|---|---|---|
-| **OS2026080001** | `AGUARDANDO_ACEITE` | Corretiva (8h estimadas / 6h realizadas) | **Fluxo A3:** Entrar como `gerente@acme.com` e testar o **Aceite Final** (via App ou Magic Link), confirmando o débito de 6h no saldo do contrato (`100h -> 94h`). |
+| **OS2026080001** | `AGUARDANDO_ACEITE` | Corretiva (8h estimadas / 6h realizadas) | **Fluxo A3:** Entrar como `gerente@acme.com` e testar o **Aceite Final** (via App ou Magic Link), confirmando o débito de 6h no saldo (`100h -> 94h`) e a inserção do **Elo #4** na corrente pericial criptográfica. |
 | **OS2026080002** | `AGUARDANDO_APROVACAO` | Evolutiva (8h estimadas / 0h realizadas) | **Fluxo A2:** Entrar como `gerente@acme.com` e testar a **Aprovação de Orçamento** (via App ou Magic Link), liberando o chamado para `EM_EXECUCAO`. |
 | **OS2026080003** | `ABERTO` | Sem ciclo ainda | **Fluxo Inicial:** Chamado novo recém-aberto pela analista, pronto para triagem e orçamentação pela equipe da empresa. |
+

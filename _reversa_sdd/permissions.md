@@ -29,7 +29,11 @@
 | **Saldo** | Transferir saldo entre contratos ativos | ✅ Permitido | ❌ Negado | ❌ Negado | ❌ Negado |
 | **Saldo** | Migrar saldo remanescente de vencidos | ✅ Permitido | ❌ Negado | ❌ Negado | ❌ Negado |
 | **Saldo** | Compensar saldo devedor anterior | ✅ Permitido | ❌ Negado | ❌ Negado | ❌ Negado |
+| **Auditoria Forense** | Consultar trilha forense e selo diário | ✅ Todos | 👁️ Todos | 👁️ Próprios | ❌ Negado |
+| **Auditoria Forense** | Verificar integridade matemática da cadeia | ✅ Permitido | ✅ Permitido | ✅ Próprios | ❌ Negado |
+| **Documentação** | Laudo técnico oficial e Verificador Offline | ✅ Permitido | ✅ Permitido | ✅ Permitido | ✅ Acesso Aberto / Público |
 | **Notificações** | Configurar regras, canais e supressão para autor | ✅ Total | ❌ Negado | ❌ Negado | ❌ Negado |
 | **Notificações** | Receber alertas in-app e e-mail | ✅ Habilitado* | ✅ Habilitado* | ✅ Habilitado* | 🟡 Condicional* |
 
 > *\* **Invariante do Autor:** Quando o usuário for o próprio autor que disparou a ação, o alerta no sininho in-app é suprimido incondicionalmente, e o disparo de e-mail respeita o toggle `nao_enviar_autor` configurado para o evento.*
+> *\* **Acesso Pericial Aberto:** A rota `/publico/auditoria-forense` e o download do script autônomo offline em Python 3 puro não exigem login para permitir perícias técnicas e policiais em cumprimento à ISO/IEC 27037.*

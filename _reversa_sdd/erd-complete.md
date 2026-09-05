@@ -11,6 +11,7 @@ erDiagram
     shm_contrato ||--o{ shm_contrato : "aditivo_de (recursivo)"
     shm_contrato ||--o{ shm_contrato_documento : "possui"
     shm_contrato ||--o{ shm_contrato_audit_log : "registra"
+    shm_contrato ||--o{ shm_forensic_audit_trail : "trilha_forense_imutavel"
     shm_contrato ||--o{ shm_contrato_email_notificacao : "destinatarios"
     shm_contrato ||--o{ shm_historico_saldo : "movimentacoes_saldo"
     shm_contrato ||--o{ shm_transferencia_saldo : "origem/destino"
@@ -21,6 +22,7 @@ erDiagram
     shm_pedido ||--o{ shm_timeline_event : "timeline"
 
     shm_ciclo ||--o{ shm_tarefa : "composto_por"
+    shm_ciclo ||--o{ shm_anexo_ciclo : "possui"
     shm_ciclo ||--o{ shm_ciclo_magic_link : "magic_links"
     shm_ciclo ||--o{ shm_avaliacao_ciclo : "avaliacao"
     shm_ciclo ||--o{ shm_comentario : "comentarios"
@@ -31,6 +33,28 @@ erDiagram
     shm_comentario ||--o{ shm_reacao_comentario : "reacoes"
 
     shm_user ||--o{ shm_notification : "notificacoes_in_app"
+
+    shm_forensic_audit_trail {
+        uuid id PK
+        string particao
+        bigint sequencia
+        string tipo_evento
+        string nivel_relevancia
+        string payload_hash
+        string previous_hash
+        string current_hash UK
+        datetime timestamp
+    }
+
+    shm_audit_daily_seal {
+        uuid id PK
+        date data_referencia
+        string particao
+        bigint ultima_sequencia
+        string ultimo_hash
+        string selo_digest
+        datetime selado_em
+    }
 
     shm_configuracao_notificacao {
         bigint id PK

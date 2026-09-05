@@ -1,5 +1,19 @@
 import axios from 'axios'
-import type { Pedido, Contrato, Ciclo, Tarefa, Comentario, Notification, Cliente, ClienteUser, ConfiguracaoNotificacao, AnexoPedido } from '../types'
+import type {
+  Pedido,
+  Contrato,
+  Ciclo,
+  Tarefa,
+  Comentario,
+  Notification,
+  Cliente,
+  ClienteUser,
+  ConfiguracaoNotificacao,
+  AnexoPedido,
+  ForensicAuditLog,
+  AuditIntegrityVerification,
+  AuditPanelIntegrity,
+} from '../types'
 
 export const api = axios.create({
   baseURL: '/api/v1',
@@ -151,6 +165,10 @@ export const clientService = {
       api.post<{ detail: string; log_id: number; timestamp: string }>(`/contratos/${id}/auditar_relatorio/`).then((r) => r.data),
     auditoria: (id: number) => api.get<any>(`/contratos/${id}/auditoria/`).then((r) => normalizeArray<any>(r.data)),
     extrato: (id: number) => api.get(`/contratos/${id}/extrato/`).then((r) => r.data),
+    trilhaForense: (id: number, params?: { nivel?: string; page?: number; page_size?: number }) =>
+      api.get<any>(`/contratos/${id}/trilha_forense/`, { params }).then((r) => normalizeArray<ForensicAuditLog>(r.data)),
+    verificarIntegridade: (id: number) =>
+      api.get<AuditIntegrityVerification>(`/contratos/${id}/verificar_integridade/`).then((r) => r.data),
   },
   clientes: {
     list: (params?: Record<string, any>) => api.get<any>('/clientes/', { params }).then((r) => normalizeArray<Cliente>(r.data)),
@@ -330,6 +348,10 @@ export const clientService = {
       api.post<any>('/saldo/transferir/', data).then((r) => r.data),
     reabastecer: (data: { contrato: number; quantidade: number; motivo: string }) =>
       api.post<any>('/saldo/reabastecer/', data).then((r) => r.data),
+  },
+  auditoria: {
+    painelIntegridade: () =>
+      api.get<AuditPanelIntegrity>('/auditoria/painel_integridade/').then((r) => r.data),
   },
   system: {
     status: () => api.get('/status/').then((r) => r.data),

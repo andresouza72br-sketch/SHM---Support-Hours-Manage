@@ -26,24 +26,27 @@ pie title Distribuição de Confiança das Especificações — SHM 2.5.0
 | Módulo | Confiança Global | Modelos | Status da Auditoria / Novas Features |
 |---|:---:|:---:|---|
 | `accounts` | 🟢 98% | 2 | RBAC de 4 papéis, tokens JWT rotativos e Google OAuth 100% mapeados |
-| `clientes` | 🟢 98% | 3 | Validação CPF/CNPJ, Magic Link de Onboarding e auditoria forense íntegros |
-| `contratos` | 🟢 100% | 6 | Carência de 30 dias, hashes SHA-256 em documentos e gestão de e-mails auditados |
-| `pedidos` | 🟢 100% | 2 | Protocolo sequencial OS e sincronização de status automatizada |
-| `ciclos` | 🟢 100% | 3 | Trava de tolerância de +30% (Feature 001), fluxo de aceite e avaliação 1-5★ |
+| `clientes` | 🟢 98% | 3 | Validação CPF/CNPJ, Magic Link de Onboarding e trilha pericial com identificador indelével |
+| `contratos` | 🟢 100% | 8 | Carência de 30 dias, hashes SHA-256 em documentos, Trilha Forense com Hash Chaining RFC 8785 (`ForensicAuditLog`, `AuditDailySeal`) e endpoints periciais |
+| `pedidos` | 🟢 100% | 3 | Protocolo sequencial OS, anexos múltiplos (até 25 MB) e sincronização de status automatizada |
+| `ciclos` | 🟢 100% | 3 | Trava de tolerância de +30% (Feature 001), vinculação de anexos, fluxo de aceite e avaliação 1-5★ |
 | `tarefas` | 🟢 100% | 1 | Apontamento de horas reais e recálculo atômico do ciclo conferidos |
-| `saldo` | 🟢 100% | 3 | Ledger imutável, migração de saldo (Feature 002) e locks anti-deadlock |
-| `comunicacao`| 🟢 98% | 3 | Threads de comentários em árvore e reações atômicas mapeadas |
-| `notificacoes`| 🟢 100% | 3 | Central declarativa com 6 categorias, filtros RBAC, supressão de notificações/e-mails para o autor da ação (Feature 003) e timeline de eventos |
-| `core` | 🟢 100% | 1 | TimeStampedModel, RFC 7807 handler e seed data |
-| `frontend` | 🟢 98% | 15 Páginas | React 19 SPA, modais de migração/documentos e switches/modal de destinatários com toggle de autor |
+| `saldo` | 🟢 100% | 3 | Ledger imutável, migração assistida de saldo (Feature 002), compensação de débitos e gravação dupla reflexa pericial |
+| `comunicacao`| 🟢 98% | 3 | Threads de comentários em árvore, anexos por mensagem e reações atômicas mapeadas |
+| `notificacoes`| 🟢 100% | 3 | Central declarativa com 6 categorias, filtros RBAC, supressão de notificações/e-mails para o autor da ação (Feature 003), timeline de eventos e matriz quádrupla |
+| `core` | 🟢 100% | 2 | `canonical_json.py` (RFC 8785 determinístico), TimeStampedModel, RFC 7807 handler e validadores |
+| `frontend` | 🟢 98% | 15 Páginas | React 19 SPA, página de auditoria forense com índice flutuante centralizado e scroll suave, modais de migração/documentos e switches com toggle de autor |
 
 ---
 
 ## 3. Veredito da Auditoria de Re-extração
-A re-extração do SHM 2.5.0 incorporou com sucesso:
+A re-extração semântica profunda do SHM 2.5.0 incorporou com sucesso:
 1. **Feature 001:** Trava de tolerância de +30% no aceite de ciclos técnicos.
-2. **Feature 002:** Migração atômica de saldo entre contratos e compensação de débitos anteriores.
+2. **Feature 002:** Migração atômica de saldo entre contratos e compensação de débitos anteriores com locks pessimistas.
 3. **Feature 003:** Supressão seletiva de notificações e e-mails para o autor da ação (`nao_enviar_autor`) e invariante in-app estrita no sininho (`destinatarios_in_app.discard(autor)`).
-4. **Governança Documental:** Custódia de arquivos com integridade criptográfica SHA-256 e lista de destinatários de notificações com opt-in.
-5. **Verificação de Regressão Semântica:** 2 features verificadas (`002-migracao-saldo-contratos` e `003-nao-enviar-para-autor`), totalizando 7 watch items auditados — **todos com veredito 🟢 VERDE (0 regressões)**.
-6. **Reconciliação de Adendos:** Adendo [`_reversa_sdd/addenda/003-nao-enviar-para-autor.md`](file:///C:/Users/andre/orca/workspaces/projeto-SHM/notificacoes-emails-destinatarios-nao-enviar-para-autor/_reversa_sdd/addenda/003-nao-enviar-para-autor.md) reconciliado e marcado como superado por esta re-extração.
+4. **Feature 004:** Gestão integral de anexos (pedidos, ciclos e comentários) com teto de 25 MB e expurgo físico seguro.
+5. **Feature 005:** Trilha de Auditoria Forense com garantia matemática de imutabilidade baseada em encadeamento criptográfico SHA-256 particionado (*Hash Chaining* RFC 8785), duplo bloqueio de UPDATE/DELETE (Gatilho PostgreSQL nativo + ORM Django), autoverificação de integridade, selo noturno diário e justificativa obrigatória N1.
+6. **Feature 006:** Página de Documentação Pericial no frontend (`DocumentacaoAuditoriaPage.tsx`), com acesso universal no menu de usuário e rota pública deslogada `/publico/auditoria-forense`, índice flutuante verticalmente centralizado (`DocumentacaoSidebarTOC.tsx`) com scroll suave calculado, compêndio jurídico e script offline `verificador_independente.py` para download.
+7. **Verificação de Regressão Semântica:** 5 features verificadas em `_reversa_forward/` (`002-migracao-saldo-contratos`, `003-nao-enviar-para-autor`, `004-anexos-pedidos-ciclos-msgs`, `005-auditoria-hash-chaining`, `006-doc-auditoria-forense`), totalizando 20 watch items auditados — **todos com veredito 🟢 VERDE (0 regressões)**.
+8. **Reconciliação de Adendos:** Todos os adendos em `_reversa_sdd/addenda/` (001 a 006) foram devidamente reconciliados e absorvidos pelo SDD como superados por esta re-extração.
+

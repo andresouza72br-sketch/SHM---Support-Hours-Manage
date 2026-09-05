@@ -24,7 +24,9 @@ from apps.contratos.models import (
     ContratoAuditLog,
     TipoEventoContratoAudit,
     TipoDocumentoContrato,
+    NivelRelevanciaAudit,
 )
+from apps.contratos.forensic_service import ForensicAuditService
 from apps.core.utils import calcular_hash_sha256
 from apps.pedidos.models import Pedido, StatusPedido, PrioridadePedido
 from apps.ciclos.models import Ciclo, TipoCiclo, StatusCiclo, CicloMagicLink, TipoAcaoMagicLink
@@ -100,6 +102,25 @@ def seed_base_limpa():
         status=StatusCliente.ATIVO,
     )
     print(f"  [OK] Cliente: {cliente_acme.nome_fantasia} (CNPJ: {cliente_acme.cnpj})")
+
+    # Registro de Auditoria Forense do Cliente B2B
+    ForensicAuditService.registrar_evento(
+        tipo_evento="CRIACAO",
+        descricao=f"Cliente B2B '{cliente_acme.nome_fantasia}' (CNPJ: {cliente_acme.cnpj}) cadastrado no sistema por {admin_user.get_full_name()}.",
+        nivel_relevancia=NivelRelevanciaAudit.N2,
+        cliente=cliente_acme,
+        usuario=admin_user,
+        dados_payload={
+            "razao_social": cliente_acme.razao_social,
+            "nome_fantasia": cliente_acme.nome_fantasia,
+            "cnpj": cliente_acme.cnpj,
+            "tipo": cliente_acme.tipo,
+        },
+        ip_origem="127.0.0.1",
+        user_agent="SHM Seed Script 2.4",
+    )
+    ForensicAuditService.selar_particao_diaria(f"cliente:{cliente_acme.id}")
+
 
     # Cliente Gerente (Aprovador)
     gerente_acme = User.objects.create(
@@ -177,27 +198,65 @@ def seed_base_limpa():
     doc_anexo.hash_sha256 = calcular_hash_sha256(doc_anexo.arquivo)
     doc_anexo.save()
 
-    # Registros de Auditoria Forense
-    ContratoAuditLog.objects.create(
-        contrato=contrato_acme,
+    # -------------------------------------------------------------------------
+    # Registros de Auditoria Forense Encadeada (Hash Chaining - RN-10 a RN-16)
+    # -------------------------------------------------------------------------
+    # Elo #1: Criação Cadastral do Contrato (Bloco Gênese da partição do contrato)
+    ForensicAuditService.registrar_evento(
         tipo_evento=TipoEventoContratoAudit.CRIACAO,
         descricao=f"Contrato {contrato_acme.numero} cadastrado por {admin_user.get_full_name()} com franquia de 100.00h.",
-        usuario=admin_user,
-        ip_origem="127.0.0.1",
-        user_agent="SHM Seed Script 2.4",
-    )
-    ContratoAuditLog.objects.create(
+        nivel_relevancia=NivelRelevanciaAudit.N1,
         contrato=contrato_acme,
-        tipo_evento=TipoEventoContratoAudit.UPLOAD_DOCUMENTO,
-        descricao=f"Upload do documento '{doc_anexo.nome_original}' (Contrato Assinado).",
-        documento_nome=doc_anexo.nome_original,
-        documento_hash=doc_anexo.hash_sha256,
         usuario=admin_user,
+        justificativa="Homologação e abertura cadastral do contrato oficial de suporte técnico Acme Corp 2026.",
+        dados_payload={
+            "numero": contrato_acme.numero,
+            "horas_contratadas": "100.00",
+            "valor_mensal": "5000.00",
+            "status": contrato_acme.status,
+            "cliente_cnpj": cliente_acme.cnpj,
+        },
         ip_origem="127.0.0.1",
         user_agent="SHM Seed Script 2.4",
     )
 
-    # Registro no Ledger Contabil (HistoricoSaldo)
+    # Elo #2: Upload do Documento Assinado (SHA-256 do arquivo PDF anexado)
+    ForensicAuditService.registrar_evento(
+        tipo_evento=TipoEventoContratoAudit.UPLOAD_DOCUMENTO,
+        descricao=f"Upload do documento '{doc_anexo.nome_original}' (Contrato Assinado).",
+        nivel_relevancia=NivelRelevanciaAudit.N2,
+        contrato=contrato_acme,
+        usuario=admin_user,
+        documento_nome=doc_anexo.nome_original,
+        documento_hash=doc_anexo.hash_sha256,
+        dados_payload={
+            "documento_nome": doc_anexo.nome_original,
+            "documento_hash": doc_anexo.hash_sha256,
+            "tamanho_bytes": doc_anexo.tamanho_bytes,
+            "tipo_documento": doc_anexo.tipo_documento,
+        },
+        ip_origem="127.0.0.1",
+        user_agent="SHM Seed Script 2.4",
+    )
+
+    # Elo #3: Carga Inicial de Franquia Contratual no Saldo (100.00h)
+    ForensicAuditService.registrar_evento(
+        tipo_evento="SALDO_REABASTECIMENTO",
+        descricao=f"Carga inicial da franquia contratual de 100.00h no Contrato {contrato_acme.numero}.",
+        nivel_relevancia=NivelRelevanciaAudit.N1,
+        justificativa="Carga inicial da franquia contratual (100.00h) aprovada para início dos atendimentos técnicos.",
+        contrato=contrato_acme,
+        usuario=admin_user,
+        dados_payload={
+            "quantidade": "100.00",
+            "saldo_resultante": "100.00",
+            "metodo_aprovacao": "SISTEMA",
+        },
+        ip_origem="127.0.0.1",
+        user_agent="SHM Seed Script 2.4",
+    )
+
+    # Registro no Ledger Contábil (HistoricoSaldo - Livro-Razão)
     HistoricoSaldo.objects.create(
         contrato=contrato_acme,
         tipo_operacao=TipoOperacaoSaldo.REABASTECIMENTO,
@@ -209,7 +268,22 @@ def seed_base_limpa():
         ip_origem="127.0.0.1",
         user_agent="SHM Seed Script 2.4",
     )
+
+    # Lavratura do Selo Diário Pericial Inicial (RN-16)
+    selo_contrato = ForensicAuditService.selar_particao_diaria(f"contrato:{contrato_acme.id}")
+
+    # Autoverificação Matemática de Integridade Pericial da Cadeia
+    verificacao = ForensicAuditService.verificar_integridade_particao(f"contrato:{contrato_acme.id}")
+    if verificacao.get("status") != "integro":
+        raise RuntimeError(f"FALHA PERICIAL: A partição do contrato {contrato_acme.numero} falhou na autochecagem: {verificacao}")
+
     print(f"  [OK] Contrato: {contrato_acme.numero} (Franquia: 100h | SHA-256: {doc_anexo.hash_sha256[:16]}...)")
+    print(f"  [OK] Trilha Forense Criptográfica (Hash Chaining): {verificacao['total_registros_verificados']} elos encadeados com sucesso")
+    print(f"       * Elo #1: Criação Cadastral (Bloco Gênese: 00000000...)")
+    print(f"       * Elo #2: Upload do Contrato Assinado (Doc Hash SHA-256)")
+    print(f"       * Elo #3: Carga Inicial de Saldo (100.00h no Ledger)")
+    print(f"       * Último Hash: {verificacao['ultimo_hash'][:16]}...")
+    print(f"       * Selo Diário Lavrado: {selo_contrato.selo_digest[:16]}... (RN-16)")
 
     # -------------------------------------------------------------------------
     # 4. TRES CHAMADOS ESTRATEGICOS (100% dos fluxos de teste)
@@ -394,9 +468,20 @@ def seed_base_limpa():
     )
     print(f"  [OK] OS 03: {pedido3.protocolo} [ABERTO] (Pronto para orcamento/triagem)")
 
-    print("\n[5/5] Base Limpa Semeada com 100% de Sucesso!")
+    print("\n[5/5] Base Limpa e Trilha Forense Semeadas com 100% de Sucesso!")
+    print("==================================================================")
+    print("  RELATÓRIO DE PERÍCIA E INTEGRIDADE CRIPTOGRÁFICA (RN-10 a RN-16):")
+    from apps.contratos.models import ForensicAuditLog, AuditDailySeal
+    particoes = list(ForensicAuditLog.objects.values_list("particao", flat=True).distinct().order_by("particao"))
+    for part in particoes:
+        chk = ForensicAuditService.verificar_integridade_particao(part)
+        print(f"  * Partição '{part}': {chk['total_registros_verificados']} elos | Status: {chk['status'].upper()} ({chk['tempo_verificacao_ms']}ms)")
+        print(f"    - Último Hash: {str(chk.get('ultimo_hash'))[:32]}...")
+    print(f"  * Total Geral de Eventos Auditados na Trilha: {ForensicAuditLog.objects.count()}")
+    print(f"  * Selos Diários Lavrados (AuditDailySeal): {AuditDailySeal.objects.count()}")
     print("==================================================================")
 
 
 if __name__ == "__main__":
     seed_base_limpa()
+

@@ -14,13 +14,18 @@ from apps.contratos.models import (
     ContratoAuditLog,
     TipoEventoContratoAudit,
     TipoDocumentoContrato,
+    ForensicAuditLog,
+    AuditDailySeal,
 )
 from apps.contratos.serializers import (
     ContratoSerializer,
     ContratoDocumentoSerializer,
     ContratoAuditLogSerializer,
+    ForensicAuditLogSerializer,
+    AuditDailySealSerializer,
 )
 from apps.contratos.services import ContratoService, ContratoDocumentoService
+from apps.contratos.forensic_service import ForensicAuditService
 from apps.accounts.models import UserRole
 from apps.core.permissions import IsEmpresaAdmin, IsEmpresaUser, IsClienteGerente
 from apps.core.utils import get_client_ip, get_client_user_agent, calcular_hash_sha256
@@ -424,6 +429,34 @@ class ContratoViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=["get"])
+    def trilha_forense(self, request, pk=None):
+        contrato = self.get_object()
+        particao = f"contrato:{contrato.id}"
+        qs = ForensicAuditLog.objects.filter(particao=particao).order_by("-sequencia")
+
+        nivel = request.query_params.get("nivel")
+        if nivel:
+            qs = qs.filter(nivel_relevancia=nivel.upper())
+
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = ForensicAuditLogSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = ForensicAuditLogSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["get", "post"])
+    def verificar_integridade(self, request, pk=None):
+        contrato = self.get_object()
+        particao = f"contrato:{contrato.id}"
+        resultado = ForensicAuditService.verificar_integridade_particao(particao)
+        resultado["contrato_numero"] = contrato.numero
+        status_code = status.HTTP_200_OK if resultado.get("status") == "integro" else status.HTTP_409_CONFLICT
+        return Response(resultado, status=status_code)
+
+
+    @action(detail=True, methods=["get"])
     def extrato(self, request, pk=None):
         contrato = self.get_object()
         serializer = self.get_serializer(contrato)
@@ -579,4 +612,44 @@ class RecusarEmailNotificacaoView(APIView):
             "codigo": resultado["codigo"],
             "email": dest.email,
             "contrato_numero": dest.contrato.numero,
+        })
+
+
+class PainelIntegridadeAuditoriaView(APIView):
+    """
+    Endpoint consolidado pericial para auditoria e governança (RN-16).
+    Exclusivo para administradores da empresa.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsEmpresaAdmin]
+
+    def get(self, request):
+        particoes = list(ForensicAuditLog.objects.values_list("particao", flat=True).distinct())
+        total_particoes = len(particoes)
+        particoes_integras = 0
+        particoes_rompidas = 0
+
+        for part in particoes:
+            res = ForensicAuditService.verificar_integridade_particao(part)
+            if res.get("status") == "integro":
+                particoes_integras += 1
+            else:
+                particoes_rompidas += 1
+
+        total_eventos_auditados = ForensicAuditLog.objects.count()
+
+        ultimo_selo = AuditDailySeal.objects.order_by("-selado_em", "-data_referencia").first()
+        ultimo_selo_diario = None
+        if ultimo_selo:
+            ultimo_selo_diario = {
+                "data_referencia": ultimo_selo.data_referencia.isoformat(),
+                "selado_em": ultimo_selo.selado_em.isoformat(),
+                "selo_digest": ultimo_selo.selo_digest,
+            }
+
+        return Response({
+            "total_particoes": total_particoes,
+            "particoes_integras": particoes_integras,
+            "particoes_rompidas": particoes_rompidas,
+            "total_eventos_auditados": total_eventos_auditados,
+            "ultimo_selo_diario": ultimo_selo_diario,
         })

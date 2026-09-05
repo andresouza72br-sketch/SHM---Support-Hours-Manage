@@ -652,7 +652,7 @@ export function ExtratoContratoPage() {
             </div>
           </div>
 
-          <TimelineAuditoriaContrato logs={auditoria} />
+          <TimelineAuditoriaContrato logs={auditoria} contratoId={contrato.id} />
         </div>
       </div>
 

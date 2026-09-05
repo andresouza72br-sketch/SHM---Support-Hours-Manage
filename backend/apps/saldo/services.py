@@ -123,6 +123,30 @@ class SaldoService:
             metodo_aprovacao=metodo_aprovacao,
         )
 
+        # Registro na trilha pericial forense encadeada
+        try:
+            from apps.contratos.forensic_service import ForensicAuditService
+            from apps.contratos.models import NivelRelevanciaAudit
+            ForensicAuditService.registrar_evento(
+                tipo_evento="SALDO_CONSUMO_CICLO",
+                descricao=f"Consumo de {horas:.2f}h referente ao aceite do Ciclo #{ciclo.id if ciclo else '?'} (Pedido {pedido.protocolo if pedido else '?'}) no Contrato {contrato.numero}.",
+                nivel_relevancia=NivelRelevanciaAudit.N2,
+                contrato=contrato,
+                usuario=autor,
+                dados_payload={
+                    "horas": horas,
+                    "saldo_anterior": saldo_anterior,
+                    "saldo_novo": novo_saldo,
+                    "pedido_id": pedido.id if pedido else None,
+                    "ciclo_id": ciclo.id if ciclo else None,
+                    "metodo_aprovacao": metodo_aprovacao,
+                },
+                ip_origem=ip_origem,
+                user_agent=user_agent,
+            )
+        except Exception as audit_err:
+            logger.warning("Falha ao registrar auditoria forense no consumo de saldo: %s", audit_err)
+
         # Disparo de alertas automáticos de saldo (80% consumido ou saldo esgotado/devedor)
         try:
             from apps.notificacoes.services import NotificacaoService
@@ -185,6 +209,25 @@ class SaldoService:
             autor=autor,
             descricao=f"Reabastecimento aprovado: {motivo}",
         )
+
+        # Registro pericial N1 com justificativa obrigatória
+        try:
+            from apps.contratos.forensic_service import ForensicAuditService
+            from apps.contratos.models import NivelRelevanciaAudit
+            ForensicAuditService.registrar_evento(
+                tipo_evento="SALDO_REABASTECIMENTO",
+                descricao=f"Reabastecimento de {quantidade:.2f}h aprovado no Contrato {contrato.numero}.",
+                nivel_relevancia=NivelRelevanciaAudit.N1,
+                contrato=contrato,
+                usuario=autor,
+                justificativa=motivo,
+                dados_payload={
+                    "quantidade": quantidade,
+                    "saldo_resultante": contrato.saldo,
+                },
+            )
+        except Exception as audit_err:
+            logger.warning("Falha ao registrar auditoria forense no reabastecimento de saldo: %s", audit_err)
 
         return reab
 

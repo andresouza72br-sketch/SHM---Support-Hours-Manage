@@ -283,6 +283,31 @@ class CicloService:
                 ip_origem=ip_origem,
                 user_agent=user_agent,
             )
+            try:
+                from apps.contratos.forensic_service import ForensicAuditService
+                from apps.contratos.models import NivelRelevanciaAudit
+                ForensicAuditService.registrar_evento(
+                    tipo_evento="CICLO_ACEITE_EXCECAO_TOLERANCIA",
+                    descricao=(
+                        f"Aceite de exceção formalizado para o Ciclo #{ciclo.id} com horas realizadas "
+                        f"({ciclo.horas_realizadas}h) acima da tolerância de +30% ({limite_tolerancia:.2f}h sobre {ciclo.horas_estimadas}h orçadas)."
+                    ),
+                    nivel_relevancia=NivelRelevanciaAudit.N1,
+                    contrato=ciclo.pedido.contrato,
+                    usuario=ciclo.aceito_por,
+                    justificativa=justificativa_excedente.strip(),
+                    dados_payload={
+                        "ciclo_id": ciclo.id,
+                        "pedido_id": ciclo.pedido.id,
+                        "horas_estimadas": ciclo.horas_estimadas,
+                        "horas_realizadas": ciclo.horas_realizadas,
+                        "limite_tolerancia": limite_tolerancia,
+                    },
+                    ip_origem=ip_origem,
+                    user_agent=user_agent,
+                )
+            except Exception as f_err:
+                logger.warning("Falha ao registrar auditoria forense no aceite de exceção do ciclo %s: %s", ciclo.id, f_err)
 
         # Débito de saldo real no contrato com compliance forense
         from apps.saldo.services import SaldoService

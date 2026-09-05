@@ -41,8 +41,18 @@
 | `frontend/src/pages/AdminDashboardPage.tsx` | `frontend/` | 🟢 CONFIRMADO |
 | `frontend/src/pages/ConfiguracoesNotificacoesPage.tsx` | `frontend/` & `notificacoes/` | 🟢 CONFIRMADO |
 | `frontend/src/pages/ExtratoContratoPage.tsx` | `frontend/` & `saldo/` | 🟢 CONFIRMADO |
-| `frontend/src/components/contratos/MigracaoSaldoModal.tsx` | `frontend/` & `saldo/` | 🟢 CONFIRMADO |
 | `frontend/src/components/contratos/DocumentosContratoModal.tsx` | `frontend/` & `contratos/` | 🟢 CONFIRMADO |
 | `frontend/src/components/contratos/TimelineAuditoriaContrato.tsx` | `frontend/` & `contratos/` | 🟢 CONFIRMADO |
 | `frontend/src/api/client.ts` | `frontend/` | 🟢 CONFIRMADO |
+| `backend/apps/contratos/forensic_service.py` | `contratos/` | 🟢 CONFIRMADO |
+| `backend/apps/contratos/migrations/0008_forensic_audit_trail_and_trigger.py` | `contratos/` | 🟢 CONFIRMADO |
+| `backend/tests/test_forensic_hash_chaining.py` | `contratos/` | 🟢 CONFIRMADO |
+| `backend/tests/test_audit_api_endpoints.py` | `contratos/` | 🟢 CONFIRMADO |
+| `backend/tests/test_verificador_independente_offline.py` | `contratos/` & `frontend/` | 🟢 CONFIRMADO |
+| `frontend/src/pages/DocumentacaoAuditoriaPage.tsx` | `frontend/` | 🟢 CONFIRMADO |
+| `frontend/src/components/documentacao/DocumentacaoSidebarTOC.tsx` | `frontend/` | 🟢 CONFIRMADO |
+| `frontend/src/components/documentacao/DocumentacaoConteudoGeral.tsx` | `frontend/` | 🟢 CONFIRMADO |
+| `frontend/src/components/documentacao/DocumentacaoConteudoPericial.tsx` | `frontend/` | 🟢 CONFIRMADO |
+| `frontend/src/utils/verificador_script.ts` | `frontend/` | 🟢 CONFIRMADO |
+
 

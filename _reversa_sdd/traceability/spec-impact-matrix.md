@@ -17,4 +17,8 @@
 | `contratos` (Upload Documento) | `contratos` (Auditoria) | Registro SHA-256 | Upload calcula hash SHA-256 e grava evento no `ContratoAuditLog` |
 | `notificacoes` (Gatilho) | `accounts` / `contratos` | Resolução de Destinatários | `ConfiguracaoNotificacao` filtra e resolve destinatários consultando papéis RBAC e lista CC |
 | `notificacoes` (Supressão Autor) | `accounts` / `notificacoes` | Filtro de Auto-Alerta | Expurga o autor logado de `destinatarios_in_app` (invariante do sininho) e de `destinatarios_usuarios`/`emails_cc` quando `nao_enviar_autor = True` |
+| `contratos` (Operações Críticas) | `contratos` (Trilha Forense) | Carimbo Criptográfico | Qualquer aceite, alteração contratual, upload/exclusão de documento ou migração de saldo grava evento encadeado na partição com RFC 8785 e SHA-256 |
+| `contratos` (Trilha Forense) | PostgreSQL (Database) | Bloqueio Nativo | Gatilho C/PLpgSQL `trg_forensic_audit_immutability` impede incondicionalmente comandos `UPDATE` e `DELETE` em nível de banco de dados |
+| `frontend` (Documentação Pericial) | `frontend` (Navegação & Script) | UX / Soberania Pericial | Posiciona índice flutuante fixo centralizado na tela, executa rolagem calculada sem jitter e distribui script independente offline em Python 3 puro |
+
 
