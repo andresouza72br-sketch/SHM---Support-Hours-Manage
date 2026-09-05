@@ -153,6 +153,19 @@ Faz o upload de documentos e termos contratuais, calculando e persistindo o **ha
 ### `GET /api/v1/contratos/{id}/auditar_documentos/`
 Recalcula o hash SHA-256 dos arquivos em disco e valida a correspondência exata com o registro persistido, garantindo inviolabilidade pericial.
 
+### `GET /api/v1/contratos/{id}/trilha_forense/`
+Retorna os registros periciais da **Fita de DNA Transacional** encadeada com SHA-256 da partição `contrato:{id}`.
+- Suporta filtro por nível de relevância (`nivel=CRITICA` ou `nivel=OPERACIONAL`).
+- Exibe o hash do bloco anterior (`previous_hash`), dados canônicos segundo a norma **RFC 8785** e hash gerado.
+
+### `GET /api/v1/contratos/{id}/verificar_integridade/`
+Executa o algoritmo de varredura monotônica sobre a partição do contrato:
+- Retorna `200 OK` com `status: "integro"` se todos os elos forem matematicamente válidos.
+- Retorna `409 Conflict` apontando a sequência exata e o timestamp do primeiro elo corrompido caso ocorra violação.
+
+### `GET /api/v1/auditoria/painel_integridade/`
+Retorna a saúde criptográfica global de todas as partições contratuais ativas no sistema, totalizando blocos íntegros e selos diários lavrados.
+
 ---
 
 ## 🪄 6. Magic Links Públicos (Zero Atrito)
@@ -162,3 +175,44 @@ Retorna os dados resumidos do ciclo e pedido para visualização segura sem nece
 
 ### `POST /api/v1/ciclos/publico/{token}/`
 Executa ações de decisão pública (`aprovar_orcamento`, `rejeitar_orcamento`, `aceitar_ciclo`) com registro forense do IP de origem, User-Agent e carimbo temporal ISO-8601.
+
+---
+
+## 📅 7. Módulo Schedule (Reuniões Técnicas & Google Meet)
+
+### `GET /api/v1/schedule/agendamentos/`
+Lista reuniões técnicas com filtros opcionais: `cliente`, `pedido`, `ciclo`, `status`, `data_inicio_apos` e `data_inicio_antes`.
+
+### `GET /api/v1/schedule/agendamentos/proxima/`
+Retorna o próximo compromisso síncrono agendado com status `agendado` e `data_fim >= now()`.
+
+### `POST /api/v1/schedule/agendamentos/`
+Cria um agendamento e aciona a integração com **Google Calendar**:
+- Cria sala **Google Meet** corporativa e retorna o link (`google_meet_link`).
+- Cria atomicamente 3 lembretes programados (`24h`, `30m` e `15m` antes).
+- Notifica os participantes via in-app e e-mail HTML (com supressão para o autor).
+
+**Payload:**
+```json
+{
+  "cliente": 1,
+  "titulo": "Alinhamento Técnico: Homologação OS2026090001",
+  "data_inicio": "2026-09-08T14:00:00Z",
+  "duracao_minutos": 45,
+  "descricao": "Apresentação dos ciclos executados e tira-dúvidas de homologação.",
+  "tipo": "homologacao",
+  "pedido": 12,
+  "participantes": [2, 5],
+  "sincronizar_google": true
+}
+```
+
+### `POST /api/v1/schedule/agendamentos/{id}/cancelar/`
+Cancela o evento técnico. Exige **motivo obrigatório** (mínimo 5 caracteres) que é carimbado com integridade criptográfica na trilha de auditoria forense do contrato/cliente.
+
+**Payload:**
+```json
+{
+  "motivo": "Reunião cancelada a pedido do tomador devido a choque de agenda da diretoria."
+}
+```
