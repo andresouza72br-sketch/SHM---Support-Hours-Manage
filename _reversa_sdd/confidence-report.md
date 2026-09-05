@@ -1,6 +1,6 @@
 # Relatório de Confiança e Cobertura (Confidence Report) — SHM 2.5.0
 
-> Gerado pelo **Reversa Reviewer** em 2026-09-04  
+> Gerado pelo **Reversa Reviewer** em 2026-09-05  
 > Sistema: **SHM 2.5.0 (Support Hours Manager)**  
 > Status: **RE-EXTRAÇÃO CONCLUÍDA — 100% DAS ESPECIFICAÇÕES ALINHADAS E HOMOLOGADAS** 🟢
 
