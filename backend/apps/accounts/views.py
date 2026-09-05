@@ -31,7 +31,7 @@ class MeView(APIView):
         return Response(serializer.data)
 
 class UserListCreateView(generics.ListCreateAPIView):
-    queryset = User.objects.select_related("cliente").all()
+    queryset = User.objects.select_related("cliente").all().order_by("first_name", "username")
     
     def get_serializer_class(self):
         if self.request.method == "POST":

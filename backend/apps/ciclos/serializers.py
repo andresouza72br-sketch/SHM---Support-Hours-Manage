@@ -21,6 +21,8 @@ class CicloSerializer(serializers.ModelSerializer):
     avaliacao = AvaliacaoCicloSerializer(read_only=True)
     pedido_protocolo = serializers.CharField(source="pedido.protocolo", read_only=True)
     pedido_assunto = serializers.CharField(source="pedido.assunto", read_only=True)
+    cliente_id = serializers.IntegerField(source="pedido.cliente_id", read_only=True)
+    cliente_nome = serializers.CharField(source="pedido.cliente.nome_fantasia", read_only=True)
     anexos_referenciados = serializers.SerializerMethodField()
     anexos_pedido_ids = serializers.ListField(child=serializers.IntegerField(), required=False, write_only=True)
 

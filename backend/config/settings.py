@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "apps.saldo",
     "apps.comunicacao",
     "apps.notificacoes",
+    "apps.schedule",
 ]
 
 MIDDLEWARE = [

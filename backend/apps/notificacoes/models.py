@@ -11,10 +11,14 @@ class TipoEventoTimeline(models.TextChoices):
     ACEITE_SOLICITADO = "aceite_solicitado", "Aceite Solicitado"
     CICLO_ACEITO = "ciclo_aceito", "Ciclo Aceito e Encerrado"
     ACEITE_RECUSADO = "aceite_recusado", "Aceite Recusado"
+    AGENDAMENTO_CRIADO = "agendamento_criado", "Reunião Agendada"
+    AGENDAMENTO_REMARCADO = "agendamento_remarcado", "Reunião Remarcada"
+    AGENDAMENTO_CANCELADO = "agendamento_cancelado", "Reunião Cancelada"
 
 class TimelineEvent(models.Model):
     pedido = models.ForeignKey("pedidos.Pedido", on_delete=models.CASCADE, related_name="timeline")
     ciclo = models.ForeignKey("ciclos.Ciclo", on_delete=models.SET_NULL, null=True, blank=True, related_name="timeline")
+    agendamento = models.ForeignKey("schedule.Agendamento", on_delete=models.SET_NULL, null=True, blank=True, related_name="timeline")
     tipo = models.CharField("tipo de evento", max_length=30, choices=TipoEventoTimeline.choices)
     descricao = models.CharField("descrição", max_length=255)
     autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
@@ -45,6 +49,7 @@ class CategoriaNotificacao(models.TextChoices):
     SALDO = "saldo", "Saldo e Franquia de Horas"
     PEDIDOS = "pedidos", "Chamados e Pedidos Técnicos"
     CICLOS = "ciclos", "Orçamentos, Execução e Aceites"
+    SCHEDULE = "schedule", "Agendamentos e Reuniões"
 
 
 class ConfiguracaoNotificacao(TimeStampedModel):
