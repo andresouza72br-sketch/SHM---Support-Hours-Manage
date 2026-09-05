@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Layers,
   Settings,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { CicloCarousel } from '../components/ciclos/CicloCarousel'
+import { ModalAgendamento } from '../components/schedule/ModalAgendamento'
 import { clientService } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -151,6 +153,8 @@ function formatarDataHora(dataIso?: string) {
 export function DetalhePedidoPage() {
   const { id } = useParams<{ id: string }>()
   const { isEmpresa } = useAuth()
+  const queryClient = useQueryClient()
+  const [modalAgendamentoOpen, setModalAgendamentoOpen] = useState(false)
 
   const { data: pedido, isLoading } = useQuery({
     queryKey: ['pedido', id],
@@ -252,17 +256,27 @@ export function DetalhePedidoPage() {
             </div>
           </div>
 
-          {isEmpresa && (
-            <div className="flex items-center self-start sm:self-auto shrink-0 mt-1">
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 mt-1">
+            <button
+              type="button"
+              onClick={() => setModalAgendamentoOpen(true)}
+              className="px-4 py-2.5 sm:py-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-400 text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 font-bold text-xs shadow-2xs hover:shadow-xs transition flex items-center gap-2 cursor-pointer"
+              title="Agendar reunião para este chamado"
+            >
+              <Calendar className="w-4 h-4 text-indigo-500" />
+              <span>Agendar Reunião</span>
+            </button>
+
+            {isEmpresa && (
               <Link
                 to={`/admin/pedidos/${pedido.id}/analise`}
-                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition flex items-center gap-2 cursor-pointer"
+                className="px-5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black text-xs shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition flex items-center gap-2 cursor-pointer"
               >
                 <Settings className="w-4 h-4" />
                 <span>Gerenciar Ciclos</span>
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Metadados Detalhados do Pedido */}
@@ -421,6 +435,25 @@ export function DetalhePedidoPage() {
           <CicloCarousel pedido={pedido} ciclos={ciclos} />
         </div>
       </div>
+
+      {/* Modal de Agendamento com o Pedido em Foco */}
+      <ModalAgendamento
+        isOpen={modalAgendamentoOpen}
+        onClose={() => setModalAgendamentoOpen(false)}
+        clienteId={pedido.cliente}
+        clienteNome={pedido.cliente_nome}
+        contratoId={pedido.contrato}
+        contratoNumero={pedido.contrato_numero}
+        pedidoId={pedido.id}
+        pedidoProtocolo={pedido.protocolo}
+        pedidoAssunto={pedido.assunto}
+        tipoSugerido="alinhamento"
+        onAgendado={() => {
+          queryClient.invalidateQueries({ queryKey: ['pedido', id] })
+          queryClient.invalidateQueries({ queryKey: ['schedule_proxima'] })
+          queryClient.invalidateQueries({ queryKey: ['schedule_agendamentos'] })
+        }}
+      />
     </AppLayout>
   )
 }

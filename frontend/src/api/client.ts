@@ -8,11 +8,14 @@ import type {
   Notification,
   Cliente,
   ClienteUser,
+  User,
   ConfiguracaoNotificacao,
   AnexoPedido,
   ForensicAuditLog,
   AuditIntegrityVerification,
   AuditPanelIntegrity,
+  Agendamento,
+  CriarAgendamentoPayload,
 } from '../types'
 
 export const api = axios.create({
@@ -80,6 +83,7 @@ export const clientService = {
     loginGoogle: (credential: string) =>
       api.post<{ access: string; refresh: string; user: any }>('/auth/google/', { credential }).then((r) => r.data),
     me: () => api.get('/auth/me/').then((r) => r.data),
+    users: () => api.get<any>('/auth/users/').then((r) => normalizeArray<User>(r.data)),
   },
   contratos: {
     list: (params?: Record<string, any>) => api.get<any>('/contratos/', { params }).then((r) => normalizeArray<Contrato>(r.data)),
@@ -352,6 +356,19 @@ export const clientService = {
   auditoria: {
     painelIntegridade: () =>
       api.get<AuditPanelIntegrity>('/auditoria/painel_integridade/').then((r) => r.data),
+  },
+  schedule: {
+    list: (params?: Record<string, any>) =>
+      api.get<any>('/schedule/agendamentos/', { params }).then((r) => normalizeArray<Agendamento>(r.data)),
+    get: (id: number | string) => api.get<Agendamento>(`/schedule/agendamentos/${id}/`).then((r) => r.data),
+    create: (data: CriarAgendamentoPayload) =>
+      api.post<Agendamento>('/schedule/agendamentos/', data).then((r) => r.data),
+    update: (id: number | string, data: Partial<CriarAgendamentoPayload>) =>
+      api.patch<Agendamento>(`/schedule/agendamentos/${id}/`, data).then((r) => r.data),
+    cancelar: (id: number | string, motivo: string) =>
+      api.post<Agendamento>(`/schedule/agendamentos/${id}/cancelar/`, { motivo }).then((r) => r.data),
+    proxima: () =>
+      api.get<Agendamento | null>('/schedule/agendamentos/proxima/').then((r) => r.data),
   },
   system: {
     status: () => api.get('/status/').then((r) => r.data),

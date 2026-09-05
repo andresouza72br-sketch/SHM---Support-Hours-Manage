@@ -19,6 +19,7 @@ import { AceiteContratoPage } from './pages/AceiteContratoPage'
 import { AceiteClientePage } from './pages/AceiteClientePage'
 import { ConfiguracoesNotificacoesPage } from './pages/ConfiguracoesNotificacoesPage'
 import { DocumentacaoAuditoriaPage } from './pages/DocumentacaoAuditoriaPage'
+import { SchedulePage } from './pages/SchedulePage'
 
 
 
@@ -53,6 +54,8 @@ export default function App() {
               <Route path="/contratos" element={<ProtectedRoute><ContratosPage /></ProtectedRoute>} />
               <Route path="/contratos/:id/extrato" element={<ProtectedRoute><ExtratoContratoPage /></ProtectedRoute>} />
               <Route path="/clientes" element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />
+              <Route path="/schedule" element={<ProtectedRoute><SchedulePage /></ProtectedRoute>} />
+              <Route path="/admin/schedule" element={<Navigate to="/schedule" replace />} />
               <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboardPage /></ProtectedRoute>} />
               <Route path="/admin/contratos" element={<ProtectedRoute><ContratosPage /></ProtectedRoute>} />
               <Route path="/admin/clientes" element={<ProtectedRoute><ClientesPage /></ProtectedRoute>} />

@@ -278,6 +278,8 @@ export interface Ciclo {
   tipo: TipoCiclo
   tipo_display: string
   contexto?: string | null
+  cliente_id?: number
+  cliente_nome?: string
   operador: number
   operador_nome: string
   status: StatusCiclo
@@ -477,4 +479,97 @@ export interface TopicoDocumentacao {
   titulo: string
   subtitulo?: string
   nivel: NivelDocumentacao
+}
+
+// ==========================================
+// SCHEDULE / AGENDAMENTOS & GOOGLE MEET
+// ==========================================
+
+export type TipoEventoSchedule =
+  | 'alinhamento'
+  | 'orcamento'
+  | 'homologacao'
+  | 'suporte_emergencial'
+  | 'avulso'
+
+export type StatusAgendamento =
+  | 'agendado'
+  | 'em_andamento'
+  | 'realizado'
+  | 'concluido'
+  | 'cancelado'
+
+export type TipoParticipanteSchedule =
+  | 'organizador'
+  | 'tecnico'
+  | 'cliente'
+  | 'convidado'
+
+export type StatusPresencaSchedule =
+  | 'pendente'
+  | 'confirmado'
+  | 'recusado'
+
+export interface ParticipanteAgendamento {
+  id?: number | string
+  usuario?: number | null
+  nome: string
+  email: string
+  tipo: TipoParticipanteSchedule
+  tipo_display?: string
+  status_presenca: StatusPresencaSchedule
+  status_presenca_display?: string
+}
+
+export interface Agendamento {
+  id: number | string
+  cliente: number
+  cliente_nome?: string
+  pedido?: number | null
+  pedido_protocolo?: string | null
+  pedido_assunto?: string | null
+  ciclo?: number | null
+  ciclo_titulo?: string | null
+  ciclo_tipo?: string | null
+  tarefa?: number | null
+  organizador?: number
+  organizador_nome?: string
+  organizador_email?: string
+  titulo: string
+  descricao?: string
+  tipo: TipoEventoSchedule
+  tipo_display?: string
+  status: StatusAgendamento
+  status_display?: string
+  data_inicio: string
+  data_fim: string
+  duracao_minutos: number
+  google_event_id?: string | null
+  google_meet_link?: string | null
+  meet_link?: string | null
+  google_sincronizado?: boolean
+  google_calendar_status?: 'sincronizado' | 'pendente' | 'erro' | 'desativado' | string
+  motivo_cancelamento?: string | null
+  participantes?: ParticipanteAgendamento[]
+  criado_em?: string
+  atualizado_em?: string
+}
+
+export interface CriarAgendamentoPayload {
+  cliente: number
+  pedido?: number | null
+  ciclo?: number | null
+  tarefa?: number | null
+  titulo: string
+  descricao?: string
+  tipo?: TipoEventoSchedule
+  data_inicio: string
+  data_fim?: string
+  duracao_minutos?: number
+  participantes?: Array<{
+    email: string
+    nome: string
+    tipo?: TipoParticipanteSchedule
+    usuario?: number | null
+  }>
 }

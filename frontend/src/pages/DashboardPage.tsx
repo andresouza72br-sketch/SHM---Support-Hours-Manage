@@ -1,12 +1,20 @@
+import { useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppLayout } from '../components/layout/AppLayout'
 import { KanbanBoard } from '../components/kanban/KanbanBoard'
+import { ProximaReuniaoWidget } from '../components/dashboard/ProximaReuniaoWidget'
+import { ModalAgendamento } from '../components/schedule/ModalAgendamento'
 import { clientService } from '../api/client'
+import type { Pedido, Contrato } from '../types'
 
 export function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const queryClient = useQueryClient()
   const contratoSelecionado = searchParams.get('contrato') ? Number(searchParams.get('contrato')) : null
+
+  const [modalAgendamentoOpen, setModalAgendamentoOpen] = useState(false)
+  const [pedidoParaAgendar, setPedidoParaAgendar] = useState<Pedido | null>(null)
 
   const handleSelectContrato = (id: number | null) => {
     const newParams = new URLSearchParams(searchParams)
@@ -17,6 +25,17 @@ export function DashboardPage() {
     }
     setSearchParams(newParams)
   }
+
+  const { data: contratosRaw = [] } = useQuery({
+    queryKey: ['contratos'],
+    queryFn: () => clientService.contratos.list(),
+  })
+  const contratos: Contrato[] = Array.isArray(contratosRaw) ? contratosRaw : []
+
+  const contratoEmFoco = useMemo(() => {
+    if (!contratoSelecionado) return null
+    return contratos.find((c) => c.id === contratoSelecionado) || null
+  }, [contratos, contratoSelecionado])
 
   const { data: kanbanData = {}, isLoading } = useQuery({
     queryKey: ['kanban', contratoSelecionado],
@@ -29,7 +48,44 @@ export function DashboardPage() {
       contratoSelecionado={contratoSelecionado}
       onSelectContrato={handleSelectContrato}
     >
-      <KanbanBoard pedidosPorStatus={kanbanData} isLoading={isLoading} />
+      <div className="space-y-6">
+        <ProximaReuniaoWidget
+          onNovoAgendamentoClick={() => {
+            setPedidoParaAgendar(null)
+            setModalAgendamentoOpen(true)
+          }}
+        />
+
+        <KanbanBoard
+          pedidosPorStatus={kanbanData}
+          isLoading={isLoading}
+          onAgendarPedido={(pedido) => {
+            setPedidoParaAgendar(pedido)
+            setModalAgendamentoOpen(true)
+          }}
+        />
+      </div>
+
+      {/* Modal de Agendamento reconhecendo o cliente/pedido em foco */}
+      <ModalAgendamento
+        isOpen={modalAgendamentoOpen}
+        onClose={() => {
+          setModalAgendamentoOpen(false)
+          setPedidoParaAgendar(null)
+        }}
+        clienteId={pedidoParaAgendar?.cliente || contratoEmFoco?.cliente || undefined}
+        clienteNome={pedidoParaAgendar?.cliente_nome || contratoEmFoco?.cliente_nome || undefined}
+        contratoId={pedidoParaAgendar?.contrato || contratoSelecionado || undefined}
+        contratoNumero={pedidoParaAgendar?.contrato_numero || contratoEmFoco?.numero || undefined}
+        pedidoId={pedidoParaAgendar?.id || undefined}
+        pedidoProtocolo={pedidoParaAgendar?.protocolo || undefined}
+        pedidoAssunto={pedidoParaAgendar?.assunto || undefined}
+        tipoSugerido="alinhamento"
+        onAgendado={() => {
+          queryClient.invalidateQueries({ queryKey: ['schedule_proxima'] })
+          queryClient.invalidateQueries({ queryKey: ['schedule_agendamentos'] })
+        }}
+      />
     </AppLayout>
   )
 }

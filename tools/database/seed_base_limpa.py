@@ -34,6 +34,16 @@ from apps.tarefas.models import Tarefa, StatusTarefa
 from apps.saldo.models import HistoricoSaldo, TipoOperacaoSaldo
 from apps.comunicacao.models import Comentario
 from apps.notificacoes.models import Notification, TimelineEvent, TipoEventoTimeline
+from apps.schedule.models import (
+    Agendamento,
+    ParticipanteAgendamento,
+    LembreteAgendamento,
+    TipoEventoSchedule,
+    StatusAgendamento,
+    TipoParticipante,
+    StatusPresenca,
+)
+from apps.schedule.services import ScheduleService
 
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -51,7 +61,7 @@ def seed_base_limpa():
     # -------------------------------------------------------------------------
     # 1. USUARIOS DA EMPRESA & CLIENTES (Perfis Corporativos Oficiais)
     # -------------------------------------------------------------------------
-    print("\n[1/5] Criando 4 Usuarios Oficiais...")
+    print("\n[1/6] Criando 4 Usuarios Oficiais...")
 
     # Empresa Admin
     admin_user = User.objects.create(
@@ -468,7 +478,107 @@ def seed_base_limpa():
     )
     print(f"  [OK] OS 03: {pedido3.protocolo} [ABERTO] (Pronto para orcamento/triagem)")
 
-    print("\n[5/5] Base Limpa e Trilha Forense Semeadas com 100% de Sucesso!")
+    # -------------------------------------------------------------------------
+    # 5. AGENDAMENTOS DE REUNIÃO, GOOGLE MEET & LEMBRETES (SCHEDULE)
+    # -------------------------------------------------------------------------
+    print("\n[5/6] Criando Agendamentos de Reunião & Integração Google Meet...")
+
+    # Reunião 1: Futura (Amanhã 14h) - Homologação / Aceite da OS 01
+    inicio_ag1 = (timezone.now() + timedelta(days=1)).replace(hour=14, minute=0, second=0, microsecond=0)
+    agendamento1 = ScheduleService.criar_agendamento(
+        cliente=cliente_acme,
+        organizador=tecnico_user,
+        titulo=f"Sessão de Homologação e Aceite - {pedido1.protocolo}",
+        descricao=(
+            "1. Validação em conjunto do plano de execução das queries otimizadas\n"
+            "2. Verificação dos tempos de resposta no dashboard contábil\n"
+            "3. Coleta de aceite formal do ciclo de 6.00h"
+        ),
+        tipo=TipoEventoSchedule.HOMOLOGACAO,
+        data_inicio=inicio_ag1,
+        duracao_minutos=45,
+        pedido=pedido1,
+        ciclo=ciclo1,
+        participantes=[
+            {"nome": "Marcos (Técnico)", "email": tecnico_user.email, "tipo": TipoParticipante.TECNICO, "usuario": tecnico_user.id},
+            {"nome": "Carlos Silva (Gerente)", "email": gerente_acme.email, "tipo": TipoParticipante.CLIENTE, "usuario": gerente_acme.id},
+            {"nome": "Mariana Lima (Analista)", "email": analista_acme.email, "tipo": TipoParticipante.CLIENTE, "usuario": analista_acme.id},
+        ],
+        sincronizar_google=True,
+    )
+    print(f"  [OK] Agenda #1: {agendamento1.titulo} ({agendamento1.data_inicio.strftime('%d/%m/%Y %H:%M')})")
+    print(f"       * Meet Link: {agendamento1.google_meet_link}")
+    print(f"       * Lembretes: {agendamento1.lembretes.count()} marcos gerados (24h, 30m, 15m)")
+
+    # Reunião 2: Futura (Em 3 dias às 10h) - Apresentação de Orçamento da OS 02
+    inicio_ag2 = (timezone.now() + timedelta(days=3)).replace(hour=10, minute=0, second=0, microsecond=0)
+    agendamento2 = ScheduleService.criar_agendamento(
+        cliente=cliente_acme,
+        organizador=admin_user,
+        titulo=f"Apresentação de Orçamento - {pedido2.protocolo}",
+        descricao=(
+            "1. Apresentação da arquitetura do middleware de webhooks seguros (HMAC)\n"
+            "2. Impacto de 8.00h no saldo contratual (saldo restante ficará em 92.00h)\n"
+            "3. Aprovação para início da sprint técnica"
+        ),
+        tipo=TipoEventoSchedule.ORCAMENTO,
+        data_inicio=inicio_ag2,
+        duracao_minutos=30,
+        pedido=pedido2,
+        ciclo=ciclo2,
+        participantes=[
+            {"nome": "Admin SHM", "email": admin_user.email, "tipo": TipoParticipante.ORGANIZADOR, "usuario": admin_user.id},
+            {"nome": "Carlos Silva (Gerente)", "email": gerente_acme.email, "tipo": TipoParticipante.CLIENTE, "usuario": gerente_acme.id},
+        ],
+        sincronizar_google=True,
+    )
+    print(f"  [OK] Agenda #2: {agendamento2.titulo} ({agendamento2.data_inicio.strftime('%d/%m/%Y %H:%M')})")
+    print(f"       * Meet Link: {agendamento2.google_meet_link}")
+
+    # Reunião 3: Passada (Histórico - 5 dias atrás) - Kickoff Contratual
+    inicio_ag3 = (timezone.now() - timedelta(days=5)).replace(hour=15, minute=0, second=0, microsecond=0)
+    fim_ag3 = inicio_ag3 + timedelta(minutes=60)
+    agendamento3 = Agendamento.objects.create(
+        cliente=cliente_acme,
+        organizador=admin_user,
+        titulo=f"Kickoff Operacional e SLA - Contrato {contrato_acme.numero}",
+        descricao="Alinhamento dos canais de suporte, matriz de escalonamento e franquia de 100 horas.",
+        tipo=TipoEventoSchedule.AVULSO,
+        status=StatusAgendamento.REALIZADO,
+        data_inicio=inicio_ag3,
+        data_fim=fim_ag3,
+        duracao_minutos=60,
+        google_event_id=f"mock_evt_{inicio_ag3.strftime('%Y%m%d')}",
+        google_meet_link="https://meet.google.com/shm-kck-off1",
+        google_sincronizado=True,
+    )
+    ParticipanteAgendamento.objects.create(
+        agendamento=agendamento3,
+        usuario=admin_user,
+        nome="Admin SHM",
+        email=admin_user.email,
+        tipo=TipoParticipante.ORGANIZADOR,
+        status_presenca=StatusPresenca.CONFIRMADO,
+    )
+    ParticipanteAgendamento.objects.create(
+        agendamento=agendamento3,
+        usuario=tecnico_user,
+        nome="Marcos (Técnico)",
+        email=tecnico_user.email,
+        tipo=TipoParticipante.TECNICO,
+        status_presenca=StatusPresenca.CONFIRMADO,
+    )
+    ParticipanteAgendamento.objects.create(
+        agendamento=agendamento3,
+        usuario=gerente_acme,
+        nome="Carlos Silva (Gerente)",
+        email=gerente_acme.email,
+        tipo=TipoParticipante.CLIENTE,
+        status_presenca=StatusPresenca.CONFIRMADO,
+    )
+    print(f"  [OK] Agenda #3 (Histórico): {agendamento3.titulo} [REALIZADO]")
+
+    print("\n[6/6] Base Limpa, Trilha Forense e Agendas Semeadas com 100% de Sucesso!")
     print("==================================================================")
     print("  RELATÓRIO DE PERÍCIA E INTEGRIDADE CRIPTOGRÁFICA (RN-10 a RN-16):")
     from apps.contratos.models import ForensicAuditLog, AuditDailySeal
