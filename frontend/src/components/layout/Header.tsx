@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
-import { Bell, LogOut, LayoutDashboard, Layers, Loader2, FileText, CheckCheck, Building2, Settings, ChevronDown, ShieldCheck } from 'lucide-react'
+import { Bell, LogOut, LayoutDashboard, Layers, Loader2, FileText, CheckCheck, Building2, Settings, ChevronDown, ShieldCheck, Calendar } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { clientService } from '../../api/client'
@@ -277,6 +277,18 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
                 <Building2 className="w-3.5 h-3.5 shrink-0" />
                 <span className="hidden md:inline">Clientes</span>
               </Link>
+              <Link
+                to="/schedule"
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-extrabold transition duration-150 ${
+                  location.pathname === '/schedule'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-xs border border-slate-200/80 dark:border-transparent'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-700/50'
+                }`}
+                title="Agenda de Suporte & Reuniões"
+              >
+                <Calendar className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden md:inline">Agenda</span>
+              </Link>
             </nav>
           ) : (
             <nav className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-300 dark:border-slate-700 shadow-2xs shrink-0">
@@ -315,6 +327,18 @@ export function Header({ contratoSelecionado, onSelectContrato, contratos = [] }
               >
                 <Building2 className="w-3.5 h-3.5 shrink-0" />
                 <span className="hidden md:inline">Minha Empresa</span>
+              </Link>
+              <Link
+                to="/schedule"
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-extrabold transition duration-150 ${
+                  location.pathname === '/schedule'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 shadow-xs border border-slate-200/80 dark:border-transparent'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-700/50'
+                }`}
+                title="Agenda de Suporte & Reuniões"
+              >
+                <Calendar className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden md:inline">Agenda</span>
               </Link>
             </nav>
           )}

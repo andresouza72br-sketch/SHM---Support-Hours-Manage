@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Layers, Inbox } from 'lucide-react'
+import { Plus, Layers, Inbox, Calendar } from 'lucide-react'
 import type { Pedido, StatusPedido } from '../../types'
 
 interface KanbanBoardProps {
   pedidosPorStatus: Record<string, Pedido[]>
   isLoading: boolean
+  onAgendarPedido?: (pedido: Pedido) => void
 }
 
 const COLUNAS: { id: StatusPedido; titulo: string; dot: string; border: string; bg: string }[] = [
@@ -17,7 +18,7 @@ const COLUNAS: { id: StatusPedido; titulo: string; dot: string; border: string; 
   { id: 'concluido', titulo: 'Concluídos', dot: 'bg-emerald-600', border: 'border-emerald-300 dark:border-emerald-900/50', bg: 'bg-emerald-50/70 dark:bg-emerald-950/20' },
 ]
 
-export function KanbanBoard({ pedidosPorStatus = {}, isLoading }: KanbanBoardProps) {
+export function KanbanBoard({ pedidosPorStatus = {}, isLoading, onAgendarPedido }: KanbanBoardProps) {
   const navigate = useNavigate()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const isMouseDownRef = useRef(false)
@@ -147,19 +148,34 @@ export function KanbanBoard({ pedidosPorStatus = {}, isLoading }: KanbanBoardPro
                         >
                           {p.protocolo}
                         </span>
-                        <span
-                          className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
-                            p.prioridade === 'urgente'
-                              ? 'bg-rose-100 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800/60'
-                              : p.prioridade === 'alta'
-                              ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60'
-                              : p.prioridade === 'media'
-                              ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800/60'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 border border-slate-300 dark:border-slate-700'
-                          }`}
-                        >
-                          {p.prioridade_display}
-                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {onAgendarPedido && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onAgendarPedido(p)
+                              }}
+                              className="p-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition cursor-pointer"
+                              title="Agendar reunião para este chamado"
+                            >
+                              <Calendar className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <span
+                            className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
+                              p.prioridade === 'urgente'
+                                ? 'bg-rose-100 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800/60'
+                                : p.prioridade === 'alta'
+                                ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60'
+                                : p.prioridade === 'media'
+                                ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800/60'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 border border-slate-300 dark:border-slate-700'
+                            }`}
+                          >
+                            {p.prioridade_display}
+                          </span>
+                        </div>
                       </div>
 
                       <h3 className="font-black text-xs sm:text-sm text-slate-900 dark:text-slate-100 line-clamp-2 mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition leading-snug">

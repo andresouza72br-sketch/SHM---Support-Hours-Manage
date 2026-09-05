@@ -19,12 +19,14 @@ import {
   FileText,
   GripVertical,
   Building2,
+  Calendar,
 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
+import { ModalAgendamento } from '../components/schedule/ModalAgendamento'
 import { clientService } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
-import type { TipoCiclo, Ciclo, AnexoPedido } from '../types'
+import type { TipoCiclo, Ciclo, AnexoPedido, TipoEventoSchedule } from '../types'
 
 function formatarTamanho(bytes: number): string {
   if (!bytes) return '0 B'
@@ -388,6 +390,15 @@ export function AnalisePedidoPage() {
   const [horasEstimadas, setHorasEstimadas] = useState('4.0')
   const [selectedAnexosIds, setSelectedAnexosIds] = useState<number[]>([])
 
+  // Estado do Modal de Agendamento (Schedule)
+  const [modalAgendamentoOpen, setModalAgendamentoOpen] = useState(false)
+  const [agendamentoContexto, setAgendamentoContexto] = useState<{
+    cicloId?: number
+    cicloTipo?: string
+    tipoSugerido?: TipoEventoSchedule
+    tituloSugerido?: string
+  }>({})
+
   const { data: pedido, isLoading } = useQuery({
     queryKey: ['pedido', id],
     queryFn: () => clientService.pedidos.get(Number(id)),
@@ -493,6 +504,20 @@ export function AnalisePedidoPage() {
           </div>
 
           <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0 mt-1 flex-wrap">
+            <button
+              onClick={() => {
+                setAgendamentoContexto({
+                  tipoSugerido: 'alinhamento',
+                  tituloSugerido: `Alinhamento de Chamado - ${pedido.protocolo}`,
+                })
+                setModalAgendamentoOpen(true)
+              }}
+              className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-black text-xs border border-indigo-200 dark:border-indigo-800 shadow-2xs transition cursor-pointer"
+              title="Agendar reunião com o cliente via Google Meet"
+            >
+              <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Agendar Reunião</span>
+            </button>
             <Link
               to={`/pedidos/${pedido.id}`}
               className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200 font-black text-xs border border-slate-300 dark:border-slate-700 shadow-2xs transition cursor-pointer"
@@ -733,6 +758,27 @@ export function AnalisePedidoPage() {
           ))}
         </div>
       </div>
+
+      {/* Modal de Agendamento */}
+      {pedido && (
+        <ModalAgendamento
+          isOpen={modalAgendamentoOpen}
+          onClose={() => setModalAgendamentoOpen(false)}
+          clienteId={pedido.cliente}
+          clienteNome={pedido.cliente_nome}
+          pedidoId={pedido.id}
+          pedidoProtocolo={pedido.protocolo}
+          pedidoAssunto={pedido.assunto}
+          cicloId={agendamentoContexto.cicloId}
+          cicloTipo={agendamentoContexto.cicloTipo}
+          tipoSugerido={agendamentoContexto.tipoSugerido}
+          tituloSugerido={agendamentoContexto.tituloSugerido}
+          onAgendado={() => {
+            queryClient.invalidateQueries({ queryKey: ['pedido', id] })
+            toast.success('Reunião agendada e sincronizada com o Google Calendar / Meet!', 'Agendado')
+          }}
+        />
+      )}
     </AppLayout>
   )
 }

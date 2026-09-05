@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Layers, X, MessageSquare, FileText, Building2, CheckCircle2, Flame, AlertTriangle, Play, Inbox, Clock, CheckCheck, Sparkles, ArrowDown, ArrowUp, Send, Loader2 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { ScrollToTopButton } from '../components/ui/ScrollToTopButton'
+import { ProximaReuniaoWidget } from '../components/dashboard/ProximaReuniaoWidget'
 import { clientService } from '../api/client'
 import { useToast } from '../contexts/ToastContext'
 import type { Contrato, Pedido } from '../types'
@@ -411,6 +412,9 @@ export function AdminDashboardPage() {
             </p>
           </div>
         </div>
+
+        {/* Widget de Próxima Reunião (Google Meet) */}
+        <ProximaReuniaoWidget />
 
         {/* Grid de Contratos Ativos */}
         <div ref={contratosRef} className="space-y-3">

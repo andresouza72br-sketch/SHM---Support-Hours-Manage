@@ -15,6 +15,7 @@ import {
   KeyRound,
   DollarSign,
   Sliders,
+  Calendar,
   X,
 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
@@ -27,6 +28,7 @@ import type { ConfiguracaoNotificacao } from '../types'
 
 const CATEGORIAS: { id: string; label: string; icon: any }[] = [
   { id: 'todas', label: 'Todos os Eventos', icon: Sliders },
+  { id: 'schedule', label: 'Agendamentos & Reuniões', icon: Calendar },
   { id: 'pedidos', label: 'Pedidos & Ciclos', icon: Layers },
   { id: 'ciclos', label: 'Orçamentos & Aceites', icon: Clock },
   { id: 'contratos', label: 'Contratos & Vigência', icon: FileText },
@@ -288,8 +290,8 @@ export function ConfiguracoesNotificacoesPage() {
                       <button
                         onClick={() => testarMutation.mutate(cfg.id)}
                         disabled={testarMutation.isPending}
-                        title="Enviar e-mail de teste para o admin"
-                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-indigo-600 transition"
+                        title="Disparar teste de homologação (E-mail + In-App no Sininho)"
+                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-indigo-600 transition cursor-pointer"
                       >
                         <Send className="w-3.5 h-3.5" />
                       </button>

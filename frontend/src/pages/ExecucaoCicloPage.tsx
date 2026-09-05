@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Send, Trash2, Clock, MessageSquare, Loader2 } from 'lucide-react'
+import { Plus, Send, Trash2, Clock, MessageSquare, Loader2, Calendar } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { ConfirmModal } from '../components/ui/ConfirmModal'
+import { ModalAgendamento } from '../components/schedule/ModalAgendamento'
 import { clientService } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
@@ -19,6 +20,7 @@ export function ExecucaoCicloPage() {
   const [horasRealizadas, setHorasRealizadas] = useState('1.0')
   const [tarefaParaExcluir, setTarefaParaExcluir] = useState<Tarefa | null>(null)
   const [showSolicitarAceiteModal, setShowSolicitarAceiteModal] = useState(false)
+  const [modalAgendamentoOpen, setModalAgendamentoOpen] = useState(false)
 
   const { data: ciclo, isLoading } = useQuery({
     queryKey: ['ciclo_detail', id],
@@ -135,6 +137,15 @@ export function ExecucaoCicloPage() {
               <span className="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-400 tracking-wider">Orçamento Aprovado</span>
               <span className="text-xl font-black text-slate-900 dark:text-white">{Number(ciclo.horas_estimadas).toFixed(1)}h</span>
             </div>
+
+            <button
+              onClick={() => setModalAgendamentoOpen(true)}
+              className="inline-flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-black text-xs px-4 py-3 rounded-2xl border border-indigo-200 dark:border-indigo-800 shadow-2xs transition cursor-pointer"
+              title="Agendar sessão de alinhamento ou homologação via Google Meet"
+            >
+              <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Agendar Reunião</span>
+            </button>
 
             <Link
               to={`/pedidos/${ciclo.pedido}?ciclo=${ciclo.id}`}
@@ -313,6 +324,26 @@ export function ExecucaoCicloPage() {
             </div>
           }
         />
+
+        {/* Modal de Agendamento */}
+        {ciclo && (
+          <ModalAgendamento
+            isOpen={modalAgendamentoOpen}
+            onClose={() => setModalAgendamentoOpen(false)}
+            clienteId={ciclo.cliente_id || (user?.cliente ?? undefined)}
+            clienteNome={ciclo.cliente_nome || undefined}
+            pedidoId={Number(ciclo.pedido)}
+            pedidoProtocolo={ciclo.pedido_protocolo}
+            pedidoAssunto={ciclo.pedido_assunto}
+            cicloId={ciclo.id}
+            cicloTipo={ciclo.tipo_display}
+            tipoSugerido="homologacao"
+            tituloSugerido={`Homologação de Entrega - ${ciclo.pedido_protocolo || `Ciclo #${ciclo.id}`}`}
+            onAgendado={() => {
+              toast.success('Sessão de homologação agendada e sincronizada com o Google Meet!', 'Agendado')
+            }}
+          />
+        )}
       </div>
     </AppLayout>
   )
