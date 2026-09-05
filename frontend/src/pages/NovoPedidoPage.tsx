@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Send, Loader2, UploadCloud, FileText, Image as ImageIcon, Music, Archive, Trash2 } from 'lucide-react'
 import { AppLayout } from '../components/layout/AppLayout'
 import { clientService } from '../api/client'
 import { useToast } from '../contexts/ToastContext'
+import { GravadorAudio } from '../components/pedidos/GravadorAudio'
 import type { PrioridadePedido } from '../types'
 
 const MAX_ARQUIVOS_PEDIDO = 10
@@ -39,6 +40,88 @@ function getIconeArquivo(nome: string) {
     return <Archive className="w-4 h-4 text-amber-500 shrink-0" />
   }
   return <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
+}
+
+function ItemArquivoAnexo({
+  file,
+  onRemover,
+}: {
+  file: File
+  onRemover: () => void
+}) {
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const ext = file.name.split('.').pop()?.toLowerCase() || ''
+  const isAudio = ['mp3', 'wav', 'ogg', 'm4a'].includes(ext)
+
+  useEffect(() => {
+    if (!isAudio) return
+    const url = URL.createObjectURL(file)
+    setAudioUrl(url)
+    return () => {
+      URL.revokeObjectURL(url)
+    }
+  }, [file, isAudio])
+
+  if (isAudio) {
+    return (
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-violet-50/60 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/60 shadow-2xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-2 rounded-xl bg-violet-100 dark:bg-violet-900/60 text-violet-600 dark:text-violet-300 shrink-0">
+            <Music className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-bold text-slate-900 dark:text-white text-xs truncate" title={file.name}>
+              {file.name}
+            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                {formatarTamanho(file.size)}
+              </span>
+              <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-violet-100 dark:bg-violet-900/80 text-violet-700 dark:text-violet-300 uppercase tracking-wider">
+                Áudio MP3
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-end">
+          {audioUrl && (
+            <audio controls src={audioUrl} preload="metadata" className="h-7 w-full sm:w-56" />
+          )}
+          <button
+            type="button"
+            onClick={onRemover}
+            className="p-1.5 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition shrink-0 cursor-pointer"
+            title="Remover áudio"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs">
+      <div className="flex items-center gap-2.5 min-w-0">
+        {getIconeArquivo(file.name)}
+        <span className="font-bold text-slate-800 dark:text-slate-200 truncate" title={file.name}>
+          {file.name}
+        </span>
+        <span className="text-[10px] text-slate-600 dark:text-slate-400 font-mono shrink-0">
+          {formatarTamanho(file.size)}
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={onRemover}
+        className="p-1 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition shrink-0 cursor-pointer"
+        title="Remover arquivo"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  )
 }
 
 export function NovoPedidoPage() {
@@ -127,6 +210,19 @@ export function NovoPedidoPage() {
 
   const removerArquivo = (index: number) => {
     setArquivos((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleAudioGravado = (arquivoAudio: File) => {
+    if (arquivos.length >= MAX_ARQUIVOS_PEDIDO) {
+      toast.error(
+        `Limite máximo de ${MAX_ARQUIVOS_PEDIDO} arquivos por pedido atingido. Remova um anexo para adicionar a gravação.`,
+        'Limite de Anexos'
+      )
+      return
+    }
+
+    setArquivos((prev) => [...prev, arquivoAudio])
+    toast.success(`Gravação "${arquivoAudio.name}" adicionada aos anexos do pedido!`, 'Áudio Gravado')
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -264,11 +360,16 @@ export function NovoPedidoPage() {
           </div>
 
           {/* Seção de Anexos */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-[11px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-wider">
-                Documentos e Anexos da Demanda (Opcional)
-              </label>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-[11px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-wider">
+                  Documentos e Anexos da Demanda (Opcional)
+                </label>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Anexe arquivos ou grave instruções de voz pelo microfone (gerado em formato MP3).
+                </p>
+              </div>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                 arquivos.length >= MAX_ARQUIVOS_PEDIDO
                   ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
@@ -277,6 +378,13 @@ export function NovoPedidoPage() {
                 {arquivos.length} de {MAX_ARQUIVOS_PEDIDO} arquivos
               </span>
             </div>
+
+            {/* Gravador de Áudio via Microfone */}
+            <GravadorAudio
+              onAudioGravado={handleAudioGravado}
+              limiteAtingido={arquivos.length >= MAX_ARQUIVOS_PEDIDO}
+              desabilitado={createMutation.isPending}
+            />
 
             {/* Dropzone */}
             <div
@@ -314,7 +422,7 @@ export function NovoPedidoPage() {
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  <span className="text-indigo-600 dark:text-indigo-400 underline underline-offset-2">Clique para selecionar</span> ou arraste arquivos até aqui
+                  <span className="text-indigo-600 dark:text-indigo-400 underline underline-offset-2">Clique para selecionar</span> ou arraste outros arquivos até aqui
                 </p>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                   Até 10 arquivos (máx 25 MB cada). Formatos: PDF, DOCX, XLSX, imagens, compactados e áudios MP3.
@@ -326,28 +434,11 @@ export function NovoPedidoPage() {
             {arquivos.length > 0 && (
               <div className="mt-3 space-y-2">
                 {arquivos.map((file, idx) => (
-                  <div
+                  <ItemArquivoAnexo
                     key={`${file.name}-${idx}`}
-                    className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {getIconeArquivo(file.name)}
-                      <span className="font-bold text-slate-800 dark:text-slate-200 truncate" title={file.name}>
-                        {file.name}
-                      </span>
-                      <span className="text-[10px] text-slate-600 dark:text-slate-400 font-mono shrink-0">
-                        {formatarTamanho(file.size)}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removerArquivo(idx)}
-                      className="p-1 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition shrink-0 cursor-pointer"
-                      title="Remover arquivo"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                    file={file}
+                    onRemover={() => removerArquivo(idx)}
+                  />
                 ))}
               </div>
             )}
