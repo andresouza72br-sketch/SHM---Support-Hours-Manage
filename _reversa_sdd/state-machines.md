@@ -1,6 +1,6 @@
 # Máquinas de Estado do Sistema — SHM 2.5.0
 
-> Gerado pelo **Reversa Detective** em 2026-09-03  
+> Gerado pelo **Reversa Detective** em 2026-09-05  
 > Sistema: **SHM 2.5.0 (Support Hours Manager)**
 
 ---
