@@ -34,6 +34,13 @@ erDiagram
 
     shm_user ||--o{ shm_notification : "notificacoes_in_app"
 
+    shm_cliente ||--o{ shm_agendamento : "possui"
+    shm_pedido ||--o{ shm_agendamento : "contexto_pedido"
+    shm_ciclo ||--o{ shm_agendamento : "contexto_ciclo"
+    shm_user ||--o{ shm_agendamento : "organiza"
+    shm_agendamento ||--o{ shm_participante_agendamento : "participantes"
+    shm_agendamento ||--o{ shm_lembrete_agendamento : "lembretes"
+
     shm_forensic_audit_trail {
         uuid id PK
         string particao
@@ -72,5 +79,41 @@ erDiagram
         json emails_adicionais
         boolean bloqueado_edicao
         boolean nao_enviar_autor
+    }
+
+    shm_agendamento {
+        uuid id PK
+        bigint cliente_id FK
+        bigint pedido_id FK
+        bigint ciclo_id FK
+        bigint organizador_id FK
+        string titulo
+        string tipo
+        string status
+        datetime data_inicio
+        datetime data_fim
+        int duracao_minutos
+        string google_event_id
+        string google_meet_link
+        boolean google_sincronizado
+    }
+
+    shm_participante_agendamento {
+        uuid id PK
+        uuid agendamento_id FK
+        bigint usuario_id FK
+        string nome
+        string email
+        string tipo
+        string status_presenca
+    }
+
+    shm_lembrete_agendamento {
+        uuid id PK
+        uuid agendamento_id FK
+        string marco
+        string status
+        datetime data_prevista
+        datetime disparado_em
     }
 ```

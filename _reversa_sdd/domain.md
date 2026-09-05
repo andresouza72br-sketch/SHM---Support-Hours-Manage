@@ -70,3 +70,14 @@
 - Quando `nao_enviar_autor == True`, a resolução de destinatários expurga o usuário autor de `destinatarios_usuarios` e elimina seu e-mail da lista de cópia (`emails_cc`) com comparação case-insensitive.
 - Administradores da empresa podem desativar a supressão por evento via interface administrativa caso desejem receber cópia de comprovação por e-mail.
 
+### RN-10: Agendamento de Reuniões, Google Meet e Lembretes Escalonados 🟢
+- Reuniões devem ser agendadas para datas futuras vinculadas obrigatoriamente a um Cliente.
+- Usuários com papel de cliente só podem agendar compromissos para sua própria organização (Multi-Tenant).
+- Toda reunião criada gera programaticamente 3 lembretes determinísticos (`24h`, `30m`, `15m` antes).
+- Se a integração com Google Calendar estiver habilitada, provisiona automaticamente sala Google Meet persistindo `google_meet_link`.
+- Cancelamentos exigem justificativa obrigatória e gravam evento imutável na trilha forense.
+
+### RN-11: Captura e Gravação de Áudio no Navegador com Encode MP3 🟢
+- Anexos de voz em chamados são gravados diretamente pelo microfone do usuário no cliente via Web Audio API.
+- A codificação PCM para MP3 ocorre 100% no navegador utilizando a biblioteca `@breezystack/lamejs`, descarregando a CPU do servidor e transmitindo o anexo já compactado (`audio/mp3`) no multipart form data.
+

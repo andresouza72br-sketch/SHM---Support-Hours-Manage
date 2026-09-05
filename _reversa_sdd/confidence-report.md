@@ -34,8 +34,9 @@ pie title Distribuição de Confiança das Especificações — SHM 2.5.0
 | `saldo` | 🟢 100% | 3 | Ledger imutável, migração assistida de saldo (Feature 002), compensação de débitos e gravação dupla reflexa pericial |
 | `comunicacao`| 🟢 98% | 3 | Threads de comentários em árvore, anexos por mensagem e reações atômicas mapeadas |
 | `notificacoes`| 🟢 100% | 3 | Central declarativa com 6 categorias, filtros RBAC, supressão de notificações/e-mails para o autor da ação (Feature 003), timeline de eventos e matriz quádrupla |
+| `schedule` | 🟢 100% | 3 | Agendamento de reuniões, provisionamento de salas Google Meet, triplo lembrete automático escalonado (24h, 30m, 15m) e auditoria forense |
 | `core` | 🟢 100% | 2 | `canonical_json.py` (RFC 8785 determinístico), TimeStampedModel, RFC 7807 handler e validadores |
-| `frontend` | 🟢 98% | 15 Páginas | React 19 SPA, página de auditoria forense com índice flutuante centralizado e scroll suave, modais de migração/documentos e switches com toggle de autor |
+| `frontend` | 🟢 98% | 17 Páginas | React 19 SPA, página de agenda (`SchedulePage`), gravação de áudio PCM/MP3 no cliente (`GravadorAudio`), widget de próxima reunião, página de auditoria pericial com índice flutuante e scroll suave |
 
 ---
 
@@ -44,9 +45,10 @@ A re-extração semântica profunda do SHM 2.5.0 incorporou com sucesso:
 1. **Feature 001:** Trava de tolerância de +30% no aceite de ciclos técnicos.
 2. **Feature 002:** Migração atômica de saldo entre contratos e compensação de débitos anteriores com locks pessimistas.
 3. **Feature 003:** Supressão seletiva de notificações e e-mails para o autor da ação (`nao_enviar_autor`) e invariante in-app estrita no sininho (`destinatarios_in_app.discard(autor)`).
-4. **Feature 004:** Gestão integral de anexos (pedidos, ciclos e comentários) com teto de 25 MB e expurgo físico seguro.
+4. **Feature 004:** Gestão integral de anexos (pedidos, ciclos e comentários) com teto de 25 MB, gravador de áudio via microfone com encode MP3 (`@breezystack/lamejs`) e expurgo físico seguro.
 5. **Feature 005:** Trilha de Auditoria Forense com garantia matemática de imutabilidade baseada em encadeamento criptográfico SHA-256 particionado (*Hash Chaining* RFC 8785), duplo bloqueio de UPDATE/DELETE (Gatilho PostgreSQL nativo + ORM Django), autoverificação de integridade, selo noturno diário e justificativa obrigatória N1.
 6. **Feature 006:** Página de Documentação Pericial no frontend (`DocumentacaoAuditoriaPage.tsx`), com acesso universal no menu de usuário e rota pública deslogada `/publico/auditoria-forense`, índice flutuante verticalmente centralizado (`DocumentacaoSidebarTOC.tsx`) com scroll suave calculado, compêndio jurídico e script offline `verificador_independente.py` para download.
-7. **Verificação de Regressão Semântica:** 5 features verificadas em `_reversa_forward/` (`002-migracao-saldo-contratos`, `003-nao-enviar-para-autor`, `004-anexos-pedidos-ciclos-msgs`, `005-auditoria-hash-chaining`, `006-doc-auditoria-forense`), totalizando 20 watch items auditados — **todos com veredito 🟢 VERDE (0 regressões)**.
-8. **Reconciliação de Adendos:** Todos os adendos em `_reversa_sdd/addenda/` (001 a 006) foram devidamente reconciliados e absorvidos pelo SDD como superados por esta re-extração.
+7. **Feature 007:** Módulo Schedule para agendamento de reuniões técnicas de suporte, integração bidirecional com Google Calendar e provisionamento de salas virtuais Google Meet, disparo de lembretes automáticos e tela dedicada na SPA (`SchedulePage.tsx`).
+8. **Verificação de Regressão Semântica:** 6 features verificadas em `_reversa_forward/` (`002-migracao-saldo-contratos`, `003-nao-enviar-para-autor`, `004-anexos-pedidos-ciclos-msgs`, `005-auditoria-hash-chaining`, `006-doc-auditoria-forense`, `007-modulo-schedule-google-meet`), totalizando 24 watch items auditados — **todos com veredito 🟢 VERDE (0 regressões)**.
+9. **Reconciliação de Adendos:** Todos os adendos em `_reversa_sdd/addenda/` foram devidamente reconciliados e absorvidos pelo SDD como superados por esta re-extração.
 

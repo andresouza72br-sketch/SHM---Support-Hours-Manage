@@ -38,6 +38,7 @@
 | `axios` | `^1.7.9` | Cliente HTTP Promise com interceptors JWT | Comunicação HTTP |
 | `lucide-react` | `^0.475.0` | Pacote de ícones SVG consistentes | Design System |
 | `tailwindcss` | `^3.4.17` | Framework CSS utilitário para estilização | Estilização UI |
+| `@breezystack/lamejs` | `^1.2.7` | Codificação de áudio PCM para MP3 no cliente | Mídia / Áudio |
 | `clsx` | `^2.1.1` | Construtor condicional de classes CSS | Utilitário UI |
 | `tailwind-merge` | `^3.0.1` | Mesclagem segura de classes Tailwind sem conflitos | Utilitário UI |
 | `typescript` | `^5.7.3` | Tipagem estrita estática para JavaScript | Linguagem (Dev) |

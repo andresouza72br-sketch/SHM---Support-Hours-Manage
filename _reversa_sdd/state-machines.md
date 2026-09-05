@@ -75,3 +75,19 @@ stateDiagram-v2
     recusado --> [*]
     expirado --> [*]
 ```
+
+---
+
+## 5. Máquina de Estados: Agendamento de Reuniões (`shm_agendamento`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> agendado: Compromisso criado (sala Meet gerada)
+    agendado --> em_andamento: Início da reunião (data_inicio atingida)
+    agendado --> agendado: Reagendamento de data/hora (lembretes recalculados)
+    agendado --> cancelado: Cancelamento com justificativa obrigatória
+    em_andamento --> realizado: Conclusão da reunião (data_fim ultrapassada)
+    em_andamento --> cancelado: Cancelamento durante execução
+    realizado --> [*]
+    cancelado --> [*]
+```

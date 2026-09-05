@@ -115,23 +115,37 @@ O SHM 2.5.0 é estruturado no padrão **Django Apps Modulares** no backend com a
     - **Calibragem Padrão dos 22 Eventos:** 14 eventos operacionais ativos por padrão (chamados, comentários, aprovações, orçamentos, aceite) e 8 inativos (convites de clientes, relatórios, ações de usuários) 🟢.
     - Serializer DRF `ConfiguracaoNotificacaoSerializer` expõe `nao_enviar_autor` permitindo atualização granular via PATCH por administradores da empresa 🟢.
 
-### 2.10 Módulo `core` (Modelos Base e Exception Handler)
+### 2.10 Módulo `schedule` (Agendamento de Reuniões, Google Meet, Lembretes e Auditoria)
+- **Modelos:** `Agendamento`, `ParticipanteAgendamento`, `LembreteAgendamento` 🟢.
+- **Enums de Domínio:** `TipoEventoSchedule` (`alinhamento`, `orcamento`, `homologacao`, `suporte_emergencial`, `avulso`), `StatusAgendamento` (`agendado`, `em_andamento`, `realizado`, `cancelado`), `TipoParticipante` (`organizador`, `tecnico`, `cliente`, `convidado`), `MarcoLembrete` (`24h`, `30m`, `15m`), `StatusLembrete` (`pendente`, `enviado`, `ignorado`, `cancelado`, `falha`) 🟢.
+- **Recursos & Regras de Negócio:**
+  - Agendamento de compromissos técnicos atrelados a Cliente, com vínculo contextual opcional a Pedido (OS), Ciclo ou Tarefa 🟢.
+  - **Integração Google Calendar & Meet (`GoogleCalendarService`):** Criação síncrona/assíncrona de eventos na API do Google Calendar, provisionando link direto para a sala Google Meet (`google_meet_link`) persistido no agendamento 🟢.
+  - **Disparo de Lembretes Automáticos:** Criação determinística de 3 marcos (`24h`, `30m`, `15m` antes da reunião). O método `processar_lembretes_pendentes()` dispara notificações por e-mail e in-app quando `data_prevista <= timezone.now()` e marca `status=ENVIADO` 🟢.
+  - **Governança de Notificações & Supressão para o Autor:** Totalmente acoplado ao `NotificacaoConfigService` com evento `SCHEDULE_AGENDAMENTO_CRIADO`, respeitando o toggle `nao_enviar_autor` para evitar auto-notificação in-app ao organizador 🟢.
+  - **Trilha de Auditoria Forense:** Registro automático em `ForensicAuditService` com nível `OPERACIONAL` ou `CRITICA` em caso de cancelamento com justificativa, integrando-se à cadeia RFC 8785 🟢.
+  - **Isolamento Multi-Tenant Estrito:** Clientes só visualizam e criam agendamentos para sua respectiva empresa; administradores e técnicos da empresa acessam visão ampla ou filtram por cliente 🟢.
+
+### 2.11 Módulo `core` (Modelos Base e Exception Handler)
 - **Modelos:** `TimeStampedModel` (abstract base com `criado_em`, `atualizado_em`) 🟢.
 - **Recursos:** Exception handler unificado que intercepta `ValidationError`, `PermissionDenied`, `NotFound` e exceções não tratadas retornando JSON com padrão RFC 7807 🟢.
 
-### 2.11 Módulo `frontend` (React 19 SPA & Interface Pericial)
+### 2.12 Módulo `frontend` (React 19 SPA & Interface Pericial)
 - **Arquitetura de Estado:** TanStack Query 5.66 com invalidação de cache estratégica após mutações 🟢.
 - **Componentes Chave:**
-  - `DocumentacaoAuditoriaPage.tsx` (Feature 006): Página oficial de auditoria forense e imutabilidade, com visão autenticada (painel do usuário) e rota pública para peritos e autoridades (`/publico/auditoria-forense`) 🟢.
-  - `DocumentacaoSidebarTOC.tsx`: Índice lateral **flutuante fixo centralizado verticalmente** na viewport (`max(5rem, calc(50vh - halfHeight))`), com scroll suave amortecido e trava de concorrência com o Scrollspy 🟢.
-  - `DocumentacaoConteudoGeral.tsx` & `DocumentacaoConteudoPericial.tsx`: Seções de negócio (Princípio da Proteção Mútua Bilateral) e manual pericial (Inversão da Caixa-Preta, Linha de Comando, Air-Gapped) 🟢.
-  - `verificador_script.ts`: Utilitário embutido que fornece download direto e cópia em 1 clique do script em Python puro (`verificador_independente.py`) 🟢.
+  - `SchedulePage.tsx` & `ModalAgendamento.tsx`: Tela de gestão e calendário de reuniões de suporte, com filtros por status/tipo e criação de compromissos com geração de sala Google Meet 🟢.
+  - `ProximaReuniaoWidget.tsx`: Widget em tempo real no Dashboard exibindo a contagem regressiva e link direto da próxima reunião agendada 🟢.
+  - `GravadorAudio.tsx`: Gravador de áudio via microfone usando Web Audio API e codificador MP3 `@breezystack/lamejs`, gerando anexos de voz para pedidos sem dependência de servidor de conversão 🟢.
+  - `DocumentacaoAuditoriaPage.tsx` (Feature 006): Página oficial de auditoria forense e imutabilidade, com visão autenticada e rota pública pericial (`/publico/auditoria-forense`) 🟢.
+  - `DocumentacaoSidebarTOC.tsx`: Índice lateral flutuante fixo centralizado verticalmente na viewport com scroll suave amortecido e trava de concorrência com o Scrollspy 🟢.
+  - `DocumentacaoConteudoGeral.tsx` & `DocumentacaoConteudoPericial.tsx`: Seções de negócio (Princípio da Proteção Mútua Bilateral) e manual pericial 🟢.
+  - `verificador_script.ts`: Download direto e cópia em 1 clique do script em Python puro (`verificador_independente.py`) 🟢.
   - `MigracaoSaldoModal.tsx`: Modal para migração e compensação contábil de saldo entre contratos com preview em tempo real e cálculo de impacto financeiro 🟢.
   - `DocumentosContratoModal.tsx` & `TimelineAuditoriaContrato.tsx`: Gestão de anexos com cálculo/exibição de hash SHA-256 e selo de integridade da trilha forense 🟢.
   - `ConfiguracoesNotificacoesPage.tsx`: Painel interativo para governança de notificações e e-mails, com switches de canais e modal de Matriz de Destinatários incluindo o checkbox reativo "Não enviar para o autor" 🟢.
   - Kanban Board de 6 colunas, Carrossel de Ciclos e tema claro/escuro dinâmico 🟢.
 
-### 2.12 Módulo `auditoria_forense` (Cadeia de Custódia e Verificador Autônomo Offline)
+### 2.13 Módulo `auditoria_forense` (Cadeia de Custódia e Verificador Autônomo Offline)
 - **Enquadramento Normativo:** Código de Processo Penal (CPP arts. 158-A a 158-F — Cadeia de Custódia de Vestígios Digitais), Código de Processo Civil (CPC arts. 411 e 422 — Força Probatória de Documentos Digitais) e ISO/IEC 27037:2012 (Diretrizes para Identificação, Coleta, Aquisição e Preservação de Evidências Digitais) 🟢.
 - **Princípio da Inversão da Caixa-Preta:** Elimina o sigilo corporativo em litígios; o perito não precisa confiar no software nem em relatórios estáticos em PDF — ele extrai o payload JSON bruto e executa a verificação matemática em sua própria estação forense isolada 🟢.
 - **Algoritmo Determinístico do Verificador Independente (`verificador_independente.py`):**
@@ -139,4 +153,5 @@ O SHM 2.5.0 é estruturado no padrão **Django Apps Modulares** no backend com a
   - Executa canonicalização RFC 8785 serializando tipos de forma determinística: float sem zeros supérfluos, booleanos minúsculos, ordenação léxica de chaves UTF-8 e escape seguro de caracteres de controle.
   - Valida a integridade encadeada: `H_0 = '0'*64`, `H_i = SHA256(particao + i + timestamp + evento + H_{i-1} + SHA256(JCS(payload)))`.
   - Diagnóstico preciso: Em caso de adulteração retroativa de saldo ou data, identifica o ponto exato da quebra (`TAMPER DETECTED at sequence #N`).
+
 

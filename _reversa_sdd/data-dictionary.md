@@ -268,10 +268,66 @@
 | Campo Comum | Tipo | Nulo | Padrão | Descrição / Regras |
 |---|---|---|---|---|
 | `id` | BigAutoField | Não | Auto | Chave Primária PK |
-| `arquivo` | FileField | Não | - | Caminho relativo do arquivo no storage (S3/Media) |
+| `arquivo` | FileField | Não | - | Caminho relativo do arquivo no storage (S3/Media, com suporte a MP3 de voz) |
 | `nome_original` | VarChar(255) | Não | - | Nome original do arquivo enviado pelo usuário |
 | `tamanho_bytes` | BigInt | Não | - | Tamanho exato em bytes |
-| `tipo_mime` | VarChar(100) | Não | - | Content-Type MIME detectado (PDF, PNG, JPG, ZIP, etc.) |
+| `tipo_mime` | VarChar(100) | Não | - | Content-Type MIME detectado (PDF, PNG, JPG, ZIP, audio/mp3, etc.) |
 | `criado_em` | DateTime | Não | auto_now_add | Timestamp UTC de upload |
 | `criado_por_id` | BigInt (FK) | Sim | NULL | FK para `shm_user` (autor do envio) |
+
+---
+
+## 17. Tabela `shm_agendamento` (Módulo Schedule)
+
+| Campo | Tipo | Nulo | Padrão | Descrição / Regras |
+|---|---|---|---|---|
+| `id` | UUIDField | Não | uuid4 | Chave Primária PK |
+| `cliente_id` | BigInt (FK) | Não | - | FK para `shm_cliente` (CASCADE) |
+| `pedido_id` | BigInt (FK) | Sim | NULL | FK para `shm_pedido` (SET_NULL) |
+| `ciclo_id` | BigInt (FK) | Sim | NULL | FK para `shm_ciclo` (SET_NULL) |
+| `tarefa_id` | BigInt (FK) | Sim | NULL | FK para `shm_tarefa` (SET_NULL) |
+| `organizador_id` | BigInt (FK) | Não | - | FK para `shm_user` (PROTECT) |
+| `titulo` | VarChar(150) | Não | - | Título ou assunto da reunião |
+| `descricao` | TextField | Sim | "" | Pauta descritiva da reunião |
+| `tipo` | VarChar(30) | Não | alinhamento | alinhamento, orcamento, homologacao, suporte_emergencial, avulso |
+| `status` | VarChar(20) | Não | agendado | agendado, em_andamento, realizado, cancelado |
+| `data_inicio` | DateTime | Não | - | Data e hora de início (UTC / com fuso) |
+| `data_fim` | DateTime | Não | - | Data e hora de encerramento calculada ou informada |
+| `duracao_minutos` | Integer | Não | 45 | Duração estimada da reunião |
+| `google_event_id` | VarChar(255) | Sim | NULL | ID do evento sincronizado na API do Google Calendar |
+| `google_meet_link` | URLField(500) | Sim | NULL | Link público direto da sala Google Meet |
+| `google_sincronizado` | Boolean | Não | False | Flag indicando sincronização ativa com a nuvem do Google |
+| `motivo_cancelamento` | TextField | Sim | NULL | Justificativa técnica obrigatória em caso de cancelamento |
+| `criado_em` | DateTime | Não | auto_now_add | Timestamp UTC de criação |
+| `atualizado_em` | DateTime | Não | auto_now | Timestamp UTC da última atualização |
+
+---
+
+## 18. Tabela `shm_participante_agendamento` (Módulo Schedule)
+
+| Campo | Tipo | Nulo | Padrão | Descrição / Regras |
+|---|---|---|---|---|
+| `id` | UUIDField | Não | uuid4 | Chave Primária PK |
+| `agendamento_id` | UUIDField (FK) | Não | - | FK para `shm_agendamento` (CASCADE) |
+| `usuario_id` | BigInt (FK) | Sim | NULL | FK para `shm_user` (SET_NULL) |
+| `nome` | VarChar(100) | Não | - | Nome completo do participante |
+| `email` | EmailField | Não | - | E-mail do participante |
+| `tipo` | VarChar(20) | Não | cliente | organizador, tecnico, cliente, convidado |
+| `status_presenca` | VarChar(20) | Não | pendente | pendente, confirmado, recusado |
+| `criado_em` | DateTime | Não | auto_now_add | Timestamp UTC de adição |
+
+---
+
+## 19. Tabela `shm_lembrete_agendamento` (Módulo Schedule)
+
+| Campo | Tipo | Nulo | Padrão | Descrição / Regras |
+|---|---|---|---|---|
+| `id` | UUIDField | Não | uuid4 | Chave Primária PK |
+| `agendamento_id` | UUIDField (FK) | Não | - | FK para `shm_agendamento` (CASCADE) |
+| `marco` | VarChar(10) | Não | - | Marco temporal: `24h`, `30m`, `15m` |
+| `status` | VarChar(20) | Não | pendente | pendente, enviado, ignorado, cancelado, falha |
+| `data_prevista` | DateTime | Não | - | Timestamp previsto para o disparo do lembrete |
+| `disparado_em` | DateTime | Sim | NULL | Timestamp exato do disparo |
+| `erro_mensagem` | TextField | Sim | NULL | Detalhes de erro se houver falha de envio |
+| `criado_em` | DateTime | Não | auto_now_add | Timestamp UTC de criação |
 

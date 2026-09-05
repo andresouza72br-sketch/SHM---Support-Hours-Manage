@@ -29,6 +29,10 @@
 | **Saldo** | Transferir saldo entre contratos ativos | ✅ Permitido | ❌ Negado | ❌ Negado | ❌ Negado |
 | **Saldo** | Migrar saldo remanescente de vencidos | ✅ Permitido | ❌ Negado | ❌ Negado | ❌ Negado |
 | **Saldo** | Compensar saldo devedor anterior | ✅ Permitido | ❌ Negado | ❌ Negado | ❌ Negado |
+| **Schedule** | Criar agendamento de reunião | ✅ Permitido | ✅ Permitido | ✅ Própria Empresa | ✅ Própria Empresa |
+| **Schedule** | Visualizar agenda e reuniões | ✅ Todos | ✅ Todos | ✅ Própria Empresa | ✅ Própria Empresa |
+| **Schedule** | Reagendar ou cancelar reunião | ✅ Total | ✅ Total | 🟡 Próprios (como Organizador) | ❌ Negado |
+| **Schedule** | Consultar próxima reunião (/proxima/) | ✅ Permitido | ✅ Permitido | ✅ Próprios | ✅ Próprios |
 | **Auditoria Forense** | Consultar trilha forense e selo diário | ✅ Todos | 👁️ Todos | 👁️ Próprios | ❌ Negado |
 | **Auditoria Forense** | Verificar integridade matemática da cadeia | ✅ Permitido | ✅ Permitido | ✅ Próprios | ❌ Negado |
 | **Documentação** | Laudo técnico oficial e Verificador Offline | ✅ Permitido | ✅ Permitido | ✅ Permitido | ✅ Acesso Aberto / Público |
