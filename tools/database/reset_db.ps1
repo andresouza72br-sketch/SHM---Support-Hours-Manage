@@ -55,12 +55,22 @@ if ($LASTEXITCODE -ne 0) {
 
 # 5. Executar Script de Semeadura Deterministica
 Write-Host ""
-Write-Host "[4/4] Executando semeadura deterministica de dados..." -ForegroundColor Yellow
+Write-Host "[4/5] Executando semeadura deterministica de dados..." -ForegroundColor Yellow
 $seedScript = Join-Path $PSScriptRoot "seed_base_limpa.py"
 & $pyExe $seedScript
 if ($LASTEXITCODE -ne 0) {
     Write-Host ""
     Write-Host "[ERRO] Falha ao semear os dados de teste!" -ForegroundColor Red
+    exit 1
+}
+
+# 6. Executar Perícia de Integridade Criptográfica (audit_verify_integrity)
+Write-Host ""
+Write-Host "[5/5] Executando pericia matematica na trilha forense (audit_verify_integrity)..." -ForegroundColor Yellow
+& $pyExe $managePy audit_verify_integrity
+if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "[ERRO] Falha pericial: inconsistencia detectada na cadeia criptografica!" -ForegroundColor Red
     exit 1
 }
 
@@ -82,4 +92,12 @@ Write-Host "  - Contrato: CT-2026-0001 (Acme Corp | Franquia: 100.00h | SHA-256 
 Write-Host "  - OS 01: [AGUARDANDO_ACEITE]    -> Pronto para Aceite Final (A3 / Debito de 6h)" -ForegroundColor Gray
 Write-Host "  - OS 02: [AGUARDANDO_APROVACAO] -> Pronto para Aprovar Orcamento (A2 / 8h)" -ForegroundColor Gray
 Write-Host "  - OS 03: [ABERTO]               -> Novo chamado pronto para triagem tecnica" -ForegroundColor Gray
+
 Write-Host ""
+Write-Host "AUDITORIA FORENSE E ENCADEMENTO CRIPTOGRAFICO (HASH CHAINING):" -ForegroundColor Cyan
+Write-Host "  - Particao Contrato: contrato:1 (3 elos: Criacao -> Upload Doc -> Carga Saldo)" -ForegroundColor Gray
+Write-Host "  - Particao Cliente:  cliente:1 (1 elo: Criacao do Tomador Acme)" -ForegroundColor Gray
+Write-Host "  - Selo Diario:       AuditDailySeal lavrado e ativo (RN-16)" -ForegroundColor Gray
+Write-Host "  - Integridade:       100% comprovada via SHA-256 (RFC 8785)" -ForegroundColor Green
+Write-Host ""
+

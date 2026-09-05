@@ -316,6 +316,37 @@ class ForensicAuditLog(models.Model):
     def __str__(self):
         return f"[{self.particao} #{self.sequencia}] {self.tipo_evento} ({self.current_hash[:8]}...)"
 
+    def get_tipo_evento_display(self):
+        mapa_display = {
+            "criacao": "Criação de Contrato",
+            "CONTRATO_CRIACAO": "Criação de Contrato",
+            "aceite": "Aceite Formalizado",
+            "alteracao": "Alteração Cadastral",
+            "conclusao": "Contrato Concluído",
+            "cancelamento": "Contrato Cancelado",
+            "upload_documento": "Upload de Documento",
+            "CONTRATO_DOCUMENTO_UPLOAD": "Upload de Documento",
+            "download_documento": "Download de Documento",
+            "exclusao_documento": "Exclusão de Documento",
+            "atualizacao_emails": "Atualização de E-mails de Notificação",
+            "convite_email": "Convite de E-mail de Notificação",
+            "confirmacao_email": "Confirmação de E-mail de Notificação",
+            "recusa_email": "Recusa de E-mail de Notificação",
+            "download_relatorio": "Download / Impressão de Relatório",
+            "avaliacao_ciclo": "Avaliação de Ciclo",
+            "SALDO_REABASTECIMENTO": "Carga de Franquia / Reabastecimento",
+            "SALDO_CONSUMO_CICLO": "Consumo de Saldo por Aceite de Ciclo",
+            "CICLO_ACEITE_EXCECAO_TOLERANCIA": "Aceite de Exceção acima da Tolerância (+30%)",
+            "SALDO_MIGRACAO_ENVIO": "Transferência de Saldo (Envio)",
+            "SALDO_MIGRACAO_RECEBIMENTO": "Aproveitamento de Saldo (Recebimento)",
+            "SALDO_COMPENSACAO_ABATIMENTO": "Compensação de Saldo (Abatimento)",
+            "SALDO_COMPENSACAO_QUITACAO": "Compensação de Saldo (Quitação)",
+            "EXCLUSAO": "Exclusão Definitiva de Cliente",
+            "CRIACAO": "Criação Cadastral",
+        }
+        return mapa_display.get(self.tipo_evento, self.tipo_evento.replace("_", " ").title())
+
+
     def save(self, *args, **kwargs):
         if self.pk and not self._state.adding:
             # Check if this object already exists in database
