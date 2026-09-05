@@ -12,11 +12,18 @@ framework: "Reversa"
 
 ### Da Programação por Impulso à Engenharia de Software - AI Engineer &amp; Agent Harness
 
-![Autor](https://img.shields.io/badge/Autor-André%20Luis%20de%20Souza-007ACC?style=for-the-badge&logo=github&logoColor=white)
-![Formação](https://img.shields.io/badge/Formação-Engenharia%20de%20Requisitos%20de%20Software%2C%20Análise%20de%20Sistemas%20--%20UniCEUB-007ACC?style=for-the-badge&logoColor=white)
+[![Autor](https://img.shields.io/badge/Autor-André%20Luis%20de%20Souza-007ACC?style=for-the-badge&logo=github&logoColor=white)](https://github.com/andresouza72br-sketch)
+[![Formação](https://img.shields.io/badge/Formação-Engenharia%20de%20Requisitos%20de%20Software%2C%20Análise%20de%20Sistemas%20--%20UniCEUB-007ACC?style=for-the-badge&logoColor=white)](https://www.uniceub.br/)
+[![Mentoria](https://img.shields.io/badge/Mentoria-Prof.%20Sandeco%20Macedo-ff904d?style=for-the-badge&logo=youtube&logoColor=white)](https://youtube.com/@sandeco)
+[![Framework](https://img.shields.io/badge/Framework-Reversa%20SDD-ff904d?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sandeco)
 
-![Mentoria](https://img.shields.io/badge/Mentoria-Prof.%20Sandeco%20Macedo-ff904d?style=for-the-badge&logo=youtube&logoColor=white)
-![Framework](https://img.shields.io/badge/Framework-Reversa%20SDD-ff904d?style=for-the-badge&logo=github&logoColor=white)
+<!-- Badges de Auditoria Forense, Trilha DNA e Conformidade Legal -->
+[![Cadeia de Custódia CPP](https://img.shields.io/badge/Cadeia%20de%20Custódia-CPP%20158--A%20a%20F-blue?style=for-the-badge&logo=shield&logoColor=white)](../README.md#-5-auditoria-forense-trilha-dna-do-contrato--conformidade-legal)
+[![Eficácia Probatória CPC](https://img.shields.io/badge/Eficácia%20Probatória-CPC%20411%2F422-indigo?style=for-the-badge&logo=balance-scale&logoColor=white)](../README.md#-5-auditoria-forense-trilha-dna-do-contrato--conformidade-legal)
+[![Evidência Digital ISO](https://img.shields.io/badge/ISO%2FIEC%2027037-Evidência%20Digital-darkgreen?style=for-the-badge&logo=checkmarx&logoColor=white)](../README.md#-5-auditoria-forense-trilha-dna-do-contrato--conformidade-legal)
+[![Canonicidade RFC 8785](https://img.shields.io/badge/RFC%208785-JSON%20JCS-purple?style=for-the-badge&logo=json&logoColor=white)](../README.md#-5-auditoria-forense-trilha-dna-do-contrato--conformidade-legal)
+[![Trilha DNA SHA-256](https://img.shields.io/badge/Trilha%20DNA-SHA--256%20Chaining-red?style=for-the-badge&logo=blockchaindotcom&logoColor=white)](../README.md#-5-auditoria-forense-trilha-dna-do-contrato--conformidade-legal)
+[![Documentação Pericial](https://img.shields.io/badge/Documentação-Auditoria%20Forense-0284c7?style=for-the-badge&logo=read-the-docs&logoColor=white)](../README.md#-documentação-oficial-de-auditoria-forense-e-perícia-independente)
 
 </div>
 
@@ -47,20 +54,20 @@ flowchart TD
         V1["Impulso Inicial<br><b>(Velocidade Ilusória)</b>"] --> V2["Acúmulo de Débito Técnico<br><b>(Sem Arquitetura)</b>"] --> V3["🚨 Ponto de Inversão<br><b>(Colapso do Débito Técnico)</b>"]
     end
     
-    subgraph SHM["⚡ Engenharia com IA no SHM (7 Dias de Rigor)"]
+    subgraph SHM["⚡ Engenharia com IA no SHM (Rigor Arquitetural)"]
         direction LR
-        S1["Requisitos & SDD<br><b>(Contratos Claros)</b>"] --> S2["TDD, GoF & 79+ Testes<br><b>(Agent Harness)</b>"] --> S3["💎 Produto Sólido em 7 Dias<br><b>(Sustentável por Design)</b>"]
+        S1["Requisitos & SDD<br><b>(Contratos Claros)</b>"] --> S2["TDD, GoF & 161+ Testes<br><b>(Agent Harness)</b>"] --> S3["💎 Produto Sólido & Auditável<br><b>(Sustentável por Design)</b>"]
     end
 ```
 
 
 | Aspecto              | Programação por Impulso (*Vibe Coding*)                      | Engenharia de Software com IA (SHM)                                      |
 | :-------------------- | :------------------------------------------------------------ | :------------------------------------------------------------------------ |
-| **Tempo de Entrega** | Ilusão de velocidade que se arrasta por meses de retrabalho. | **7 dias de engenharia de verdade**, do zero ao produto testado.         |
+| **Tempo de Entrega** | Ilusão de velocidade que se arrasta por meses de retrabalho. | **Engenharia de verdade**, do zero ao produto testado e blindado.        |
 | **Requisitos**       | Alucinados pela IA ou baseados em intuições voláteis.        | Levantados com rigor para resolver o problema real do negócio.           |
 | **Processo**         | Acúmulo caótico de prompts sem rastro técnico ou testes.     | Abordagem sistemática, disciplinada e quantificável (**SDD + TDD**).     |
 | **Sustentabilidade** | Custo de mudança cresce de forma exponencial até o colapso.  | Custo de evolução mantém-se linear, previsível e escalável.              |
-| **Qualidade**        | Funciona por coincidência (*protótipo frágil*).              | Funciona por design, contratos formais e 79+ testes (*produto robusto*). |
+| **Qualidade**        | Funciona por coincidência (*protótipo frágil*).              | Funciona por design, contratos formais e 161+ testes (*produto robusto*).|
 
 
 >
@@ -101,7 +108,7 @@ O **AI Engineer** não escreve código; ele governa processos. No SHM, adotamos 
 flowchart LR
     A["👨‍💻 <b>Humano: SDD</b><br>Spec & Teste Red"] -->|Contrato| B["🔴 <b>Red</b><br>Teste Falha"]
     B -->|Agent Harness| C["🟢 <b>Green</b><br>IA Gera Código"]
-    C -->|Contratos GoF| D{"<b>Passou 79+<br>Testes?</b>"}
+    C -->|Contratos GoF| D{"<b>Passou 161+<br>Testes?</b>"}
     D -- "Não" --> C
     D -- "Sim" --> E["♻️ <b>Refactor</b><br>Limpeza de Código"]
     E --> F["🚀 <b>Deploy Seguro</b><br>Rastreável"]
@@ -118,7 +125,24 @@ O ciclo de desenvolvimento é regido pelo rigor do **TDD (*Test-Driven Developme
 
 ---
 
-### 5. A Perspectiva Histórica: Por Que o Processo é Inegociável?
+### 5. O Contrato como DNA Imutável: A Auditoria Forense como Guardiã Patrimonial
+
+No paradigma do *Vibe Coding*, logs de sistema costumam ser arquivos de texto descartáveis ou tabelas relacionais vulneráveis a edições manuais e `UPDATEs` arbitrários. No **SHM**, a relação contratual entre Tomador e Prestador é tratada como um ativo patrimonial inviolável.
+
+A engenharia do SHM instituiu o conceito da **Trilha de Auditoria DNA do Contrato**:
+
+1. **A Fita de DNA Transacional (Hash Chaining & RFC 8785):**
+   Cada contrato ativo possui uma partição de custódia (`contrato:<id>`) estruturada exatamente como uma fita helicoidal de DNA. Partindo de um bloco gênese padronizado de 64 zeros, cada evento (aprovação de orçamento, aceite de entrega, compensação de débitos, migração de saldo ou agendamento de suporte) é serializado sob as regras determinísticas da **RFC 8785 (JSON Canonicalization Scheme - JCS)** e encadeado matematicamente com o hash do elo anterior (`previous_hash`) via **SHA-256**. É impossível alterar um único centésimo de hora ou justificativa no passado sem romper imediatamente toda a cadeia subsequente.
+2. **Imutabilidade Real com Gatilhos Nativos de Banco:**
+   Para além das travas do ORM, a integridade é garantida no nível físico do banco de dados pelo gatilho nativo PostgreSQL `trg_forensic_audit_immutability`. Qualquer instrução `UPDATE` ou `DELETE` disparada contra a trilha forense resulta em erro imediato e irrecuperável de banco de dados, blindando o sistema inclusive contra acessos de administradores ou agentes com privilégios de root.
+3. **A Inversão da Caixa-Preta (Soberania Pericial e CPP Arts. 158-A a 158-F):**
+   A verdadeira engenharia de software repudia o corporativismo da "caixa-preta". Em litígios periciais, a parte não deve ser obrigada a "confiar" na boa-fé da outra ou em relatórios estáticos em PDF. Em cumprimento à norma internacional **ISO/IEC 27037** e aos arts. 158-A a 158-F do Código de Processo Penal (Cadeia de Custódia de Vestígios Digitais), o SHM disponibiliza a **Página Oficial de Documentação Pericial** ([`/publico/auditoria-forense`](file:///C:/Users/andre/mkt-dnb/dev/Antigravity/projeto-SHM/frontend/src/pages/DocumentacaoAuditoriaPage.tsx)) e distribui um utilitário pericial em Python 3 puro e autocontido (`verificador_independente.py`). Peritos judiciais, policiais e assistentes técnicos podem baixar o validador e checar a integridade da cadeia de forma 100% offline em estações isoladas (*air-gapped*), sem depender do software operacional.
+4. **Governança Síncrona e Alinhamento Técnico (Módulo Schedule):**
+   A integridade da engenharia estende-se à comunicação interpessoal. O módulo **Schedule** integra compromissos e reuniões técnicas aos clientes e ciclos de atendimento, provisionando salas corporativas via Google Meet, acionando escalada tripla de lembretes automáticos (24h, 30m e 15m) e impondo justificativa mandatória com registro forense em cancelamentos.
+
+---
+
+### 6. A Perspectiva Histórica: Por Que o Processo é Inegociável?
 
 Na aviação, a taxa de acidentes é de apenas **0,07 por milhão de voos** porque o processo é lei. Na medicina, checklists obrigatórios reduzem complicações em **47%**. No software, curiosamente, o mercado ainda chama a negligência de "ser ágil". Essa ironia profissional reflete-se nos dados estagnados do **Chaos Report 2020**: apenas **31%** dos projetos são bem-sucedidos, enquanto **50%** são "desafiados" (atrasos/custos extras) e **19%** falham ou são cancelados antes da entrega.
 
@@ -134,7 +158,7 @@ Na aviação, a taxa de acidentes é de apenas **0,07 por milhão de voos** porq
 
 ---
 
-### 6. Conclusão: O Manifesto para o Futuro Sustentável
+### 7. Conclusão: O Manifesto para o Futuro Sustentável
 
 O **SHM (Support Hours Manager)** prova que a velocidade da IA, quando contida por uma arquitetura sólida e pelo **Framework Reversa**, produz resultados excepcionais. Sob a mentoria do **Prof. Sandeco Macedo**, aprendi que o futuro não pertence a quem "digita prompts", mas a quem projeta sistemas que duram.
 
