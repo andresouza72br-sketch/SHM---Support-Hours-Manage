@@ -9,18 +9,21 @@ graph TD
     Client[React 19 SPA] <-->|JSON / JWT / OpenAPI| API[Django REST Framework]
     API --> Accounts[apps.accounts]
     API --> Clientes[apps.clientes]
-    API --> Contratos[apps.contratos]
+    API --> Contratos[apps.contratos / ForensicAudit]
     API --> Pedidos[apps.pedidos]
     API --> Ciclos[apps.ciclos]
     API --> Tarefas[apps.tarefas]
     API --> Saldo[apps.saldo]
     API --> Comunicacao[apps.comunicacao]
     API --> Notificacoes[apps.notificacoes]
+    API --> Schedule[apps.schedule]
     
+    Schedule <-->|OAuth / Meet API| GCalendar[Google Calendar & Meet]
     Saldo --> DB[(Database PostgreSQL / SQLite)]
     Contratos --> DB
     Pedidos --> DB
     Ciclos --> DB
+    Schedule --> DB
 ```
 
 ---
@@ -34,6 +37,10 @@ erDiagram
     PEDIDO ||--|{ CICLO : "decomposto em"
     CICLO ||--o{ TAREFA : "composto por"
     CONTRATO ||--o{ HISTORICO_SALDO : "registra ledger"
+    CONTRATO ||--o{ FORENSIC_AUDIT_LOG : "fita dna encadeada"
+    CONTRATO ||--o{ AUDIT_DAILY_SEAL : "selo diario noturno"
+    CLIENTE ||--o{ AGENDAMENTO : "agenda reuniao"
+    AGENDAMENTO ||--o{ LEMBRETE_AGENDAMENTO : "escalada de lembretes"
     CICLO ||--o{ COMENTARIO : "possui"
     PEDIDO ||--o{ TIMELINE_EVENT : "gera eventos"
 
@@ -125,6 +132,52 @@ erDiagram
         string comentario
         datetime criado_em
     }
+
+    FORENSIC_AUDIT_LOG {
+        uuid id PK
+        string particao UK "contrato:id"
+        int sequencia UK "Monotonica 1..N"
+        string hash_anterior "SHA-256 (64 hex)"
+        string hash_atual "SHA-256 (64 hex)"
+        string dados_payload "RFC 8785 Canonical JSON"
+        string nivel_relevancia "CRITICA / OPERACIONAL"
+        string tipo_evento
+        string ip_origem
+        string user_agent
+        datetime timestamp "ISO-8601"
+    }
+
+    AUDIT_DAILY_SEAL {
+        uuid id PK
+        string particao UK
+        date data_referencia UK
+        string selo_digest "SHA-256"
+        int total_eventos
+        datetime gerado_em
+    }
+
+    AGENDAMENTO {
+        uuid id PK
+        int cliente_id FK
+        int organizador_id FK
+        string titulo
+        datetime data_inicio
+        datetime data_fim
+        int duracao_minutos
+        string google_event_id
+        string google_meet_link
+        string status "agendado / cancelado / realizado"
+        string motivo_cancelamento
+    }
+
+    LEMBRETE_AGENDAMENTO {
+        uuid id PK
+        uuid agendamento_id FK
+        string antecedencia "24h / 30m / 15m"
+        datetime programado_para
+        datetime disparado_em
+        boolean enviado
+    }
 ```
 
 ---
@@ -166,17 +219,95 @@ sequenceDiagram
 
 ---
 
-## 4. Segurança & Controle de Acesso (RBAC)
+## 4. Trilha de Auditoria Forense "DNA do Contrato" (Hash Chaining RFC 8785 / SHA-256)
+
+A arquitetura de auditoria do SHM opera sob o conceito da **Fita de DNA Transacional**, onde cada contrato vigente possui sua própria partição contínua (`contrato:<id>`) garantindo imutabilidade matemática absoluta:
+
+```mermaid
+flowchart LR
+    subgraph BlocoGenesis["Bloco 0 (Gênese)"]
+        G1["previous_hash:<br><b>0000...0000 (64 zeros)</b>"]
+        G2["hash_atual:<br><b>SHA-256(Gênese)</b>"]
+    end
+
+    subgraph Bloco1["Bloco 1 (Ex: Aceite Formal Ciclo #1)"]
+        B1_P["previous_hash:<br><b>hash_atual(Bloco 0)</b>"]
+        B1_C["payload_canonico:<br><b>RFC 8785 (JCS)</b>"]
+        B1_H["hash_atual:<br><b>SHA-256(prev || payload)</b>"]
+        B1_P --> B1_H
+        B1_C --> B1_H
+    end
+
+    subgraph BlocoN["Bloco N (Ex: Migração de Saldo / Resgate)"]
+        BN_P["previous_hash:<br><b>hash_atual(Bloco N-1)</b>"]
+        BN_C["payload_canonico:<br><b>RFC 8785 (JCS)</b>"]
+        BN_H["hash_atual:<br><b>SHA-256(prev || payload)</b>"]
+        BN_P --> BN_H
+        BN_C --> BN_H
+    end
+
+    subgraph Selo["Selo Diário (AuditDailySeal 23:59:59)"]
+        S_D["selo_digest:<br><b>SHA-256(Estado Diário)</b>"]
+    end
+
+    BlocoGenesis --> Bloco1 --> BlocoN --> Selo
+```
+
+### Mecanismos de Blindagem Forense:
+1. **Lock Pessimista por Partição (`select_for_update`):** Impede condições de corrida e bifurcações concorrentes na cadeia.
+2. **Normalização RFC 8785 (JCS):** Garante ordenação lexicográfica e formatação decimal invariante, permitindo reprodutibilidade em qualquer linguagem.
+3. **Gatilho Nativo PostgreSQL (`trg_forensic_audit_immutability`):** Rejeita operações de `UPDATE` e `DELETE` no motor do banco de dados.
+4. **Selo Diário Noturno (`AuditDailySeal`):** Lavratura consolidada à meia-noite via `audit_seal_daily`.
+5. **Timeline no Extrato (`TimelineAuditoriaContrato`):** Visualização ponto a ponto no frontend.
+
+---
+
+## 5. Módulo Schedule: Agendamento Técnico & Integração Google Meet
+
+O módulo `apps.schedule` centraliza o alinhamento síncrono da equipe técnica com o cliente contratante:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Org as 👤 Organizador (Empresa / Técnico)
+    participant Front as 💻 Frontend Web
+    participant API as ⚙️ Backend (apps.schedule)
+    participant Google as 🌐 Google Calendar API
+    actor Part as 👥 Participantes (Cliente / Equipe)
+
+    Org->>Front: Agenda Reunião Técnica (Contexto: Pedido/Ciclo)
+    Front->>API: POST /api/v1/schedule/agendamentos/
+    API->>Google: GoogleCalendarService.criar_evento()
+    Google-->>API: Retorna google_meet_link e google_event_id
+    API->>API: Persiste Agendamento + Cria 3 Lembretes (24h, 30m, 15m)
+    API-->>Front: Agendamento Criado com Link Meet
+    
+    Note over API: Rotina Periódica: processar_lembretes_schedule
+    API->>Part: Disparo Programado: E-mail HTML com CTA Meet + Notificação In-App
+```
+
+---
+
+## 6. Documentação Pericial Oficial e Soberania Sem Caixa-Preta
+
+Em consonância com a norma **ISO/IEC 27037** e a disciplina legal de **Cadeia de Custódia (CPP arts. 158-A a 158-F)**, o SHM disponibiliza:
+- **Rota Pública Aberta:** [`/publico/auditoria-forense`](frontend/src/pages/DocumentacaoAuditoriaPage.tsx) para consulta de peritos judiciais e forças policiais sem login corporativo.
+- **Utilitário Pericial Offline em Python Puro:** [`verificador_independente.py`](frontend/src/utils/verificador_script.ts) sem dependências externas (`pip`), projetado para análise pericial em estações *air-gapped*.
+- **Comandos de Gerenciamento CLI:** `python manage.py audit_verify_integrity` e `python manage.py audit_seal_daily`.
+
+---
+
+## 7. Segurança & Controle de Acesso (RBAC)
 
 O SHM 2.5 implementa 4 níveis de perfis de acesso:
 1. **`EMPRESA_ADMIN`**: Acesso irrestrito a todos os clientes, gestão financeira de contratos, reabastecimentos, transferências e configuração de equipe.
-2. **`EMPRESA_TECNICO`**: Acesso à fila operacional, triagem de pedidos, emissão de orçamentos e apontamento de tarefas.
-3. **`CLIENTE_GERENTE`**: Tomador do contrato. Possui permissão para autorizar orçamentos, aprovar/recusar aceites finais e visualizar extratos financeiros.
+2. **`EMPRESA_TECNICO`**: Acesso à fila operacional, triagem de pedidos, emissão de orçamentos, apontamento de tarefas e agendamento de reuniões técnicas.
+3. **`CLIENTE_GERENTE`**: Tomador do contrato. Possui permissão para autorizar orçamentos, aprovar/recusar aceites finais, visualizar extratos financeiros e solicitar reuniões técnicas.
 4. **`CLIENTE_ANALISTA`**: Usuário operacional do cliente. Pode abrir pedidos de suporte e interagir nos comentários dos ciclos.
 
 ---
 
-## 5. Racional da Stack Tecnológica & Decisões Arquiteturais (ADR Synthesis)
+## 8. Racional da Stack Tecnológica & Decisões Arquiteturais (ADR Synthesis)
 
 Alinhado ao [**Manifesto de Engenharia SHM**](Manifesto/manifesto.md) e ao guia **SWEBOK**, cada elemento da stack foi selecionado para atuar como **fronteira de contenção (Agent Harness)**:
 
